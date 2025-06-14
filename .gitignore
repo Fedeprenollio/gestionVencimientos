@@ -1,0 +1,33 @@
+# node modules
+node_modules/
+**/node_modules/
+
+# logs
+logs/
+*.log
+npm-debug.log*
+
+# dotenv
+.env
+.env.*.local
+
+# Vite + frontend build
+dist/
+frontend/dist/
+
+# VSCode
+.vscode/
+
+# MacOS / Windows
+.DS_Store
+Thumbs.db
+
+# MongoDB dump
+dump/
+
+# coverage de tests (si usás Jest u otros)
+coverage/
+
+# opcional: carpetas temporales
+tmp/
+temp/
