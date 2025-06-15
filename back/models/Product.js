@@ -1,10 +1,30 @@
-import mongoose from 'mongoose';
-const productSchema = new mongoose.Schema({
-  barcode: { type: String, unique: true, required: true },
-  name: { type: String, required: true },
-  type: { type: String, enum: ['medicamento', 'perfumeria'], required: true },
-  expirationDate: { type: Date, required: true },
-  branch: { type: String, required: true }
-}, { timestamps: true });
+import mongoose from "mongoose";
 
-export default mongoose.model('Product', productSchema);
+
+const lotSchema = new mongoose.Schema({
+  expirationDate: {
+    type: Date, // "YYYY-MM"
+    required: true,
+  },
+  quantity: {
+    type: Number,
+    required: true,
+  },
+  branch: {
+    type: String,
+    required: true,
+  },
+});
+
+const productSchema = new mongoose.Schema({
+  barcode: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  name: String,
+  type: String,
+  lots: [lotSchema],
+});
+
+export default mongoose.model("Product", productSchema);
