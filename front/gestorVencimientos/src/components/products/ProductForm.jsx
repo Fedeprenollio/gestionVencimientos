@@ -11,8 +11,9 @@ import {
   Typography,
   Grid,
 } from "@mui/material";
+import BarcodeScanner from "../BarcodeScanner/BarcodeScanner";
 
-export default function ProductForm({ onAdded,branch  }) {
+export default function ProductForm({ onAdded, branch }) {
   const [barcode, setBarcode] = useState("");
   const [productExists, setProductExists] = useState(null);
   const [name, setName] = useState("");
@@ -20,6 +21,12 @@ export default function ProductForm({ onAdded,branch  }) {
   const [quantity, setQuantity] = useState(1);
   const [expMonth, setExpMonth] = useState("");
   const [expYear, setExpYear] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const handleDetected = (code) => {
+    setBarcode(code);
+    setScanning(false);
+    handleSearch(); // buscar el producto automáticamente
+  };
 
   const handleBarcodeChange = (e) => {
     setBarcode(e.target.value);
@@ -28,7 +35,9 @@ export default function ProductForm({ onAdded,branch  }) {
 
   const handleSearch = async () => {
     try {
-      const res = await axios.get(import.meta.env.VITE_API_URL + `/products/${barcode}`);
+      const res = await axios.get(
+        import.meta.env.VITE_API_URL + `/products/${barcode}`
+      );
       setProductExists(true);
       setName(res.data.name);
       setType(res.data.type);
@@ -68,7 +77,11 @@ export default function ProductForm({ onAdded,branch  }) {
   };
 
   return (
-    <Box component="form" onSubmit={submit} sx={{ maxWidth: 500, mx: "auto", p: 2 }}>
+    <Box
+      component="form"
+      onSubmit={submit}
+      sx={{ maxWidth: 500, mx: "auto", p: 2 }}
+    >
       <Typography variant="h6" gutterBottom>
         {productExists === null
           ? "Nuevo producto o lote"
@@ -85,6 +98,23 @@ export default function ProductForm({ onAdded,branch  }) {
         required
         sx={{ mb: 2 }}
       />
+
+      <Button
+        variant="outlined"
+        onClick={() => setScanning(true)}
+        fullWidth
+        sx={{ mb: 2 }}
+        disabled={scanning}
+      >
+        {scanning ? "Escaneando..." : "Escanear código"}
+      </Button>
+
+      {scanning && (
+        <BarcodeScanner
+          onDetected={handleDetected}
+          onClose={() => setScanning(false)}
+        />
+      )}
 
       <Button
         variant="outlined"
@@ -158,7 +188,11 @@ export default function ProductForm({ onAdded,branch  }) {
                 >
                   {Array.from({ length: 10 }, (_, i) => {
                     const year = new Date().getFullYear() + i;
-                    return <MenuItem key={year} value={year}>{year}</MenuItem>;
+                    return (
+                      <MenuItem key={year} value={year}>
+                        {year}
+                      </MenuItem>
+                    );
                   })}
                 </Select>
               </FormControl>

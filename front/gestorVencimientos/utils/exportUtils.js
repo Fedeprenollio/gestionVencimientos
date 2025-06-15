@@ -3,7 +3,6 @@ import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import dayjs from 'dayjs';
-
 export const formatDate = (isoString) => {
   return dayjs(isoString).format('MM/YYYY');
 };
@@ -85,3 +84,6 @@ export const exportToPDF = (products, sortBy = "expiration") => {
   
     doc.save("productos_vencimiento.pdf");
   };
+
+
+ 
