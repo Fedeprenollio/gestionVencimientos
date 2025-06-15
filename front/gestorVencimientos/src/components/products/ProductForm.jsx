@@ -11,7 +11,7 @@ import {
   Typography,
   Grid,
 } from "@mui/material";
-import BarcodeScanner from "../BarcodeScanner/BarcodeScanner";
+import BarcodeScanner from "../barcodeScanner/BarcodeScanner";
 
 export default function ProductForm({ onAdded, branch }) {
   const [barcode, setBarcode] = useState("");
