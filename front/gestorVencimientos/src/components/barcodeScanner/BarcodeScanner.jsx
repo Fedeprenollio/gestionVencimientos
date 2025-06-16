@@ -111,27 +111,40 @@ export default function BarcodeScanner({ onDetected, onClose }) {
   const [loading, setLoading] = useState(true);
   const [lastResult, setLastResult] = useState("");
 
-  // useZxing hook handles start/stop automatically
-  const { ref: videoRef, error: scanError, result } = useZxing({
+  // useZxing hook provides start and stop
+  const {
+    ref: videoRef,
+    start,
+    stop,
+    error: scanError,
+    result,
+  } = useZxing({
     onResult: (res) => {
       const code = res.getText();
-      console.log("CODIGO:",code )
+      console.log("Detected code:", code);
       setLastResult(code);
       onDetected(code);
-      onClose();
     },
     timeBetweenDecodingAttempts: 200,
     constraints: { video: { facingMode: "environment" } },
   });
 
-  // Manage loading state when video element is ready
+  // Start the scanner once
   useEffect(() => {
-    if (videoRef.current) {
-      setLoading(false);
-    }
-  }, [videoRef]);
+    start()
+      .then(() => {
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error starting camera:", err);
+        setLoading(false);
+      });
+    return () => {
+      stop().catch(() => {});
+    };
+  }, [start, stop]);
 
-  // Handle scan errors (e.g., no camera)
+  // If there's a scan error (no camera), show warning
   if (scanError) {
     console.error("Scan error:", scanError);
     return (
@@ -160,6 +173,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         style={{ width: "100%", borderRadius: 8, border: "1px solid #ccc" }}
         muted
         playsInline
+        autoPlay
       />
 
       {!loading && lastResult && (
@@ -169,7 +183,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
       )}
 
       {!loading && (
-        <Button onClick={onClose} fullWidth sx={{ mt: 2 }}>
+        <Button onClick={() => { stop(); onClose(); }} fullWidth sx={{ mt: 2 }}>
           Cancelar
         </Button>
       )}
