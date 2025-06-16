@@ -98,39 +98,85 @@
 // }
 
 
+
 // src/components/QuaggaScanner.jsx
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Quagga from "quagga";
+import {
+  Box,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  CircularProgress,
+  Typography,
+  Alert
+} from "@mui/material";
 
 export default function BarcodeScanner({ onDetected, onClose }) {
   const containerRef = useRef(null);
+  const [devices, setDevices] = useState([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState(null);
+  const [loadingDevices, setLoadingDevices] = useState(true);
 
+  // 1. Enumerar cámaras disponibles
   useEffect(() => {
+    (async () => {
+      try {
+        const all = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = all.filter((d) => d.kind === "videoinput");
+        setDevices(videoInputs);
+        if (videoInputs.length) {
+          setSelectedDeviceId(videoInputs[0].deviceId);
+        }
+      } catch (err) {
+        console.error("Error enumerando dispositivos:", err);
+      } finally {
+        setLoadingDevices(false);
+      }
+    })();
+  }, []);
+
+  // 2. (Re)iniciar Quagga cada vez que cambie la cámara
+  useEffect(() => {
+    if (!selectedDeviceId) return;
+    // Primero limpiar cualquier instancia anterior
+    Quagga.stop();
+    Quagga.offDetected();
+
     Quagga.init(
       {
         inputStream: {
           type: "LiveStream",
           target: containerRef.current,
-          constraints: { facingMode: "environment" },
+          constraints: {
+            deviceId: selectedDeviceId,
+            facingMode: "environment"
+          },
         },
         decoder: {
-          readers: ["code_128_reader", "ean_reader", "ean_8_reader", "upc_reader"],
+          readers: [
+            "code_128_reader",
+            "ean_reader",
+            "ean_8_reader",
+            "upc_reader"
+          ],
         },
       },
       (err) => {
         if (err) {
           console.error("Quagga init error:", err);
-          onClose();
           return;
         }
         Quagga.start();
       }
     );
 
-   
     Quagga.onDetected((data) => {
-      onDetected(data.codeResult.code);
-      console.log("data.codeResult.code",data.codeResult.code)
+      const code = data.codeResult.code;
+      console.log("Código detectado:", code);
+      onDetected(code);
       Quagga.stop();
       onClose();
     });
@@ -139,13 +185,64 @@ export default function BarcodeScanner({ onDetected, onClose }) {
       Quagga.stop();
       Quagga.offDetected();
     };
-  }, []);
+  }, [selectedDeviceId, onDetected, onClose]);
+
+  // 3. UI
+  if (loadingDevices) {
+    return (
+      <Box textAlign="center" p={2}>
+        <CircularProgress />
+        <Typography variant="body2">Buscando cámaras...</Typography>
+      </Box>
+    );
+  }
+  if (!devices.length) {
+    return (
+      <Box textAlign="center" p={2}>
+        <Alert severity="warning">No se encontraron cámaras disponibles.</Alert>
+        <Button variant="contained" onClick={onClose} sx={{ mt: 2 }}>
+          Cerrar
+        </Button>
+      </Box>
+    );
+  }
 
   return (
-    <div ref={containerRef} style={{ width: "100%", position: "relative" }}>
-      {/* Quagga inyecta el <video> y <canvas> aquí */}
-      <button onClick={() => { Quagga.stop(); onClose(); }}>Cancelar</button>
-    </div>
+    <Box>
+      {devices.length > 1 && (
+        <FormControl fullWidth sx={{ mb: 2 }}>
+          <InputLabel>Cámara</InputLabel>
+          <Select
+            label="Cámara"
+            value={selectedDeviceId}
+            onChange={(e) => setSelectedDeviceId(e.target.value)}
+          >
+            {devices.map((d) => (
+              <MenuItem key={d.deviceId} value={d.deviceId}>
+                {d.label || d.deviceId}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      )}
+
+      <div
+        ref={containerRef}
+        style={{ width: "100%", position: "relative", aspectRatio: "4/3" }}
+      />
+
+      <Button
+        variant="contained"
+        color="error"
+        fullWidth
+        onClick={() => {
+          Quagga.stop();
+          onClose();
+        }}
+        sx={{ mt: 2 }}
+      >
+        Cancelar
+      </Button>
+    </Box>
   );
 }
-
