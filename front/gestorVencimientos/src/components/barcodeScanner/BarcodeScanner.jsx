@@ -102,34 +102,29 @@ import { useZxing } from "react-zxing";
 import {
   Box,
   CircularProgress,
-  IconButton,
   Typography,
   Button,
   Alert,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 
 export default function BarcodeScanner({ onDetected, onClose }) {
   const [loading, setLoading] = useState(true);
-  const [results, setResults] = useState("");
+  const [lastResult, setLastResult] = useState("");
+
   // useZxing hook handles start/stop automatically
-  const {
-    ref: videoRef,
-    error: scanError,
-    result,
-  } = useZxing({
+  const { ref: videoRef, error: scanError, result } = useZxing({
     onResult: (res) => {
-      onDetected(res.getText());
-      setResults(result)
+      const code = res.getText();
+      setLastResult(code);
+      onDetected(code);
       onClose();
     },
     timeBetweenDecodingAttempts: 200,
     constraints: { video: { facingMode: "environment" } },
   });
 
-  // Manage loading state
+  // Manage loading state when video element is ready
   useEffect(() => {
-    // videoRef is attached when ready
     if (videoRef.current) {
       setLoading(false);
     }
@@ -143,7 +138,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         <Alert severity="warning" sx={{ mb: 2 }}>
           No se detectó una cámara. Por favor, ingrese el código manualmente.
         </Alert>
-        <Button variant="contained" onClick={onClose}>
+        <Button variant="contained" onClick={onClose} fullWidth>
           Cerrar
         </Button>
       </Box>
@@ -165,10 +160,13 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         muted
         playsInline
       />
-      <p>
-        <span>Last result:</span>
-        <span>{results}</span>
-      </p>
+
+      {!loading && lastResult && (
+        <Typography sx={{ mt: 1 }}>
+          Último resultado: <strong>{lastResult}</strong>
+        </Typography>
+      )}
+
       {!loading && (
         <Button onClick={onClose} fullWidth sx={{ mt: 2 }}>
           Cancelar
