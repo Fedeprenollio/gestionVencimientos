@@ -88,9 +88,46 @@ export const addLotToProduct = async (req, res) => {
 };
 
 
-export const getExpiringProducts = async (req, res) => {
-  const { from, months = 6, branch, type } = req.query;
+// export const getExpiringProducts = async (req, res) => {
+//   const { from, months = 6, branch, type } = req.query;
 
+//   const truncateToMonth = (date) => {
+//     const d = new Date(date);
+//     d.setDate(1);
+//     d.setHours(0, 0, 0, 0);
+//     return d;
+//   };
+
+//   const fromDate = truncateToMonth(from ? new Date(from) : new Date());
+//   const untilDate = new Date(fromDate);
+//   untilDate.setMonth(untilDate.getMonth() + Number(months));
+
+//   const query = {
+//     lots: {
+//       $elemMatch: {
+//         expirationDate: {
+//           $gte: fromDate,
+//           $lt: untilDate,
+//         },
+//         ...(branch ? { branch } : {}),
+//       },
+//     },
+//     ...(type ? { type } : {}),
+//   };
+
+//   try {
+//     const products = await Product.find(query).sort("name");
+//     res.json(products);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: "Error al obtener productos" });
+//   }
+// };
+
+export const getExpiringProducts = async (req, res) => {
+  const { from, months = 6, branch, type, createdFrom, createdTo } = req.query;
+
+  // Función para truncar a inicio de mes
   const truncateToMonth = (date) => {
     const d = new Date(date);
     d.setDate(1);
@@ -98,31 +135,65 @@ export const getExpiringProducts = async (req, res) => {
     return d;
   };
 
+  // Rango de expiración
   const fromDate = truncateToMonth(from ? new Date(from) : new Date());
   const untilDate = new Date(fromDate);
   untilDate.setMonth(untilDate.getMonth() + Number(months));
 
-  const query = {
-    lots: {
-      $elemMatch: {
-        expirationDate: {
-          $gte: fromDate,
-          $lt: untilDate,
-        },
-        ...(branch ? { branch } : {}),
-      },
-    },
-    ...(type ? { type } : {}),
-  };
+  // Rango de creación
+  const createdCriteria = {};
+  if (createdFrom) {
+    const d = new Date(createdFrom);
+    d.setHours(0, 0, 0, 0);
+    createdCriteria.$gte = d;
+  }
+  if (createdTo) {
+    const d = new Date(createdTo);
+    d.setHours(23, 59, 59, 999);
+    createdCriteria.$lte = d;
+  }
+
+  // Construir match para productos
+  const match = { 'lots.expirationDate': { $gte: fromDate, $lt: untilDate } };
+  if (branch) match['lots.branch'] = branch;
+  if (type) match.type = type;
 
   try {
-    const products = await Product.find(query).sort("name");
+    const products = await Product.aggregate([
+      { $match: match },
+      {
+        $project: {
+          barcode: 1,
+          name: 1,
+          type: 1,
+          lots: {
+            $filter: {
+              input: '$lots',
+              as: 'lot',
+              cond: {
+                $and: [
+                  { $gte: ['$$lot.expirationDate', fromDate] },
+                  { $lt: ['$$lot.expirationDate', untilDate] },
+                  ...(branch ? [{ $eq: ['$$lot.branch', branch] }] : []),
+                  ...(createdFrom || createdTo
+                    ? [{ createdAt: createdCriteria }].map((c) => ({ $and: [ { $gte: ['$$lot.createdAt', createdCriteria.$gte || new Date(0)] }, { $lte: ['$$lot.createdAt', createdCriteria.$lte || new Date()] } ] }))
+                    : []),
+                ],
+              },
+            },
+          },
+        },
+      },
+      { $sort: { name: 1 } },
+    ]);
     res.json(products);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Error al obtener productos" });
+    res.status(500).json({ message: 'Error al obtener productos' });
   }
 };
+
+
 
 // controllers/productController.js
 export const deleteLot = async (req, res) => {

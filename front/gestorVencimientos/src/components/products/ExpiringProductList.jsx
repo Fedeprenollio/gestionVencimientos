@@ -8,6 +8,7 @@ import {
   exportToExcel,
   exportToPDF,
   formatDate,
+  formatDateWhitDay,
 } from "../../../utils/exportUtils";
 import {
   Box,
@@ -99,7 +100,7 @@ export default function ExpiringProductList() {
               {prod.lots.map((lot) => (
                 <li key={lot._id}>
                   {lot.branch} - {lot.quantity} unidades -{" "}
-                  {formatDate(lot.expirationDate)}
+                  {formatDate(lot.expirationDate)} - Lectura: {formatDateWhitDay(lot?.createdAt)}
                   <Tooltip title="Eliminar lote">
                     <IconButton
                       size="small"

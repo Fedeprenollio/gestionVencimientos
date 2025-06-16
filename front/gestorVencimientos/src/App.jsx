@@ -22,8 +22,8 @@ function App() {
       <SucursalSelector branch={branch} setBranch={setBranch} />
       <ProductForm onAdded={fetch} branch ={branch } />
       <hr />
-      <h2>Próximos a vencer</h2>
-      <ProductList products={products} />
+      {/* <h2>Próximos a vencer</h2>
+      <ProductList products={products} /> */}
       <ExpiringProductList/>
     </div>
   );

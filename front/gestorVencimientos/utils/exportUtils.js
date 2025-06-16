@@ -6,6 +6,9 @@ import dayjs from 'dayjs';
 export const formatDate = (isoString) => {
   return dayjs(isoString).format('MM/YYYY');
 };
+export const formatDateWhitDay = (isoString) => {
+    return dayjs(isoString).format('DD/MM/YYYY');
+  };
 export function exportToExcel(products) {
   const rows = [];
 
