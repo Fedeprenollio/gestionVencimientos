@@ -127,8 +127,10 @@ export default function BarcodeScanner({ onDetected, onClose }) {
       }
     );
 
+   
     Quagga.onDetected((data) => {
       onDetected(data.codeResult.code);
+      console.log("data.codeResult.code",data.codeResult.code)
       Quagga.stop();
       onClose();
     });
@@ -146,3 +148,4 @@ export default function BarcodeScanner({ onDetected, onClose }) {
     </div>
   );
 }
+
