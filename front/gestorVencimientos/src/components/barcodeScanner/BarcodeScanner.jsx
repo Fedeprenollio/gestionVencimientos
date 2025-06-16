@@ -97,8 +97,6 @@
 //   );
 // }
 
-
-
 import { useEffect, useState } from "react";
 import { useZxing } from "react-zxing";
 import {
@@ -114,7 +112,11 @@ import CloseIcon from "@mui/icons-material/Close";
 export default function BarcodeScanner({ onDetected, onClose }) {
   const [loading, setLoading] = useState(true);
   // useZxing hook handles start/stop automatically
-  const { ref: videoRef, error: scanError, result } = useZxing({
+  const {
+    ref: videoRef,
+    error: scanError,
+    result,
+  } = useZxing({
     onResult: (res) => {
       onDetected(res.getText());
       onClose();
@@ -161,17 +163,15 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         muted
         playsInline
       />
-
+      <p>
+        <span>Last result:</span>
+        <span>{result}</span>
+      </p>
       {!loading && (
-        <Button
-          onClick={onClose}
-          fullWidth
-          sx={{ mt: 2 }}
-        >
+        <Button onClick={onClose} fullWidth sx={{ mt: 2 }}>
           Cancelar
         </Button>
       )}
     </Box>
   );
 }
-
