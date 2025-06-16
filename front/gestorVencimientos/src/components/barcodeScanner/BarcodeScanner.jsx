@@ -99,7 +99,6 @@
 
 
 
-// src/components/QuaggaScanner.jsx
 import { useEffect, useRef, useState } from "react";
 import Quagga from "quagga";
 import {
@@ -111,7 +110,7 @@ import {
   MenuItem,
   CircularProgress,
   Typography,
-  Alert
+  Alert,
 } from "@mui/material";
 
 export default function BarcodeScanner({ onDetected, onClose }) {
@@ -120,16 +119,14 @@ export default function BarcodeScanner({ onDetected, onClose }) {
   const [selectedDeviceId, setSelectedDeviceId] = useState(null);
   const [loadingDevices, setLoadingDevices] = useState(true);
 
-  // 1. Enumerar cámaras disponibles
+  // Enumerar cámaras disponibles
   useEffect(() => {
     (async () => {
       try {
         const all = await navigator.mediaDevices.enumerateDevices();
         const videoInputs = all.filter((d) => d.kind === "videoinput");
         setDevices(videoInputs);
-        if (videoInputs.length) {
-          setSelectedDeviceId(videoInputs[0].deviceId);
-        }
+        if (videoInputs.length) setSelectedDeviceId(videoInputs[0].deviceId);
       } catch (err) {
         console.error("Error enumerando dispositivos:", err);
       } finally {
@@ -138,38 +135,29 @@ export default function BarcodeScanner({ onDetected, onClose }) {
     })();
   }, []);
 
-  // 2. (Re)iniciar Quagga cada vez que cambie la cámara
+  // (Re)iniciar Quagga cuando cambie la cámara seleccionada
   useEffect(() => {
     if (!selectedDeviceId) return;
-    // Primero limpiar cualquier instancia anterior
-    Quagga.stop();
-    Quagga.offDetected();
+
+    // Cleanup previa instancia
+    try { Quagga.stop(); } catch {};
+    try { Quagga.offDetected(); } catch {};
 
     Quagga.init(
       {
         inputStream: {
           type: "LiveStream",
           target: containerRef.current,
-          constraints: {
-            deviceId: selectedDeviceId,
-            facingMode: "environment"
-          },
+          constraints: { deviceId: selectedDeviceId, facingMode: "environment" },
         },
-        decoder: {
-          readers: [
-            "code_128_reader",
-            "ean_reader",
-            "ean_8_reader",
-            "upc_reader"
-          ],
-        },
+        decoder: { readers: ["code_128_reader", "ean_reader", "ean_8_reader", "upc_reader"] },
       },
       (err) => {
         if (err) {
           console.error("Quagga init error:", err);
           return;
         }
-        Quagga.start();
+        try { Quagga.start(); } catch (e) { console.warn("Error starting Quagga:", e); }
       }
     );
 
@@ -177,17 +165,17 @@ export default function BarcodeScanner({ onDetected, onClose }) {
       const code = data.codeResult.code;
       console.log("Código detectado:", code);
       onDetected(code);
-      Quagga.stop();
+      try { Quagga.stop(); } catch {};
       onClose();
     });
 
+    // Cleanup al desmontar o al cambiar cámara
     return () => {
-      Quagga.stop();
-      Quagga.offDetected();
+      try { Quagga.stop(); } catch {};
+      try { Quagga.offDetected(); } catch {};
     };
   }, [selectedDeviceId, onDetected, onClose]);
 
-  // 3. UI
   if (loadingDevices) {
     return (
       <Box textAlign="center" p={2}>
@@ -196,13 +184,12 @@ export default function BarcodeScanner({ onDetected, onClose }) {
       </Box>
     );
   }
+
   if (!devices.length) {
     return (
       <Box textAlign="center" p={2}>
         <Alert severity="warning">No se encontraron cámaras disponibles.</Alert>
-        <Button variant="contained" onClick={onClose} sx={{ mt: 2 }}>
-          Cerrar
-        </Button>
+        <Button variant="contained" onClick={onClose} sx={{ mt: 2 }}>Cerrar</Button>
       </Box>
     );
   }
@@ -236,7 +223,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         color="error"
         fullWidth
         onClick={() => {
-          Quagga.stop();
+          try { Quagga.stop(); } catch {};
           onClose();
         }}
         sx={{ mt: 2 }}
