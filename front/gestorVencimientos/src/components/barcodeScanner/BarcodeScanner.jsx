@@ -111,6 +111,7 @@ import CloseIcon from "@mui/icons-material/Close";
 
 export default function BarcodeScanner({ onDetected, onClose }) {
   const [loading, setLoading] = useState(true);
+  const [results, setResults] = useState("");
   // useZxing hook handles start/stop automatically
   const {
     ref: videoRef,
@@ -119,6 +120,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
   } = useZxing({
     onResult: (res) => {
       onDetected(res.getText());
+      setResults(result)
       onClose();
     },
     timeBetweenDecodingAttempts: 200,
@@ -165,7 +167,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
       />
       <p>
         <span>Last result:</span>
-        <span>{result}</span>
+        <span>{results}</span>
       </p>
       {!loading && (
         <Button onClick={onClose} fullWidth sx={{ mt: 2 }}>
