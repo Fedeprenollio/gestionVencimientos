@@ -111,15 +111,20 @@ export default function BarcodeScanner({ onDetected, onClose }) {
   const [loading, setLoading] = useState(true);
   const [lastResult, setLastResult] = useState("");
 
+  // useZxing hook handles start/stop automatically
+  // Note: `videoConstraints` is the correct prop name
   const { ref: videoRef, error: scanError, result, stop } = useZxing({
-    onDecodeResult: (res) => {
+    onResult: (res) => {
       const code = res.getText();
+      console.log("Detected code:", code);
       setLastResult(code);
       onDetected(code);
       onClose();
     },
     timeBetweenDecodingAttempts: 200,
-    constraints: { video: { facingMode: "environment" } },
+    videoConstraints: { facingMode: { ideal: "environment" } },
+    // Optionally specify formats if needed:
+    // formats: ["code_128", "ean_13", "ean_8", "upc_e"],
   });
 
   // Hide loading when video element is ready
@@ -130,11 +135,13 @@ export default function BarcodeScanner({ onDetected, onClose }) {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (stop) stop();
+      stop?.();
     };
   }, [stop]);
 
+  // Handle scan errors (e.g., no camera)
   if (scanError) {
+    console.error("Scan error:", scanError);
     return (
       <Box sx={{ textAlign: "center", p: 2 }}>
         <Alert severity="warning" sx={{ mb: 2 }}>
@@ -185,3 +192,4 @@ export default function BarcodeScanner({ onDetected, onClose }) {
     </Box>
   );
 }
+
