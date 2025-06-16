@@ -97,6 +97,7 @@
 //   );
 // }
 
+
 import { useEffect, useState } from "react";
 import { useZxing } from "react-zxing";
 import {
@@ -105,47 +106,62 @@ import {
   Typography,
   Button,
   Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 
 export default function BarcodeScanner({ onDetected, onClose }) {
   const [loading, setLoading] = useState(true);
   const [lastResult, setLastResult] = useState("");
+  const [devices, setDevices] = useState([]);
+  const [deviceId, setDeviceId] = useState("");
 
-  // useZxing hook handles start/stop automatically
-  // Note: `videoConstraints` is the correct prop name
+  // Enumerar cámaras disponibles
+  useEffect(() => {
+    (async () => {
+      try {
+        const available = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = available.filter((d) => d.kind === "videoinput");
+        setDevices(videoInputs);
+        if (videoInputs.length > 0) {
+          setDeviceId(videoInputs[0].deviceId);
+        }
+        setLoading(false);
+      } catch (e) {
+        console.error("Error enumerando dispositivos:", e);
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  // Configurar el hook con el deviceId seleccionado
   const { ref: videoRef, error: scanError, result, stop } = useZxing({
     onResult: (res) => {
       const code = res.getText();
-      console.log("Detected code:", code);
       setLastResult(code);
       onDetected(code);
-      onClose();
     },
     timeBetweenDecodingAttempts: 200,
-    videoConstraints: { facingMode: { ideal: "environment" } },
-    // Optionally specify formats if needed:
-    // formats: ["code_128", "ean_13", "ean_8", "upc_e"],
+    videoConstraints: deviceId
+      ? { deviceId: { exact: deviceId } }
+      : { facingMode: "environment" },
   });
 
-  // Hide loading when video element is ready
+  // Cuando cambia deviceId, resetea
   useEffect(() => {
-    if (videoRef.current) setLoading(false);
-  }, [videoRef]);
+    if (!loading && stop) stop();
+  }, [deviceId, stop, loading]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stop?.();
-    };
-  }, [stop]);
+  // Cleanup
+  useEffect(() => () => stop?.(), [stop]);
 
-  // Handle scan errors (e.g., no camera)
   if (scanError) {
-    console.error("Scan error:", scanError);
     return (
       <Box sx={{ textAlign: "center", p: 2 }}>
         <Alert severity="warning" sx={{ mb: 2 }}>
-          No se detectó una cámara. Por favor, ingrese el código manualmente.
+          No se pudo acceder a la cámara o no hay cámaras disponibles.
         </Alert>
         <Button variant="contained" onClick={onClose} fullWidth>
           Cerrar
@@ -155,12 +171,29 @@ export default function BarcodeScanner({ onDetected, onClose }) {
   }
 
   return (
-    <Box sx={{ position: "relative", textAlign: "center", mb: 2 }}>
+    <Box sx={{ textAlign: "center", mb: 2 }}>
       {loading && (
         <Box sx={{ mb: 1 }}>
           <CircularProgress size={24} />
-          <Typography variant="body2">Abriendo cámara...</Typography>
+          <Typography variant="body2">Buscando cámaras...</Typography>
         </Box>
+      )}
+
+      {!loading && devices.length > 1 && (
+        <FormControl fullWidth sx={{ mb: 2 }}>
+          <InputLabel>Cámara</InputLabel>
+          <Select
+            value={deviceId}
+            label="Cámara"
+            onChange={(e) => setDeviceId(e.target.value)}
+          >
+            {devices.map((d) => (
+              <MenuItem key={d.deviceId} value={d.deviceId}>
+                {d.label || d.deviceId}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
       )}
 
       <video
@@ -192,4 +225,3 @@ export default function BarcodeScanner({ onDetected, onClose }) {
     </Box>
   );
 }
-
