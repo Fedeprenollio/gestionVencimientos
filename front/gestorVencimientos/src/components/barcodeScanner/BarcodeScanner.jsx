@@ -115,6 +115,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
   const { ref: videoRef, error: scanError, result } = useZxing({
     onResult: (res) => {
       const code = res.getText();
+      console.log("CODIGO:",code )
       setLastResult(code);
       onDetected(code);
       onClose();
