@@ -99,57 +99,52 @@
 
 
 
-import { useEffect, useRef, useState } from "react";
-import { BrowserMultiFormatReader } from "@zxing/browser";
-import { Box, CircularProgress, IconButton, Typography, Button } from "@mui/material";
+import { useEffect, useState } from "react";
+import { useZxing } from "react-zxing";
+import {
+  Box,
+  CircularProgress,
+  IconButton,
+  Typography,
+  Button,
+  Alert,
+} from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
 export default function BarcodeScanner({ onDetected, onClose }) {
-  const videoRef = useRef(null);
-  const controlsRef = useRef(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const codeReader = new BrowserMultiFormatReader();
-
-    codeReader
-      .decodeFromVideoDevice(
-        null,
-        videoRef.current,
-        (result, error, controls) => {
-          if (result) {
-            onDetected(result.getText());
-            // Detener usando el control que nos devolvió
-            controls.stop().then(onClose).catch(onClose);
-          }
-          // guardamos controls para cerrar manualmente o en cleanup
-          controlsRef.current = controls;
-        }
-      )
-      .then(() => setLoading(false))
-      .catch((err) => {
-        console.error("ZXing start error:", err);
-        alert("No se pudo acceder a la cámara. Verifica permisos o dispositivo.");
-        onClose();
-      });
-
-    return () => {
-      // Solo detiene si existe controls
-      const controls = controlsRef.current;
-      if (controls && typeof controls.stop === 'function') {
-        controls.stop().catch(() => {});
-      }
-    };
-  }, [onDetected, onClose]);
-
-  const handleClose = () => {
-    const controls = controlsRef.current;
-    if (controls && typeof controls.stop === 'function') {
-      controls.stop().then(onClose).catch(onClose);
-    } else {
+  // useZxing hook handles start/stop automatically
+  const { ref: videoRef, error: scanError, result } = useZxing({
+    onResult: (res) => {
+      onDetected(res.getText());
       onClose();
+    },
+    timeBetweenDecodingAttempts: 200,
+    constraints: { video: { facingMode: "environment" } },
+  });
+
+  // Manage loading state
+  useEffect(() => {
+    // videoRef is attached when ready
+    if (videoRef.current) {
+      setLoading(false);
     }
-  };
+  }, [videoRef]);
+
+  // Handle scan errors (e.g., no camera)
+  if (scanError) {
+    console.error("Scan error:", scanError);
+    return (
+      <Box sx={{ textAlign: "center", p: 2 }}>
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          No se detectó una cámara. Por favor, ingrese el código manualmente.
+        </Alert>
+        <Button variant="contained" onClick={onClose}>
+          Cerrar
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ position: "relative", textAlign: "center", mb: 2 }}>
@@ -167,16 +162,12 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         playsInline
       />
 
-      <IconButton
-        onClick={handleClose}
-        sx={{ position: "absolute", top: 8, right: 8 }}
-        aria-label="Cerrar escáner"
-      >
-        <CloseIcon />
-      </IconButton>
-
       {!loading && (
-        <Button onClick={handleClose} fullWidth sx={{ mt: 2 }}>
+        <Button
+          onClick={onClose}
+          fullWidth
+          sx={{ mt: 2 }}
+        >
           Cancelar
         </Button>
       )}
