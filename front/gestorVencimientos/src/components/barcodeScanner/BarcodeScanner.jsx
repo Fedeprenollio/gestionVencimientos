@@ -98,84 +98,89 @@
 // }
 
 
+
 import { useEffect, useRef, useState } from "react";
-import { BrowserMultiFormatReader } from '@zxing/browser';
-import { Box, CircularProgress, IconButton, Typography } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import { BrowserMultiFormatReader } from "@zxing/browser";
+import { Box, CircularProgress, IconButton, Typography, Button } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 
 export default function BarcodeScanner({ onDetected, onClose }) {
   const videoRef = useRef(null);
-  const codeReaderRef = useRef(null);
+  const controlsRef = useRef(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize ZXing code reader
     const codeReader = new BrowserMultiFormatReader();
-    codeReaderRef.current = codeReader;
 
-    // Start decoding from camera
     codeReader
       .decodeFromVideoDevice(
         null,
         videoRef.current,
-        (result, error) => {
+        (result, error, controls) => {
           if (result) {
             onDetected(result.getText());
-            stopCapture();
+            // Detener usando el control que nos devolvió
+            controls.stop().then(onClose).catch(onClose);
           }
-          // ignore errors for no barcode found
+          // guardamos controls para cerrar manualmente o en cleanup
+          controlsRef.current = controls;
         }
       )
-      .then(() => {
-        setLoading(false);
-      })
+      .then(() => setLoading(false))
       .catch((err) => {
-        console.error('ZXing start error:', err);
-        alert('No se pudo acceder a la cámara. Verifica permisos o dispositivo.');
+        console.error("ZXing start error:", err);
+        alert("No se pudo acceder a la cámara. Verifica permisos o dispositivo.");
         onClose();
       });
 
-    const stopCapture = () => {
-      if (codeReaderRef.current) {
-        codeReaderRef.current
-          .reset()
-          .then(() => onClose())
-          .catch(() => onClose());
-      } else {
-        onClose();
-      }
-    };
-
     return () => {
-      // Cleanup on unmount
-      if (codeReaderRef.current) {
-        codeReaderRef.current.reset().catch(() => {});
+      // Solo detiene si existe controls
+      const controls = controlsRef.current;
+      if (controls && typeof controls.stop === 'function') {
+        controls.stop().catch(() => {});
       }
     };
-  }, []);
+  }, [onDetected, onClose]);
+
+  const handleClose = () => {
+    const controls = controlsRef.current;
+    if (controls && typeof controls.stop === 'function') {
+      controls.stop().then(onClose).catch(onClose);
+    } else {
+      onClose();
+    }
+  };
 
   return (
-    <Box sx={{ position: 'relative', textAlign: 'center', mb: 2 }}>
+    <Box sx={{ position: "relative", textAlign: "center", mb: 2 }}>
       {loading && (
         <Box sx={{ mb: 1 }}>
           <CircularProgress size={24} />
           <Typography variant="body2">Abriendo cámara...</Typography>
         </Box>
       )}
+
       <video
         ref={videoRef}
-        style={{ width: '100%', borderRadius: 8, border: '1px solid #ccc' }}
+        style={{ width: "100%", borderRadius: 8, border: "1px solid #ccc" }}
+        muted
+        playsInline
       />
+
       <IconButton
-        onClick={() => {
-          if (codeReaderRef.current) codeReaderRef.current.reset().finally(onClose);
-          else onClose();
-        }}
-        sx={{ position: 'absolute', top: 8, right: 8, color: '#fff' }}
+        onClick={handleClose}
+        sx={{ position: "absolute", top: 8, right: 8 }}
         aria-label="Cerrar escáner"
       >
         <CloseIcon />
       </IconButton>
+
+      {!loading && (
+        <Button onClick={handleClose} fullWidth sx={{ mt: 2 }}>
+          Cancelar
+        </Button>
+      )}
     </Box>
   );
 }
+
