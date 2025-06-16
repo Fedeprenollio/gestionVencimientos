@@ -98,130 +98,51 @@
 // }
 
 
-import { useEffect, useState } from "react";
-import { useZxing } from "react-zxing";
-import {
-  Box,
-  CircularProgress,
-  Typography,
-  Button,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-} from "@mui/material";
+// src/components/QuaggaScanner.jsx
+import { useEffect, useRef } from "react";
+import Quagga from "quagga";
 
 export default function BarcodeScanner({ onDetected, onClose }) {
-  const [loading, setLoading] = useState(true);
-  const [lastResult, setLastResult] = useState("");
-  const [devices, setDevices] = useState([]);
-  const [deviceId, setDeviceId] = useState("");
+  const containerRef = useRef(null);
 
-  // Enumerar cámaras disponibles
   useEffect(() => {
-    (async () => {
-      try {
-        const available = await navigator.mediaDevices.enumerateDevices();
-        const videoInputs = available.filter((d) => d.kind === "videoinput");
-        setDevices(videoInputs);
-        if (videoInputs.length > 0) {
-          setDeviceId(videoInputs[0].deviceId);
+    Quagga.init(
+      {
+        inputStream: {
+          type: "LiveStream",
+          target: containerRef.current,
+          constraints: { facingMode: "environment" },
+        },
+        decoder: {
+          readers: ["code_128_reader", "ean_reader", "ean_8_reader", "upc_reader"],
+        },
+      },
+      (err) => {
+        if (err) {
+          console.error("Quagga init error:", err);
+          onClose();
+          return;
         }
-        setLoading(false);
-      } catch (e) {
-        console.error("Error enumerando dispositivos:", e);
-        setLoading(false);
+        Quagga.start();
       }
-    })();
+    );
+
+    Quagga.onDetected((data) => {
+      onDetected(data.codeResult.code);
+      Quagga.stop();
+      onClose();
+    });
+
+    return () => {
+      Quagga.stop();
+      Quagga.offDetected();
+    };
   }, []);
 
-  // Configurar el hook con el deviceId seleccionado
-  const { ref: videoRef, error: scanError, result, stop } = useZxing({
-    onResult: (res) => {
-      const code = res.getText();
-      setLastResult(code);
-      onDetected(code);
-    },
-    timeBetweenDecodingAttempts: 200,
-    videoConstraints: deviceId
-      ? { deviceId: { exact: deviceId } }
-      : { facingMode: "environment" },
-  });
-
-  // Cuando cambia deviceId, resetea
-  useEffect(() => {
-    if (!loading && stop) stop();
-  }, [deviceId, stop, loading]);
-
-  // Cleanup
-  useEffect(() => () => stop?.(), [stop]);
-
-  if (scanError) {
-    return (
-      <Box sx={{ textAlign: "center", p: 2 }}>
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          No se pudo acceder a la cámara o no hay cámaras disponibles.
-        </Alert>
-        <Button variant="contained" onClick={onClose} fullWidth>
-          Cerrar
-        </Button>
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ textAlign: "center", mb: 2 }}>
-      {loading && (
-        <Box sx={{ mb: 1 }}>
-          <CircularProgress size={24} />
-          <Typography variant="body2">Buscando cámaras...</Typography>
-        </Box>
-      )}
-
-      {!loading && devices.length > 1 && (
-        <FormControl fullWidth sx={{ mb: 2 }}>
-          <InputLabel>Cámara</InputLabel>
-          <Select
-            value={deviceId}
-            label="Cámara"
-            onChange={(e) => setDeviceId(e.target.value)}
-          >
-            {devices.map((d) => (
-              <MenuItem key={d.deviceId} value={d.deviceId}>
-                {d.label || d.deviceId}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      )}
-
-      <video
-        ref={videoRef}
-        style={{ width: "100%", borderRadius: 8, border: "1px solid #ccc" }}
-        muted
-        playsInline
-        autoPlay
-      />
-
-      {!loading && lastResult && (
-        <Typography sx={{ mt: 1 }}>
-          Último resultado: <strong>{lastResult}</strong>
-        </Typography>
-      )}
-
-      {!loading && (
-        <Button
-          onClick={() => {
-            stop?.();
-            onClose();
-          }}
-          fullWidth
-          sx={{ mt: 2 }}
-        >
-          Cancelar
-        </Button>
-      )}
-    </Box>
+    <div ref={containerRef} style={{ width: "100%", position: "relative" }}>
+      {/* Quagga inyecta el <video> y <canvas> aquí */}
+      <button onClick={() => { Quagga.stop(); onClose(); }}>Cancelar</button>
+    </div>
   );
 }
