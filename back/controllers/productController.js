@@ -193,6 +193,23 @@ export const getExpiringProducts = async (req, res) => {
   }
 };
 
+export const searchProductsByName = async (req, res) => {
+  const { name } = req.query;
+
+  if (!name) {
+    return res.status(400).json({ message: "Falta el nombre en la query" });
+  }
+
+  try {
+    const regex = new RegExp(name, "i"); // búsqueda insensible a mayúsculas
+    const products = await Product.find({ name: regex });
+
+    res.json(products);
+  } catch (err) {
+    console.error("Error buscando por nombre:", err);
+    res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
 
 
 // controllers/productController.js

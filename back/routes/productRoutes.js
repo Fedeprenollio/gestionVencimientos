@@ -1,12 +1,12 @@
 import express from 'express';
-import { addLotToProduct, addOrUpdateProduct, deleteLot, getExpiringProducts, getProductByBarcode } from '../controllers/productController.js';
+import { addLotToProduct, addOrUpdateProduct, deleteLot, getExpiringProducts, getProductByBarcode, searchProductsByName } from '../controllers/productController.js';
 
 const router = express.Router();
 
 
+router.get("/search", searchProductsByName);
 router.get('/:barcode', getProductByBarcode);
 router.get('/', getExpiringProducts);
-
 router.post('/', addOrUpdateProduct);
 router.patch('/add-lot', addLotToProduct); // nueva ruta
 

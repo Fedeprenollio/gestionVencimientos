@@ -1,5 +1,6 @@
 // import { useState } from "react";
 // import axios from "axios";
+// import BarcodeScanner from "../barcodeScanner/BarcodeScanner.jsx";
 // import {
 //   TextField,
 //   Button,
@@ -11,65 +12,91 @@
 //   Typography,
 //   Grid,
 // } from "@mui/material";
-// import BarcodeScanner from "../barcodeScanner/BarcodeScanner";
 
 // export default function ProductForm({ onAdded, branch }) {
 //   const [barcode, setBarcode] = useState("");
 //   const [productExists, setProductExists] = useState(null);
-//   const [name, setName] = useState("");
-//   const [type, setType] = useState("medicamento");
+//   const [productInfo, setProductInfo] = useState({ name: "", type: "medicamento" });
 //   const [quantity, setQuantity] = useState(1);
 //   const [expMonth, setExpMonth] = useState("");
 //   const [expYear, setExpYear] = useState("");
 //   const [scanning, setScanning] = useState(false);
-//   const handleDetected = (code) => {
-//     setBarcode(code);
-//     setScanning(false);
-//     handleSearch(); // buscar el producto automáticamente
-//   };
+//   const [searchName, setSearchName] = useState("");
 
 //   const handleBarcodeChange = (e) => {
 //     setBarcode(e.target.value);
 //     setProductExists(null);
+//     setProductInfo({ name: "", type: "medicamento" });
 //   };
 
-//   const handleSearch = async () => {
+//   const handleSearchByName = async () => {
 //     try {
 //       const res = await axios.get(
-//         import.meta.env.VITE_API_URL + `/products/${barcode}`
+//         `${import.meta.env.VITE_API_URL}/products/search?name=${searchName}`
+//       );
+//       console.log("res",res)
+//       if (res.data.length > 0) {
+//         const product = res.data[0]; // suponiendo que devuelva una lista
+//         setProductExists(true);
+//         setProductInfo({ name: product.name, type: product.type });
+//         setBarcode(product.barcode); // importante para enviar el lote luego
+//       } else {
+//         alert("Producto no encontrado");
+//         setProductExists(false);
+//         setProductInfo({ name: "", type: "medicamento" });
+//       }
+//     } catch (err) {
+//       alert("Error buscando producto por nombre");
+//       console.error(err);
+//     }
+//   };
+
+//   const handleSearch = async (code) => {
+//     try {
+//       const res = await axios.get(
+//         `${import.meta.env.VITE_API_URL}/products/${code}`
 //       );
 //       setProductExists(true);
-//       setName(res.data.name);
-//       setType(res.data.type);
+//       setProductInfo({ name: res.data.name, type: res.data.type });
 //     } catch (err) {
 //       setProductExists(false);
-//       setName("");
-//       setType("medicamento");
+//       setProductInfo({ name: "", type: "medicamento" });
 //     }
+//   };
+
+//   const handleDetected = (code) => {
+//     setBarcode(code);
+//     setScanning(false);
+//     handleSearch(code);
 //   };
 
 //   const submit = async (e) => {
 //     e.preventDefault();
+//     const expirationDate = new Date(
+//       `${expYear}-${expMonth}-01`
+//     ).toISOString();
+
+//     const payload = {
+//       barcode,
+//       name: productExists ? productInfo.name : productInfo.name,
+//       type: productInfo.type,
+//       branch,
+//       expirationDate,
+//       quantity: Number(quantity),
+//     };
+
 //     try {
-//       const expirationDate = new Date(
-//         `${expYear}-${expMonth}-01`
-//       ).toISOString();
-//       await axios.post(import.meta.env.VITE_API_URL + "/products", {
-//         barcode,
-//         name,
-//         type,
-//         branch, // ← lo pasamos desde arriba
-//         expirationDate,
-//         quantity: Number(quantity),
-//       });
+//       await axios.post(
+//         `${import.meta.env.VITE_API_URL}/products`,
+//         payload
+//       );
 //       // reset
 //       setBarcode("");
-//       setName("");
-//       setType("medicamento");
+//       setProductExists(null);
+//       setProductInfo({ name: "", type: "medicamento" });
 //       setQuantity(1);
 //       setExpMonth("");
 //       setExpYear("");
-//       setProductExists(null);
 //       onAdded();
 //     } catch (err) {
 //       alert(err.response?.data?.message || "Error");
@@ -77,11 +104,7 @@
 //   };
 
 //   return (
-//     <Box
-//       component="form"
-//       onSubmit={submit}
-//       sx={{ maxWidth: 500, mx: "auto", p: 2 }}
-//     >
+//     <Box component="form" onSubmit={submit} sx={{ maxWidth: 500, mx: "auto", p: 2 }}>
 //       <Typography variant="h6" gutterBottom>
 //         {productExists === null
 //           ? "Nuevo producto o lote"
@@ -90,24 +113,53 @@
 //           : "Crear nuevo producto"}
 //       </Typography>
 
-//       <TextField
-//         label="Código de barras"
-//         value={barcode}
-//         onChange={handleBarcodeChange}
-//         fullWidth
-//         required
-//         sx={{ mb: 2 }}
-//       />
-
-//       <Button
-//         variant="outlined"
-//         onClick={() => setScanning(true)}
-//         fullWidth
-//         sx={{ mb: 2 }}
-//         disabled={scanning}
-//       >
-//         {scanning ? "Escaneando..." : "Escanear código"}
-//       </Button>
+//       <Grid container spacing={1} alignItems="center" sx={{ mb: 2 }}>
+//         <Grid item xs>
+//           <TextField
+//             label="Código de barras"
+//             value={barcode}
+//             onChange={handleBarcodeChange}
+//             fullWidth
+//             required
+//           />
+//         </Grid>
+//         <Grid item>
+//           <Button
+//             variant="outlined"
+//             onClick={() => handleSearch(barcode)}
+//             disabled={!barcode}
+//           >
+//             Buscar
+//           </Button>
+//         </Grid>
+//         <Grid item>
+//           <Button
+//             variant="outlined"
+//             onClick={() => setScanning(true)}
+//           >
+//             Escanear
+//           </Button>
+//         </Grid>
+//       </Grid>
+//       <Grid item xs={12}>
+//   <TextField
+//     label="Buscar por nombre"
+//     value={searchName}
+//     onChange={(e) => setSearchName(e.target.value)}
+//     fullWidth
+//     placeholder="Ej: Ibuprofeno"
+//   />
+// </Grid>
+// <Grid item xs={12}>
+//   <Button
+//     variant="outlined"
+//     onClick={handleSearchByName}
+//     disabled={!searchName}
+//     fullWidth
+//   >
+//     Buscar por nombre
+//   </Button>
+// </Grid>
 
 //       {scanning && (
 //         <BarcodeScanner
@@ -116,23 +168,21 @@
 //         />
 //       )}
 
-//       <Button
-//         variant="outlined"
-//         onClick={handleSearch}
-//         fullWidth
-//         sx={{ mb: 2 }}
-//         disabled={!barcode}
-//       >
-//         Buscar producto
-//       </Button>
+//       {productExists && (
+//         <Box sx={{ mb: 2 }}>
+//           <Typography>
+//             Producto encontrado: <strong>{productInfo.name}</strong> (
+//             {productInfo.type})
+//           </Typography>
+//         </Box>
+//       )}
 
-//       {/* Si el producto no existe, mostrar campos para crearlo */}
 //       {productExists === false && (
 //         <>
 //           <TextField
 //             label="Nombre"
-//             value={name}
-//             onChange={(e) => setName(e.target.value)}
+//             value={productInfo.name}
+//             onChange={(e) => setProductInfo((p) => ({ ...p, name: e.target.value }))}
 //             fullWidth
 //             required
 //             sx={{ mb: 2 }}
@@ -141,8 +191,8 @@
 //           <FormControl fullWidth sx={{ mb: 2 }}>
 //             <InputLabel>Tipo</InputLabel>
 //             <Select
-//               value={type}
-//               onChange={(e) => setType(e.target.value)}
+//               value={productInfo.type}
+//               onChange={(e) => setProductInfo((p) => ({ ...p, type: e.target.value }))}
 //               label="Tipo"
 //               required
 //             >
@@ -153,7 +203,6 @@
 //         </>
 //       )}
 
-//       {/* Si ya buscamos (existe o no), mostrar vencimiento + cantidad */}
 //       {productExists !== null && (
 //         <>
 //           <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -188,11 +237,7 @@
 //                 >
 //                   {Array.from({ length: 10 }, (_, i) => {
 //                     const year = new Date().getFullYear() + i;
-//                     return (
-//                       <MenuItem key={year} value={year}>
-//                         {year}
-//                       </MenuItem>
-//                     );
+//                     return <MenuItem key={year} value={year}>{year}</MenuItem>;
 //                   })}
 //                 </Select>
 //               </FormControl>
@@ -218,7 +263,7 @@
 //   );
 // }
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import BarcodeScanner from "../barcodeScanner/BarcodeScanner.jsx";
 import {
@@ -231,16 +276,41 @@ import {
   Box,
   Typography,
   Grid,
+  Autocomplete,
 } from "@mui/material";
 
 export default function ProductForm({ onAdded, branch }) {
   const [barcode, setBarcode] = useState("");
   const [productExists, setProductExists] = useState(null);
-  const [productInfo, setProductInfo] = useState({ name: "", type: "medicamento" });
+  const [productInfo, setProductInfo] = useState({
+    name: "",
+    type: "medicamento",
+  });
   const [quantity, setQuantity] = useState(1);
   const [expMonth, setExpMonth] = useState("");
   const [expYear, setExpYear] = useState("");
   const [scanning, setScanning] = useState(false);
+
+  const [nameQuery, setNameQuery] = useState("");
+  const [nameResults, setNameResults] = useState([]);
+
+  // Buscar productos por nombre
+  useEffect(() => {
+    if (nameQuery.length < 2) return;
+
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/products/search?name=${nameQuery}`
+        );
+        setNameResults(res.data);
+      } catch (err) {
+        console.error("Error buscando por nombre:", err);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [nameQuery]);
 
   const handleBarcodeChange = (e) => {
     setBarcode(e.target.value);
@@ -269,13 +339,11 @@ export default function ProductForm({ onAdded, branch }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    const expirationDate = new Date(
-      `${expYear}-${expMonth}-01`
-    ).toISOString();
+    const expirationDate = new Date(`${expYear}-${expMonth}-01`).toISOString();
 
     const payload = {
       barcode,
-      name: productExists ? productInfo.name : productInfo.name,
+      name: productInfo.name,
       type: productInfo.type,
       branch,
       expirationDate,
@@ -283,10 +351,7 @@ export default function ProductForm({ onAdded, branch }) {
     };
 
     try {
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/products`,
-        payload
-      );
+      await axios.post(`${import.meta.env.VITE_API_URL}/products`, payload);
       // reset
       setBarcode("");
       setProductExists(null);
@@ -294,6 +359,8 @@ export default function ProductForm({ onAdded, branch }) {
       setQuantity(1);
       setExpMonth("");
       setExpYear("");
+      setNameQuery("");
+      setNameResults([]);
       onAdded();
     } catch (err) {
       alert(err.response?.data?.message || "Error");
@@ -301,7 +368,11 @@ export default function ProductForm({ onAdded, branch }) {
   };
 
   return (
-    <Box component="form" onSubmit={submit} sx={{ maxWidth: 500, mx: "auto", p: 2 }}>
+    <Box
+      component="form"
+      onSubmit={submit}
+      sx={{ maxWidth: 500, mx: "auto", p: 2 }}
+    >
       <Typography variant="h6" gutterBottom>
         {productExists === null
           ? "Nuevo producto o lote"
@@ -309,6 +380,28 @@ export default function ProductForm({ onAdded, branch }) {
           ? "Agregar lote"
           : "Crear nuevo producto"}
       </Typography>
+
+      {/* Autocompletado por nombre */}
+      <Autocomplete
+        options={nameResults}
+        getOptionLabel={(option) => `${option.name} (${option.type})`}
+        onInputChange={(e, newInputValue) => setNameQuery(newInputValue)}
+        onChange={(e, selected) => {
+          if (selected) {
+            setBarcode(selected.barcode);
+            setProductExists(true);
+            setProductInfo({ name: selected.name, type: selected.type });
+          }
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Buscar por nombre"
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+        )}
+      />
 
       <Grid container spacing={1} alignItems="center" sx={{ mb: 2 }}>
         <Grid item xs>
@@ -330,10 +423,7 @@ export default function ProductForm({ onAdded, branch }) {
           </Button>
         </Grid>
         <Grid item>
-          <Button
-            variant="outlined"
-            onClick={() => setScanning(true)}
-          >
+          <Button variant="outlined" onClick={() => setScanning(true)}>
             Escanear
           </Button>
         </Grid>
@@ -360,7 +450,9 @@ export default function ProductForm({ onAdded, branch }) {
           <TextField
             label="Nombre"
             value={productInfo.name}
-            onChange={(e) => setProductInfo((p) => ({ ...p, name: e.target.value }))}
+            onChange={(e) =>
+              setProductInfo((p) => ({ ...p, name: e.target.value }))
+            }
             fullWidth
             required
             sx={{ mb: 2 }}
@@ -370,7 +462,9 @@ export default function ProductForm({ onAdded, branch }) {
             <InputLabel>Tipo</InputLabel>
             <Select
               value={productInfo.type}
-              onChange={(e) => setProductInfo((p) => ({ ...p, type: e.target.value }))}
+              onChange={(e) =>
+                setProductInfo((p) => ({ ...p, type: e.target.value }))
+              }
               label="Tipo"
               required
             >
@@ -384,10 +478,12 @@ export default function ProductForm({ onAdded, branch }) {
       {productExists !== null && (
         <>
           <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid item xs={6}>
-              <FormControl fullWidth>
-                <InputLabel>Mes</InputLabel>
+            {/* <Grid item xs={6}> */}
+              <FormControl sx={{ maxWidth: 200 }} fullWidth variant="outlined">
+                <InputLabel id="exp-month-label">Mes</InputLabel>
                 <Select
+                  labelId="exp-month-label"
+                  id="exp-month"
                   value={expMonth}
                   onChange={(e) => setExpMonth(e.target.value)}
                   label="Mes"
@@ -403,11 +499,14 @@ export default function ProductForm({ onAdded, branch }) {
                   })}
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={6}>
-              <FormControl fullWidth>
-                <InputLabel>Año</InputLabel>
+            {/* </Grid> */}
+            
+            {/* <Grid item xs={6}> */}
+              <FormControl  sx={{ maxWidth: 200 }} fullWidth variant="outlined">
+                <InputLabel id="exp-year-label">Año</InputLabel>
                 <Select
+                  labelId="exp-year-label"
+                  id="exp-year"
                   value={expYear}
                   onChange={(e) => setExpYear(e.target.value)}
                   label="Año"
@@ -415,11 +514,15 @@ export default function ProductForm({ onAdded, branch }) {
                 >
                   {Array.from({ length: 10 }, (_, i) => {
                     const year = new Date().getFullYear() + i;
-                    return <MenuItem key={year} value={year}>{year}</MenuItem>;
+                    return (
+                      <MenuItem key={year} value={year}>
+                        {year}
+                      </MenuItem>
+                    );
                   })}
                 </Select>
               </FormControl>
-            </Grid>
+            {/* </Grid> */}
           </Grid>
 
           <TextField
