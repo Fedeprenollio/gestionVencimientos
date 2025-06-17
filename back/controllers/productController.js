@@ -3,6 +3,48 @@ import Product from '../models/Product.js';
 
 
 
+// export const addOrUpdateProduct = async (req, res) => {
+//   const { barcode, name, type, branch, expirationDate, quantity } = req.body;
+
+//   if (!barcode || !name || !type || !branch || !expirationDate || !quantity) {
+//     return res.status(400).json({ message: 'Faltan datos requeridos' });
+//   }
+
+//   try {
+//     const product = await Product.findOne({ barcode });
+//     console.log("expirationDate",expirationDate);
+
+//     if (!product) {
+//       // Producto nuevo
+//       const newProduct = new Product({
+//         barcode,
+//         name,
+//         type,
+//         lots: [{ expirationDate, quantity, branch }],  // branch dentro de cada lote
+//       });
+//       await newProduct.save();
+//       return res.status(201).json({ message: 'Producto creado' });
+//     }
+
+//     // Producto existente
+//     const existingLot = product.lots.find(lot => lot.expirationDate === expirationDate && lot.branch === branch);
+
+//     if (existingLot) {
+//       // Ya hay un lote con esa fecha y sucursal: sumamos cantidad
+//       existingLot.quantity += quantity;
+//     } else {
+//       // Nuevo lote
+//       product.lots.push({ expirationDate, quantity, branch });
+//     }
+
+//     await product.save();
+//     return res.status(200).json({ message: 'Producto actualizado' });
+//   } catch (err) {
+//     console.error(err);
+//     return res.status(500).json({ message: 'Error del servidor' });
+//   }
+// };
+
 export const addOrUpdateProduct = async (req, res) => {
   const { barcode, name, type, branch, expirationDate, quantity } = req.body;
 
@@ -11,26 +53,31 @@ export const addOrUpdateProduct = async (req, res) => {
   }
 
   try {
-    const product = await Product.findOne({ barcode });
-    console.log("expirationDate",expirationDate);
+    let product = await Product.findOne({ barcode });
+    console.log("expirationDate", expirationDate);
 
     if (!product) {
       // Producto nuevo
-      const newProduct = new Product({
+      product = new Product({
         barcode,
         name,
         type,
-        lots: [{ expirationDate, quantity, branch }],  // branch dentro de cada lote
+        lots: [{ expirationDate, quantity, branch }],
       });
-      await newProduct.save();
-      return res.status(201).json({ message: 'Producto creado' });
+      await product.save();
+      // Responder con el producto creado
+      return res.status(201).json(product);
     }
 
     // Producto existente
-    const existingLot = product.lots.find(lot => lot.expirationDate === expirationDate && lot.branch === branch);
+    const existingLot = product.lots.find(
+      (lot) =>
+        lot.expirationDate.toISOString() === new Date(expirationDate).toISOString() &&
+        lot.branch === branch
+    );
 
     if (existingLot) {
-      // Ya hay un lote con esa fecha y sucursal: sumamos cantidad
+      // Sumamos cantidad
       existingLot.quantity += quantity;
     } else {
       // Nuevo lote
@@ -38,12 +85,17 @@ export const addOrUpdateProduct = async (req, res) => {
     }
 
     await product.save();
-    return res.status(200).json({ message: 'Producto actualizado' });
+
+    // Volver a buscar el producto actualizado para enviar la versión actual
+    const updatedProduct = await Product.findOne({ barcode });
+
+    return res.status(200).json(updatedProduct);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: 'Error del servidor' });
   }
 };
+
 
 export const getProductByBarcode = async (req, res) => {
   const { barcode } = req.params;

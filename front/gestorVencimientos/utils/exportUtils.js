@@ -12,6 +12,7 @@ export const formatDateWhitDay = (isoString) => {
     return dayjs.utc(isoString).format('DD/MM/YYYY');
   };
 export function exportToExcel(products) {
+    console.log("products to excel",products)
   const rows = [];
 
   products.forEach((prod) => {
@@ -22,7 +23,7 @@ export function exportToExcel(products) {
         Sucursal: lot.branch,
         Cantidad: lot.quantity,
         Vencimiento: formatDate(lot.expirationDate),
-        Carga: formatDate(lot.createdAt)
+        Carga: formatDateWhitDay(lot.createdAt)
       });
     });
   });
@@ -92,4 +93,28 @@ export const exportToPDF = (products, sortBy = "expiration") => {
   };
 
 
- 
+  export function exportToExcelLots(lots) {
+    const rows = lots.map((lot) => ({
+      Producto: lot.name,
+      Tipo: lot.type || "-", // por si no viene en esta estructura
+      Sucursal: lot.branch,
+      Cantidad: lot.quantity,
+      Vencimiento: formatDate(lot.expirationDate),
+      Carga: formatDateWhitDay(lot.createdAt || new Date()), // usá fecha actual si no hay
+    }));
+  
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Productos");
+  
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+  
+    const blob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+  
+    saveAs(blob, "productos_por_vencer.xlsx");
+  }
