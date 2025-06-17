@@ -349,7 +349,7 @@ export default function ProductForm({ onAdded, branch }) {
       expirationDate,
       quantity: Number(quantity),
     };
-
+console.log("expirationDate",expirationDate)
     try {
       await axios.post(`${import.meta.env.VITE_API_URL}/products`, payload);
       // reset

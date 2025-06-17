@@ -3,11 +3,13 @@ import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+dayjs.extend(utc)
 export const formatDate = (isoString) => {
-  return dayjs(isoString).format('MM/YYYY');
+  return dayjs.utc(isoString).format('MM/YYYY');
 };
 export const formatDateWhitDay = (isoString) => {
-    return dayjs(isoString).format('DD/MM/YYYY');
+    return dayjs.utc(isoString).format('DD/MM/YYYY');
   };
 export function exportToExcel(products) {
   const rows = [];

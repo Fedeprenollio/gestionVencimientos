@@ -38,7 +38,7 @@ export default function ExpiringProductList() {
     type: "",
     branch: "",
   });
-
+console.log("products",products)
   const fetchProducts = async (filterParams = {}) => {
     const params = new URLSearchParams();
 

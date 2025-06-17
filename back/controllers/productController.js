@@ -12,7 +12,7 @@ export const addOrUpdateProduct = async (req, res) => {
 
   try {
     const product = await Product.findOne({ barcode });
-    console.log("GET PRODUCTOS",product);
+    console.log("expirationDate",expirationDate);
 
     if (!product) {
       // Producto nuevo
