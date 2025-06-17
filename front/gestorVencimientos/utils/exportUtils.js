@@ -20,6 +20,7 @@ export function exportToExcel(products) {
         Sucursal: lot.branch,
         Cantidad: lot.quantity,
         Vencimiento: formatDate(lot.expirationDate),
+        Carga: formatDate(lot.createdAt)
       });
     });
   });

@@ -384,7 +384,7 @@ export default function ProductForm({ onAdded, branch }) {
       {/* Autocompletado por nombre */}
       <Autocomplete
         options={nameResults}
-        getOptionLabel={(option) => `${option.name} (${option.type})`}
+        getOptionLabel={(option) => `${option.name}`}
         onInputChange={(e, newInputValue) => setNameQuery(newInputValue)}
         onChange={(e, selected) => {
           if (selected) {

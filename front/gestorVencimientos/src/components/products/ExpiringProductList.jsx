@@ -75,9 +75,9 @@ export default function ExpiringProductList() {
     }
   };
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+  // useEffect(() => {
+  //   fetchProducts();
+  // }, []);
 
   const rows = useMemo(() => {
     let flat = [];
