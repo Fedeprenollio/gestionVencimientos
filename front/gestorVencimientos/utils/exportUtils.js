@@ -18,6 +18,7 @@ export function exportToExcel(products) {
   products.forEach((prod) => {
     prod.lots.forEach((lot) => {
       rows.push({
+        Codigo: prod.barcode,
         Producto: prod.name,
         Tipo: prod.type,
         Sucursal: lot.branch,
@@ -94,7 +95,9 @@ export const exportToPDF = (products, sortBy = "expiration") => {
 
 
   export function exportToExcelLots(lots) {
+    console.log("Lote a exportar,", lots)
     const rows = lots.map((lot) => ({
+      Codigo: lot.barcode,  
       Producto: lot.name,
       Tipo: lot.type || "-", // por si no viene en esta estructura
       Sucursal: lot.branch,

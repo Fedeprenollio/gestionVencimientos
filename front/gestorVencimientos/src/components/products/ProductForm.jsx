@@ -207,6 +207,7 @@ export default function ProductForm({ onAdded, branch }) {
         </Grid>
         <Grid item>
           <Button
+           type="submit"
             variant="outlined"
             onClick={() => handleSearch(barcode)}
             disabled={!barcode}
@@ -329,7 +330,7 @@ export default function ProductForm({ onAdded, branch }) {
         </>
       )}
 
-      <Button type="submit" variant="contained" fullWidth>
+      <Button  onClick={submit} variant="contained" fullWidth>
         Guardar
       </Button>
       {createdLots.length > 0 && (
