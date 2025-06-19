@@ -16,9 +16,8 @@ const lotSchema = new mongoose.Schema({
   },
   createdAt: {
     type: Date,
-    default: Date.now,    // ← Se establece al momento de creación del lote
-    // immutable: true       // opcional: evitar que se modifique después
-  }
+    default: Date.now, // ← Se establece al momento de creación del lote
+  },
 });
 
 const productSchema = new mongoose.Schema({
