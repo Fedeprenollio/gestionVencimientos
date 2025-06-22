@@ -11,6 +11,9 @@ export const formatDate = (isoString) => {
 export const formatDateWhitDay = (isoString) => {
     return dayjs.utc(isoString).format('DD/MM/YYYY');
   };
+
+
+  
 export function exportToExcel(products) {
     console.log("products to excel",products)
   const rows = [];

@@ -185,26 +185,7 @@ console.log("products",products)
     <Box>
       <ExpiringProductFilter onFilter={handleFilter} />
       <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-        {/* <FormControl>
-          <InputLabel>Ordenar por</InputLabel>
-          <Select
-            value={sortBy}
-            onChange={(e) => handleSort(e.target.value)}
-            size="small"
-            label="Ordenar por"
-          >
-            <MenuItem value="expiration">Vencimiento</MenuItem>
-            <MenuItem value="productName">Nombre</MenuItem>
-            <MenuItem value="quantity">Cantidad</MenuItem>
-            <MenuItem value="created">Creado</MenuItem>
-            <MenuItem value="type">Tipo</MenuItem>
-            <MenuItem value="branch">Sucursal</MenuItem>
-          </Select>
-        </FormControl>
-        <Button onClick={handleExportPDF} variant="contained" color="primary">
-          Exportar PDF
-        </Button> */}
-        <Button onClick={() => exportToExcel(products)}>Exportar Excel</Button>
+         <Button onClick={() => exportToExcel(products)}>Exportar Excel</Button>
       </Box>
 
       <TableContainer component={Paper}>

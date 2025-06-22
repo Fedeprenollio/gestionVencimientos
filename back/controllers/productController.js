@@ -2,102 +2,53 @@ import Product from '../models/Product.js';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 import timezone from 'dayjs/plugin/timezone.js';
+import Lot from '../models/Lot.js';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-
-
-
-// export const addOrUpdateProduct = async (req, res) => {
-//   const { barcode, name, type, branch, expirationDate, quantity } = req.body;
-
-//   if (!barcode || !name || !type || !branch || !expirationDate || !quantity) {
-//     return res.status(400).json({ message: 'Faltan datos requeridos' });
-//   }
-
-//   try {
-//     const product = await Product.findOne({ barcode });
-//     console.log("expirationDate",expirationDate);
-
-//     if (!product) {
-//       // Producto nuevo
-//       const newProduct = new Product({
-//         barcode,
-//         name,
-//         type,
-//         lots: [{ expirationDate, quantity, branch }],  // branch dentro de cada lote
-//       });
-//       await newProduct.save();
-//       return res.status(201).json({ message: 'Producto creado' });
-//     }
-
-//     // Producto existente
-//     const existingLot = product.lots.find(lot => lot.expirationDate === expirationDate && lot.branch === branch);
-
-//     if (existingLot) {
-//       // Ya hay un lote con esa fecha y sucursal: sumamos cantidad
-//       existingLot.quantity += quantity;
-//     } else {
-//       // Nuevo lote
-//       product.lots.push({ expirationDate, quantity, branch });
-//     }
-
-//     await product.save();
-//     return res.status(200).json({ message: 'Producto actualizado' });
-//   } catch (err) {
-//     console.error(err);
-//     return res.status(500).json({ message: 'Error del servidor' });
-//   }
-// };
-
-export const addOrUpdateProduct = async (req, res) => {
-  const { barcode, name, type, branch, expirationDate, quantity } = req.body;
-
+export const createProduct = async (req, res) => {
+  const { barcode, name, type, branch, expirationDate, quantity, productId } = req.body;
+console.log("que viene?", barcode, name, type, branch, expirationDate, quantity,productId)
+  
   if (!barcode || !name || !type || !branch || !expirationDate || !quantity) {
     return res.status(400).json({ message: 'Faltan datos requeridos' });
   }
 
   try {
     let product = await Product.findOne({ barcode });
-    console.log("expirationDate", expirationDate);
 
     if (!product) {
-      // Producto nuevo
-      product = new Product({
-        barcode,
-        name,
-        type,
-        lots: [{ expirationDate, quantity, branch }],
-      });
+      // Crear nuevo producto
+      product = new Product({ barcode, name, type });
       await product.save();
-      // Responder con el producto creado
-      return res.status(201).json(product);
     }
 
-    // Producto existente
-    const existingLot = product.lots.find(
-      (lot) =>
-        lot.expirationDate.toISOString() === new Date(expirationDate).toISOString() &&
-        lot.branch === branch
-    );
+    // Buscar si ya hay un lote con mismo vencimiento y sucursal
+    const existingLot = await Lot.findOne({
+      product: product._id,
+      expirationDate: new Date(expirationDate),
+      branch,
+    });
 
     if (existingLot) {
-      // Sumamos cantidad
-      existingLot.quantity += quantity;
+      // Aumentar la cantidad
+      existingLot.quantity += Number(quantity);
+      await existingLot.save();
     } else {
-      // Nuevo lote
-      product.lots.push({ expirationDate, quantity, branch });
+      // Crear nuevo lote
+      const newLot = new Lot({
+        product: product._id,
+        expirationDate,
+        quantity,
+        branch,
+      });
+      await newLot.save();
     }
 
-    await product.save();
-
-    // Volver a buscar el producto actualizado para enviar la versión actual
-    const updatedProduct = await Product.findOne({ barcode });
-
-    return res.status(200).json(updatedProduct);
+    res.status(200).json({ message: 'Producto y lote procesados correctamente' });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: 'Error del servidor' });
+    res.status(500).json({ message: 'Error del servidor' });
   }
 };
 
@@ -120,7 +71,7 @@ export const getProductByBarcode = async (req, res) => {
 
 export const addLotToProduct = async (req, res) => {
   const { barcode, expirationDate, quantity, branch } = req.body;
-
+  console.log("ADD LOTE TO PRODUCT IN PRODUCT", barcode, expirationDate, quantity, branch )
   if (!barcode || !expirationDate || !quantity || !branch) {
     return res.status(400).json({ message: 'Faltan campos obligatorios' });
   }
@@ -144,117 +95,36 @@ export const addLotToProduct = async (req, res) => {
   }
 };
 
-export const getExpiringProducts = async (req, res) => {
-  const { from, months = 6, branch, type, createdFrom, createdTo } = req.query;
-
-  // Convertir fechas a UTC partiendo de horario Argentina
-  const fromDate = dayjs
-    .tz(from || dayjs(), 'America/Argentina/Buenos_Aires')
-    .startOf('month')
-    .utc()
-    .toDate();
-
-  const untilDate = dayjs(fromDate).add(Number(months), 'month').toDate();
-
-  // Rango de creación (createdAt)
-  const createdCriteria = {};
-  if (createdFrom) {
-    createdCriteria.$gte = dayjs
-      .tz(createdFrom, 'America/Argentina/Buenos_Aires')
-      .startOf('day')
-      .utc()
-      .toDate();
-  }
-  if (createdTo) {
-    createdCriteria.$lte = dayjs
-      .tz(createdTo, 'America/Argentina/Buenos_Aires')
-      .endOf('day')
-      .utc()
-      .toDate();
-  }
-
-  // Filtro general
-  const match = { 'lots.expirationDate': { $gte: fromDate, $lt: untilDate } };
-  if (branch) match['lots.branch'] = branch;
-  if (type) match.type = type;
-
-  try {
-    const products = await Product.aggregate([
-      { $match: match },
-      {
-        $project: {
-          barcode: 1,
-          name: 1,
-          type: 1,
-          lots: {
-            $filter: {
-              input: '$lots',
-              as: 'lot',
-              cond: {
-                $and: [
-                  { $gte: ['$$lot.expirationDate', fromDate] },
-                  { $lt: ['$$lot.expirationDate', untilDate] },
-                  ...(branch ? [{ $eq: ['$$lot.branch', branch] }] : []),
-                  ...(createdFrom || createdTo
-                    ? [
-                        {
-                          $and: [
-                            ...(createdCriteria.$gte
-                              ? [{ $gte: ['$$lot.createdAt', createdCriteria.$gte] }]
-                              : []),
-                            ...(createdCriteria.$lte
-                              ? [{ $lte: ['$$lot.createdAt', createdCriteria.$lte] }]
-                              : []),
-                          ],
-                        },
-                      ]
-                    : []),
-                ],
-              },
-            },
-          },
-        },
-      },
-      { $sort: { name: 1 } },
-    ]);
-    res.json(products);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error al obtener productos' });
-  }
-};
-
-
 // export const getExpiringProducts = async (req, res) => {
 //   const { from, months = 6, branch, type, createdFrom, createdTo } = req.query;
 
-//   // Función para truncar a inicio de mes
-//   const truncateToMonth = (date) => {
-//     const d = new Date(date);
-//     d.setDate(1);
-//     d.setHours(0, 0, 0, 0);
-//     return d;
-//   };
+//   // Convertir fechas a UTC partiendo de horario Argentina
+//   const fromDate = dayjs
+//     .tz(from || dayjs(), 'America/Argentina/Buenos_Aires')
+//     .startOf('month')
+//     .utc()
+//     .toDate();
 
-//   // Rango de expiración
-//   const fromDate = truncateToMonth(from ? new Date(from) : new Date());
-//   const untilDate = new Date(fromDate);
-//   untilDate.setMonth(untilDate.getMonth() + Number(months));
+//   const untilDate = dayjs(fromDate).add(Number(months), 'month').toDate();
 
-//   // Rango de creación
+//   // Rango de creación (createdAt)
 //   const createdCriteria = {};
 //   if (createdFrom) {
-//     const d = new Date(createdFrom);
-//     d.setHours(0, 0, 0, 0);
-//     createdCriteria.$gte = d;
+//     createdCriteria.$gte = dayjs
+//       .tz(createdFrom, 'America/Argentina/Buenos_Aires')
+//       .startOf('day')
+//       .utc()
+//       .toDate();
 //   }
 //   if (createdTo) {
-//     const d = new Date(createdTo);
-//     d.setHours(23, 59, 59, 999);
-//     createdCriteria.$lte = d;
+//     createdCriteria.$lte = dayjs
+//       .tz(createdTo, 'America/Argentina/Buenos_Aires')
+//       .endOf('day')
+//       .utc()
+//       .toDate();
 //   }
 
-//   // Construir match para productos
+//   // Filtro general
 //   const match = { 'lots.expirationDate': { $gte: fromDate, $lt: untilDate } };
 //   if (branch) match['lots.branch'] = branch;
 //   if (type) match.type = type;
@@ -262,29 +132,40 @@ export const getExpiringProducts = async (req, res) => {
 //   try {
 //     const products = await Product.aggregate([
 //       { $match: match },
-//   {
-//   $project: {
-//     barcode: 1,
-//     name: 1,
-//     type: 1,
-//     lots: {
-//       $filter: {
-//         input: '$lots',
-//         as: 'lot',
-//         cond: {
-//           $and: [
-//             { $gte: ['$$lot.expirationDate', fromDate] },
-//             { $lt: ['$$lot.expirationDate', untilDate] },
-//             ...(branch ? [{ $eq: ['$$lot.branch', branch] }] : []),
-//             ...(createdFrom ? [{ $gte: ['$$lot.createdAt', new Date(createdFrom)] }] : []),
-//             ...(createdTo ? [{ $lte: ['$$lot.createdAt', new Date(createdTo + 'T23:59:59.999Z')] }] : []),
-//           ]
-//         }
-//       }
-//     }
-//   }
-// }
-//   ,
+//       {
+//         $project: {
+//           barcode: 1,
+//           name: 1,
+//           type: 1,
+//           lots: {
+//             $filter: {
+//               input: '$lots',
+//               as: 'lot',
+//               cond: {
+//                 $and: [
+//                   { $gte: ['$$lot.expirationDate', fromDate] },
+//                   { $lt: ['$$lot.expirationDate', untilDate] },
+//                   ...(branch ? [{ $eq: ['$$lot.branch', branch] }] : []),
+//                   ...(createdFrom || createdTo
+//                     ? [
+//                         {
+//                           $and: [
+//                             ...(createdCriteria.$gte
+//                               ? [{ $gte: ['$$lot.createdAt', createdCriteria.$gte] }]
+//                               : []),
+//                             ...(createdCriteria.$lte
+//                               ? [{ $lte: ['$$lot.createdAt', createdCriteria.$lte] }]
+//                               : []),
+//                           ],
+//                         },
+//                       ]
+//                     : []),
+//                 ],
+//               },
+//             },
+//           },
+//         },
+//       },
 //       { $sort: { name: 1 } },
 //     ]);
 //     res.json(products);
@@ -294,16 +175,96 @@ export const getExpiringProducts = async (req, res) => {
 //   }
 // };
 
+export const getExpiringProducts = async (req, res) => {
+  const { from, months = 6, branch, type, createdFrom, createdTo } = req.query;
+
+  const filtrosActivos = from || months || branch || createdFrom || createdTo;
+
+  let lotFilter = {};
+
+  if (filtrosActivos) {
+    const fromDate = dayjs
+      .tz(from || dayjs(), 'America/Argentina/Buenos_Aires')
+      .startOf('month')
+      .utc()
+      .toDate();
+
+    const untilDate = dayjs(fromDate).add(Number(months), 'month').toDate();
+    lotFilter.expirationDate = { $gte: fromDate, $lt: untilDate };
+
+    if (branch) lotFilter.branch = branch;
+
+    const createdCriteria = {};
+    if (createdFrom) {
+      createdCriteria.$gte = dayjs
+        .tz(createdFrom, 'America/Argentina/Buenos_Aires')
+        .startOf('day')
+        .utc()
+        .toDate();
+    }
+    if (createdTo) {
+      createdCriteria.$lte = dayjs
+        .tz(createdTo, 'America/Argentina/Buenos_Aires')
+        .endOf('day')
+        .utc()
+        .toDate();
+    }
+    if (Object.keys(createdCriteria).length > 0) {
+      lotFilter.createdAt = createdCriteria;
+    }
+  }
+
+  try {
+    // 1. Obtener todos los productos (con filtro opcional por tipo)
+    const productQuery = type ? { type } : {};
+    const products = await Product.find(productQuery).sort({ name: 1 });
+
+    const productIds = products.map((p) => p._id);
+
+    // 2. Buscar todos los lotes filtrados, pero solo de estos productos
+    const lots = await Lot.find({ ...lotFilter, productId: { $in: productIds } });
+
+    // 3. Agrupar lotes por producto
+    const lotsGrouped = {};
+    for (const lot of lots) {
+      const productId = lot.productId.toString();
+      if (!lotsGrouped[productId]) lotsGrouped[productId] = [];
+      lotsGrouped[productId].push(lot);
+    }
+
+    // 4. Armar la respuesta
+    const result = products.map((product) => ({
+      _id: product._id,
+      name: product.name,
+      barcode: product.barcode,
+      type: product.type,
+      lots: (lotsGrouped[product._id.toString()] || []).map((lot) => ({
+        _id: lot._id,
+        expirationDate: lot.expirationDate,
+        quantity: lot.quantity,
+        branch: lot.branch,
+        createdAt: lot.createdAt,
+      })),
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error al obtener productos:", err);
+    res.status(500).json({ message: "Error al obtener productos" });
+  }
+};
 export const searchProductsByName = async (req, res) => {
   const { name } = req.query;
-
+  console.log("NAME", name)
   if (!name) {
     return res.status(400).json({ message: "Falta el nombre en la query" });
   }
 
   try {
     const regex = new RegExp(name, "i"); // búsqueda insensible a mayúsculas
-    const products = await Product.find({ name: regex });
+    const products = await Product.find({
+      $or: [{ name: regex }, { barcode: regex }],
+    });
 
     res.json(products);
   } catch (err) {
@@ -334,5 +295,42 @@ export const deleteLot = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error al eliminar el lote" });
+  }
+};
+
+
+// controllers/productController.js
+export const deleteProduct = async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const product = await Product.findByIdAndDelete(productId);
+    if (!product) return res.status(404).json({ message: "No encontrado" });
+
+    // Borrar lotes asociados
+    await Lot.deleteMany({ product: productId });
+
+    res.json({ message: "Producto y lotes asociados eliminados" });
+  } catch (err) {
+    console.error("Error borrando producto:", err);
+    res.status(500).json({ message: "Error del servidor" });
+  }
+};  
+
+export const updateProduct = async (req, res) => {
+  const { id } = req.params;
+  const { name, type } = req.body;
+
+  try {
+    const product = await Product.findById(id);
+    if (!product) return res.status(404).json({ message: "Producto no encontrado" });
+
+    product.name = name || product.name;
+    product.type = type || product.type;
+
+    await product.save();
+    res.json({ message: "Producto actualizado", product });
+  } catch (err) {
+    console.error("Error actualizando producto:", err);
+    res.status(500).json({ message: "Error del servidor" });
   }
 };
