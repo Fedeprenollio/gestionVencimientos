@@ -19,36 +19,35 @@ export default function SearchStockPage() {
   const [txtFiles, setTxtFiles] = useState([]);
   const [excelFile, setExcelFile] = useState(null);
 
-const handleTxtUpload = (event) => {
-  const files = event.target.files;
-  const nombres = Array.from(files).map((f) => f.name);
-  setTxtFiles(nombres);
+  const handleTxtUpload = (event) => {
+    const files = event.target.files;
+    setTxtFiles(Array.from(files).map((f) => f.name));
 
-  const allCodigos = [];
+    const allCodigos = [];
 
-  const readAllTxts = Array.from(files).map((file) =>
-    file.text().then((text) => {
-      const lines = text.split(/\r?\n/);
-      lines.forEach((line) => {
-        // Extraer solo el código numérico (de 8 a 14 dígitos)
-        const match = line.match(/\d{8,14}/);
-        if (match) {
-          allCodigos.push(match[0].trim());
-        }
-      });
-    })
-  );
+    const readAllTxts = Array.from(files).map((file) =>
+      file.text().then((text) => {
+        text.split(/\r?\n/).forEach((line) => {
+          // extrae todas las secuencias de dígitos
+          const matches = line.match(/\d+/g) || [];
+          // filtra longitudes >= 3
+          matches
+            .filter((n) => n.length >= 3)
+            .forEach((n) => allCodigos.push(n));
+        });
+      })
+    );
 
-  Promise.all(readAllTxts).then(() => {
-    setPedidoCodigos(allCodigos);
-  });
-};
-
+    Promise.all(readAllTxts).then(() => {
+      // elimina duplicados
+      const únicos = [...new Set(allCodigos)];
+      setPedidoCodigos(únicos);
+    });
+  };
 
   const handleExcelUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
     setExcelFile(file.name);
 
     const reader = new FileReader();
@@ -58,7 +57,6 @@ const handleTxtUpload = (event) => {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
       setStockPorVencer(jsonData);
     };
     reader.readAsArrayBuffer(file);
@@ -66,13 +64,10 @@ const handleTxtUpload = (event) => {
 
   const cruzarDatos = () => {
     if (!pedidoCodigos.length || !stockPorVencer.length) return;
-
-    const codigosLimpios = pedidoCodigos.map((c) => c.trim());
-
+    const codigosSet = new Set(pedidoCodigos.map((c) => c.trim()));
     const matches = stockPorVencer.filter((item) =>
-      codigosLimpios.includes(item.Codigo?.toString().trim())
+      codigosSet.has(item.Codigo?.toString().trim())
     );
-
     setCoincidencias(matches);
   };
 
@@ -102,7 +97,7 @@ const handleTxtUpload = (event) => {
             <Chip key={idx} label={name} sx={{ mr: 1, mt: 1 }} />
           ))}
           <Typography variant="body2" mt={2}>
-            Códigos detectados:
+            Códigos detectados (>=3 dígitos):
           </Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
             {pedidoCodigos.map((code, i) => (
