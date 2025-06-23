@@ -1,17 +1,27 @@
-import Product from '../models/Product.js';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc.js';
-import timezone from 'dayjs/plugin/timezone.js';
-import Lot from '../models/Lot.js';
+import Product from "../models/Product.js";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+import Lot from "../models/Lot.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 export const createProduct = async (req, res) => {
-  const { barcode, name, type, branch, expirationDate, quantity, productId } = req.body;
-console.log("que viene?", barcode, name, type, branch, expirationDate, quantity,productId)
-  
+  const { barcode, name, type, branch, expirationDate, quantity, productId } =
+    req.body;
+  console.log(
+    "que viene?",
+    barcode,
+    name,
+    type,
+    branch,
+    expirationDate,
+    quantity,
+    productId
+  );
+
   if (!barcode || !name || !type || !branch || !expirationDate || !quantity) {
-    return res.status(400).json({ message: 'Faltan datos requeridos' });
+    return res.status(400).json({ message: "Faltan datos requeridos" });
   }
 
   try {
@@ -45,13 +55,14 @@ console.log("que viene?", barcode, name, type, branch, expirationDate, quantity,
       await newLot.save();
     }
 
-    res.status(200).json({ message: 'Producto y lote procesados correctamente' });
+    res
+      .status(200)
+      .json({ message: "Producto y lote procesados correctamente" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Error del servidor' });
+    res.status(500).json({ message: "Error del servidor" });
   }
 };
-
 
 export const getProductByBarcode = async (req, res) => {
   const { barcode } = req.params;
@@ -60,27 +71,33 @@ export const getProductByBarcode = async (req, res) => {
     const product = await Product.findOne({ barcode });
 
     if (!product) {
-      return res.status(404).json({ message: 'Producto no encontrado' });
+      return res.status(404).json({ message: "Producto no encontrado" });
     }
 
     res.json(product);
   } catch (err) {
-    res.status(500).json({ message: 'Error del servidor' });
+    res.status(500).json({ message: "Error del servidor" });
   }
 };
 
 export const addLotToProduct = async (req, res) => {
   const { barcode, expirationDate, quantity, branch } = req.body;
-  console.log("ADD LOTE TO PRODUCT IN PRODUCT", barcode, expirationDate, quantity, branch )
+  console.log(
+    "ADD LOTE TO PRODUCT IN PRODUCT",
+    barcode,
+    expirationDate,
+    quantity,
+    branch
+  );
   if (!barcode || !expirationDate || !quantity || !branch) {
-    return res.status(400).json({ message: 'Faltan campos obligatorios' });
+    return res.status(400).json({ message: "Faltan campos obligatorios" });
   }
 
   try {
     const product = await Product.findOne({ barcode });
 
     if (!product) {
-      return res.status(404).json({ message: 'Producto no encontrado' });
+      return res.status(404).json({ message: "Producto no encontrado" });
     }
 
     // Agregar el nuevo lote
@@ -88,10 +105,10 @@ export const addLotToProduct = async (req, res) => {
 
     await product.save();
 
-    res.status(200).json({ message: 'Lote agregado', product });
+    res.status(200).json({ message: "Lote agregado", product });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Error al agregar lote' });
+    res.status(500).json({ message: "Error al agregar lote" });
   }
 };
 
@@ -178,7 +195,7 @@ export const addLotToProduct = async (req, res) => {
 export const getExpiringProducts = async (req, res) => {
   const {
     from,
-    months = 6,
+    months,
     branch,
     type,
     createdFrom,
@@ -209,12 +226,12 @@ export const getExpiringProducts = async (req, res) => {
 
       if (filtrosActivos) {
         const fromDate = dayjs
-          .tz(from || dayjs(), 'America/Argentina/Buenos_Aires')
-          .startOf('month')
+          .tz(from || dayjs(), "America/Argentina/Buenos_Aires")
+          .startOf("month")
           .utc()
           .toDate();
 
-        const untilDate = dayjs(fromDate).add(Number(months), 'month').toDate();
+        const untilDate = dayjs(fromDate).add(Number(months), "month").toDate();
         filterNoOverstock.expirationDate = { $gte: fromDate, $lt: untilDate };
 
         if (branch) filterNoOverstock.branch = branch;
@@ -222,15 +239,15 @@ export const getExpiringProducts = async (req, res) => {
         const createdCriteria = {};
         if (createdFrom) {
           createdCriteria.$gte = dayjs
-            .tz(createdFrom, 'America/Argentina/Buenos_Aires')
-            .startOf('day')
+            .tz(createdFrom, "America/Argentina/Buenos_Aires")
+            .startOf("day")
             .utc()
             .toDate();
         }
         if (createdTo) {
           createdCriteria.$lte = dayjs
-            .tz(createdTo, 'America/Argentina/Buenos_Aires')
-            .endOf('day')
+            .tz(createdTo, "America/Argentina/Buenos_Aires")
+            .endOf("day")
             .utc()
             .toDate();
         }
@@ -252,7 +269,11 @@ export const getExpiringProducts = async (req, res) => {
     }
 
     // 3. Ejecutar las consultas en paralelo
-    const lotResults = await Promise.all(lotFilters);
+    // const lotResults = await Promise.all(lotFilters);
+    const lotResults = await Promise.all(
+      lotFilters.length ? lotFilters : [Promise.resolve([])]
+    );
+
     const allLots = lotResults.flat();
 
     // 4. Agrupar lotes por productoId
@@ -261,6 +282,10 @@ export const getExpiringProducts = async (req, res) => {
       const pid = lot.productId.toString();
       if (!lotsGrouped[pid]) lotsGrouped[pid] = [];
       lotsGrouped[pid].push(lot);
+    }
+
+    if (productIds.length === 0) {
+      return res.json([]);      
     }
 
     // 5. Armar la respuesta combinada
@@ -288,7 +313,7 @@ export const getExpiringProducts = async (req, res) => {
 
 export const searchProductsByName = async (req, res) => {
   const { name } = req.query;
-  console.log("NAME", name)
+  console.log("NAME", name);
   if (!name) {
     return res.status(400).json({ message: "Falta el nombre en la query" });
   }
@@ -306,18 +331,18 @@ export const searchProductsByName = async (req, res) => {
   }
 };
 
-
 // controllers/productController.js
 export const deleteLot = async (req, res) => {
   const { productId, lotId } = req.params;
 
   try {
     const product = await Product.findById(productId);
-    if (!product) return res.status(404).json({ message: "Producto no encontrado" });
+    if (!product)
+      return res.status(404).json({ message: "Producto no encontrado" });
 
     const originalLength = product.lots.length;
 
-    product.lots = product.lots.filter(lot => lot._id.toString() !== lotId);
+    product.lots = product.lots.filter((lot) => lot._id.toString() !== lotId);
 
     if (product.lots.length === originalLength) {
       return res.status(404).json({ message: "Lote no encontrado" });
@@ -330,7 +355,6 @@ export const deleteLot = async (req, res) => {
     res.status(500).json({ message: "Error al eliminar el lote" });
   }
 };
-
 
 // controllers/productController.js
 export const deleteProduct = async (req, res) => {
@@ -347,7 +371,7 @@ export const deleteProduct = async (req, res) => {
     console.error("Error borrando producto:", err);
     res.status(500).json({ message: "Error del servidor" });
   }
-};  
+};
 
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
@@ -355,7 +379,8 @@ export const updateProduct = async (req, res) => {
 
   try {
     const product = await Product.findById(id);
-    if (!product) return res.status(404).json({ message: "Producto no encontrado" });
+    if (!product)
+      return res.status(404).json({ message: "Producto no encontrado" });
 
     product.name = name || product.name;
     product.type = type || product.type;

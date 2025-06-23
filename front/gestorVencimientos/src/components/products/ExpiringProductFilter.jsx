@@ -18,7 +18,7 @@ export default function ExpiringProductFilter({ onFilter }) {
   const [type, setType] = useState("");
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
-  const [overstock, setOverstock] = useState("");
+  const [overstock, setOverstock] = useState("all");
 
   const applyFilter = () => {
     onFilter({
