@@ -18,12 +18,7 @@ import {
   TableCell,
   TableBody,
 } from "@mui/material";
-import dayjs from "dayjs";
-import {
-  exportToExcel,
-  exportToExcelLots,
-  formatDate,
-} from "../../../utils/exportUtils.js";
+
 import SucursalSelector from "./SucursalSelector.jsx";
 import LotForm from "../lots/formularios/LotForm.jsx";
 import CreatedLotsTable from "../lots/CreatedLotsTable.jsx";
@@ -44,6 +39,8 @@ export default function ProductForm() {
   const [branch, setBranch] = useState("sucursal1");
   const [nameQuery, setNameQuery] = useState("");
   const [nameResults, setNameResults] = useState([]);
+  const [overstock, setOverstock] = useState(false);
+
   const [createdLots, setCreatedLots] = useState(() => {
     const saved = localStorage.getItem("lotes_jornada");
     return saved ? JSON.parse(saved) : [];
@@ -80,7 +77,7 @@ export default function ProductForm() {
   const handleBarcodeChange = (e) => {
     setBarcode(e.target.value);
     setProductExists(null);
-    setProductInfo({ name: "", type: "medicamento", id:"" });
+    setProductInfo({ name: "", type: "medicamento", id: "" });
   };
 
   const handleSearch = async (code) => {
@@ -97,7 +94,7 @@ export default function ProductForm() {
       });
     } catch (err) {
       setProductExists(false);
-      setProductInfo({ name: "", type: "medicamento", id:"" });
+      setProductInfo({ name: "", type: "medicamento", id: "" });
     }
   };
 
@@ -110,7 +107,6 @@ export default function ProductForm() {
   const submit = async (e) => {
     // e.preventDefault();
     const expirationDate = new Date(`${expYear}-${expMonth}-01`).toISOString();
-    console.log("productInfo", productInfo);
     const payload = {
       barcode,
       name: productInfo.name,
@@ -119,7 +115,9 @@ export default function ProductForm() {
       expirationDate,
       quantity: Number(quantity),
       productId: productInfo.id,
+      overstock,
     };
+    console.log("productInfo", payload);
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/lots`,
@@ -139,6 +137,7 @@ export default function ProductForm() {
           quantity,
           branch,
           type: productInfo.type,
+           overstock,
         },
       ]);
 
@@ -149,12 +148,14 @@ export default function ProductForm() {
       setQuantity(1);
       setExpMonth("");
       setExpYear("");
+      setOverstock(false);
+
       // setNameQuery("");
       // setNameResults([]);
       // onAdded();
       barcodeInputRef.current?.focus();
     } catch (err) {
-      console.log("ERROR,", err)
+      console.log("ERROR,", err);
       alert(err.response?.data?.message || "Error");
     }
   };
@@ -173,7 +174,7 @@ export default function ProductForm() {
 
         {/* 🔍 FORMULARIO DE BÚSQUEDA */}
 
-  <BarcodeSearchSection
+        <BarcodeSearchSection
           barcode={barcode}
           setBarcode={setBarcode}
           nameQuery={nameQuery}
@@ -187,7 +188,6 @@ export default function ProductForm() {
           setScanning={setScanning}
           barcodeInputRef={barcodeInputRef}
         />
-
 
         {/* <Box
           component="form"
@@ -275,14 +275,15 @@ export default function ProductForm() {
             setExpYear={setExpYear}
             branch={branch}
             setBranch={setBranch}
+            overstock={overstock}
+            setOverstock={setOverstock}
             onSubmit={submit}
           />
         )}
 
         {/* 🧾 TABLA DE LOTES CREADOS */}
         {createdLots.length > 0 && (
-
-          <CreatedLotsTable   createdLots={createdLots} onClear={clearLots}/>
+          <CreatedLotsTable createdLots={createdLots} onClear={clearLots} />
 
           // <Box mt={4}>
           //   <Typography variant="h6" gutterBottom>

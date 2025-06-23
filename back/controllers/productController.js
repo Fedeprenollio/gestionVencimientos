@@ -176,63 +176,94 @@ export const addLotToProduct = async (req, res) => {
 // };
 
 export const getExpiringProducts = async (req, res) => {
-  const { from, months = 6, branch, type, createdFrom, createdTo } = req.query;
+  const {
+    from,
+    months = 6,
+    branch,
+    type,
+    createdFrom,
+    createdTo,
+    overstock, // puede ser "true", "false", "only"
+  } = req.query;
 
   const filtrosActivos = from || months || branch || createdFrom || createdTo;
 
-  let lotFilter = {};
-
-  if (filtrosActivos) {
-    const fromDate = dayjs
-      .tz(from || dayjs(), 'America/Argentina/Buenos_Aires')
-      .startOf('month')
-      .utc()
-      .toDate();
-
-    const untilDate = dayjs(fromDate).add(Number(months), 'month').toDate();
-    lotFilter.expirationDate = { $gte: fromDate, $lt: untilDate };
-
-    if (branch) lotFilter.branch = branch;
-
-    const createdCriteria = {};
-    if (createdFrom) {
-      createdCriteria.$gte = dayjs
-        .tz(createdFrom, 'America/Argentina/Buenos_Aires')
-        .startOf('day')
-        .utc()
-        .toDate();
-    }
-    if (createdTo) {
-      createdCriteria.$lte = dayjs
-        .tz(createdTo, 'America/Argentina/Buenos_Aires')
-        .endOf('day')
-        .utc()
-        .toDate();
-    }
-    if (Object.keys(createdCriteria).length > 0) {
-      lotFilter.createdAt = createdCriteria;
-    }
-  }
+  const includeOnlyOverstock = overstock === "only";
+  const includeOverstock = overstock !== "false";
+  const includeRegular = overstock !== "true" && overstock !== "only";
 
   try {
-    // 1. Obtener todos los productos (con filtro opcional por tipo)
+    // 1. Buscar productos (filtrando por tipo si es necesario)
     const productQuery = type ? { type } : {};
     const products = await Product.find(productQuery).sort({ name: 1 });
-
     const productIds = products.map((p) => p._id);
 
-    // 2. Buscar todos los lotes filtrados, pero solo de estos productos
-    const lots = await Lot.find({ ...lotFilter, productId: { $in: productIds } });
+    // 2. Armar filtros por separado
+    const lotFilters = [];
 
-    // 3. Agrupar lotes por producto
-    const lotsGrouped = {};
-    for (const lot of lots) {
-      const productId = lot.productId.toString();
-      if (!lotsGrouped[productId]) lotsGrouped[productId] = [];
-      lotsGrouped[productId].push(lot);
+    if (includeRegular) {
+      const filterNoOverstock = {
+        overstock: { $ne: true },
+        productId: { $in: productIds },
+      };
+
+      if (filtrosActivos) {
+        const fromDate = dayjs
+          .tz(from || dayjs(), 'America/Argentina/Buenos_Aires')
+          .startOf('month')
+          .utc()
+          .toDate();
+
+        const untilDate = dayjs(fromDate).add(Number(months), 'month').toDate();
+        filterNoOverstock.expirationDate = { $gte: fromDate, $lt: untilDate };
+
+        if (branch) filterNoOverstock.branch = branch;
+
+        const createdCriteria = {};
+        if (createdFrom) {
+          createdCriteria.$gte = dayjs
+            .tz(createdFrom, 'America/Argentina/Buenos_Aires')
+            .startOf('day')
+            .utc()
+            .toDate();
+        }
+        if (createdTo) {
+          createdCriteria.$lte = dayjs
+            .tz(createdTo, 'America/Argentina/Buenos_Aires')
+            .endOf('day')
+            .utc()
+            .toDate();
+        }
+        if (Object.keys(createdCriteria).length > 0) {
+          filterNoOverstock.createdAt = createdCriteria;
+        }
+      }
+
+      lotFilters.push(Lot.find(filterNoOverstock));
     }
 
-    // 4. Armar la respuesta
+    if (includeOverstock) {
+      const filterOverstock = {
+        overstock: true,
+        productId: { $in: productIds },
+      };
+      if (branch) filterOverstock.branch = branch;
+      lotFilters.push(Lot.find(filterOverstock));
+    }
+
+    // 3. Ejecutar las consultas en paralelo
+    const lotResults = await Promise.all(lotFilters);
+    const allLots = lotResults.flat();
+
+    // 4. Agrupar lotes por productoId
+    const lotsGrouped = {};
+    for (const lot of allLots) {
+      const pid = lot.productId.toString();
+      if (!lotsGrouped[pid]) lotsGrouped[pid] = [];
+      lotsGrouped[pid].push(lot);
+    }
+
+    // 5. Armar la respuesta combinada
     const result = products.map((product) => ({
       _id: product._id,
       name: product.name,
@@ -244,6 +275,7 @@ export const getExpiringProducts = async (req, res) => {
         quantity: lot.quantity,
         branch: lot.branch,
         createdAt: lot.createdAt,
+        overstock: lot.overstock === true,
       })),
     }));
 
@@ -253,6 +285,7 @@ export const getExpiringProducts = async (req, res) => {
     res.status(500).json({ message: "Error al obtener productos" });
   }
 };
+
 export const searchProductsByName = async (req, res) => {
   const { name } = req.query;
   console.log("NAME", name)

@@ -7,6 +7,7 @@ const lotSchema = new mongoose.Schema({
   quantity: { type: Number, required: true },
   branch: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
+  overstock:{ type: Boolean}
 });
 
 export default mongoose.model('Lot', lotSchema);

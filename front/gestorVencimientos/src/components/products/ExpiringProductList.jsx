@@ -38,7 +38,7 @@ export default function ExpiringProductList() {
     type: "",
     branch: "",
   });
-console.log("products",products)
+  console.log("products", products);
   const fetchProducts = async (filterParams = {}) => {
     const params = new URLSearchParams();
 
@@ -50,6 +50,8 @@ console.log("products",products)
       params.append("createdFrom", filterParams.createdFrom);
     if (filterParams.createdTo)
       params.append("createdTo", filterParams.createdTo);
+    if (filterParams.overstock)
+      params.append("overstock", filterParams.overstock); // ✅ NUEVO
 
     const res = await axios.get(
       `${import.meta.env.VITE_API_URL}/products?${params}`
@@ -92,6 +94,7 @@ console.log("products",products)
           createdAt: new Date(lot.createdAt),
           productId: prod._id,
           lotId: lot._id,
+          overstock: lot.overstock || false,
         });
       });
     });
@@ -99,7 +102,9 @@ console.log("products",products)
     // Filtros rápidos
     flat = flat.filter((row) => {
       return (
-        row.productName.toLowerCase().includes(quickFilters.productName.toLowerCase()) &&
+        row.productName
+          .toLowerCase()
+          .includes(quickFilters.productName.toLowerCase()) &&
         row.type.toLowerCase().includes(quickFilters.type.toLowerCase()) &&
         row.branch.toLowerCase().includes(quickFilters.branch.toLowerCase())
       );
@@ -134,7 +139,7 @@ console.log("products",products)
     // });
     flat.sort((a, b) => {
       let comp = 0;
-    
+
       switch (sortBy) {
         case "productName":
           comp = a.productName.localeCompare(b.productName);
@@ -160,10 +165,9 @@ console.log("products",products)
         default:
           comp = 0;
       }
-    
+
       return order === "asc" ? comp : -comp;
     });
-    
 
     return flat;
   }, [products, sortBy, order, quickFilters]);
@@ -185,7 +189,7 @@ console.log("products",products)
     <Box>
       <ExpiringProductFilter onFilter={handleFilter} />
       <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-         <Button onClick={() => exportToExcel(products)}>Exportar Excel</Button>
+        <Button onClick={() => exportToExcel(products)}>Exportar Excel</Button>
       </Box>
 
       <TableContainer component={Paper}>
@@ -199,6 +203,7 @@ console.log("products",products)
                 { id: "quantity", label: "Cantidad" },
                 { id: "expiration", label: "Vencimiento" },
                 { id: "created", label: "Creado" },
+                { id: "overstock", label: "SobreStock" }, // ✅ nueva columna
                 { id: "actions", label: "" },
               ].map((col) => (
                 <TableCell key={col.id}>
@@ -266,6 +271,8 @@ console.log("products",products)
                 <TableCell>
                   {formatDateWhitDay(row.createdAt.toISOString())}
                 </TableCell>
+                <TableCell>{row.overstock ? "Sí" : "No"}</TableCell>
+
                 <TableCell>
                   <Tooltip title="Eliminar lote">
                     <IconButton

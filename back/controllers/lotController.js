@@ -7,50 +7,57 @@ import timezone from "dayjs/plugin/timezone.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+
 // export const addLot = async (req, res) => {
-//   const { barcode, expirationDate, quantity, branch } = req.body;
-
-//   console.log("barcode, expirationDate, quantity, branch",barcode, expirationDate, quantity, branch)
-
-//   if (!barcode || !expirationDate || !quantity || !branch) {
-//     return res.status(400).json({ message: 'Faltan campos obligatorios para agregar lotes' });
+//   const { productId, expirationDate, quantity, branch } = req.body;
+//   console.log("CREANDO LTE", productId, expirationDate, quantity, branch);
+//   if (!productId || !expirationDate || !quantity || !branch) {
+//     return res
+//       .status(400)
+//       .json({ message: "Faltan campos obligatorios para agregar lotes" });
 //   }
-
+//   const parsedExpirationDate = dayjs
+//     .tz(expirationDate, "America/Argentina/Buenos_Aires")
+//     .startOf("month") // si querés normalizar al inicio del mes
+//     .utc()
+//     .toDate();
 //   try {
-//     const product = await Product.findOne({ barcode });
+//     const product = await Product.findById(productId);
 //     if (!product) {
-//       return res.status(404).json({ message: 'Producto no encontrado' });
+//       return res.status(404).json({ message: "Producto no encontrado" });
 //     }
 
 //     const lot = new Lot({
-//       productId: product._id,
-//       expirationDate,
+//       productId,
+//       expirationDate: parsedExpirationDate,
 //       quantity,
 //       branch,
 //     });
 
 //     await lot.save();
-
-//     res.status(201).json({ message: 'Lote agregado', lot });
+//     res.status(201).json({ message: "Lote agregado", lot });
 //   } catch (err) {
 //     console.error(err);
-//     res.status(500).json({ message: 'Error al agregar lote' });
+//     res.status(500).json({ message: "Error al agregar lote" });
 //   }
 // };
-
 export const addLot = async (req, res) => {
-  const { productId, expirationDate, quantity, branch } = req.body;
-  console.log("CREANDO LTE", productId, expirationDate, quantity, branch);
+  const { productId, expirationDate, quantity, branch, overstock = false } = req.body;
+  console.log("CREANDO LOTE", productId, expirationDate, quantity, branch, overstock);
+
   if (!productId || !expirationDate || !quantity || !branch) {
     return res
       .status(400)
       .json({ message: "Faltan campos obligatorios para agregar lotes" });
   }
+
+  // Parse expirationDate in Argentina timezone, normalize to month start
   const parsedExpirationDate = dayjs
     .tz(expirationDate, "America/Argentina/Buenos_Aires")
-    .startOf("month") // si querés normalizar al inicio del mes
+    .startOf("month")
     .utc()
     .toDate();
+
   try {
     const product = await Product.findById(productId);
     if (!product) {
@@ -62,6 +69,7 @@ export const addLot = async (req, res) => {
       expirationDate: parsedExpirationDate,
       quantity,
       branch,
+      overstock: Boolean(overstock), // flag this lot as overstock
     });
 
     await lot.save();

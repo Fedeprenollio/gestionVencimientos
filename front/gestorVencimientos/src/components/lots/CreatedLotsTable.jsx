@@ -8,6 +8,7 @@ import {
   TableRow,
   TableCell,
   TableBody,
+  Chip,
 } from "@mui/material";
 import { exportToExcelLots, formatDate } from "../../../utils/exportUtils";
 
@@ -27,6 +28,7 @@ export default function CreatedLotsTable({ createdLots, onClear }) {
             <TableCell>Vencimiento</TableCell>
             <TableCell>Cantidad</TableCell>
             <TableCell>Sucursal</TableCell>
+            <TableCell>SobreStock</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -37,12 +39,23 @@ export default function CreatedLotsTable({ createdLots, onClear }) {
               <TableCell>{formatDate(lot.expirationDate)}</TableCell>
               <TableCell>{lot.quantity}</TableCell>
               <TableCell>{lot.branch}</TableCell>
+              <TableCell>
+                {lot.overstock ? (
+                  <Chip label="Sí" color="warning" size="small" />
+                ) : (
+                  <Chip label="No" variant="outlined" size="small" />
+                )}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
       <Box mt={2} display="flex" gap={2}>
-        <Button variant="outlined" onClick={() => exportToExcelLots(createdLots)}>
+        <Button
+          variant="outlined"
+          onClick={() => exportToExcelLots(createdLots)}
+        >
           Exportar a Excel
         </Button>
         <Button variant="outlined" color="error" onClick={onClear}>
