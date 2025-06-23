@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import ProductForm from "./components/products/ProductForm.jsx";
 import ProductList from "./components/products/ProductList.jsx";
-import axios from "axios";
 import ExpiringProductList from "./components/products/ExpiringProductList.jsx";
 import SucursalSelector from "./components/products/SucursalSelector.jsx";
 import Productos from "./pages/Productos.jsx";
@@ -49,6 +48,8 @@ function App() {
           flexDirection: "column",
         }}
       >
+        {/* Navbar */}
+        <Navbar onToggleTheme={toggleMode} mode={mode} />
         {/* Encabezado con modo oscuro */}
         <Box
           sx={{
@@ -60,16 +61,15 @@ function App() {
             borderColor: "divider",
           }}
         >
-          <Box sx={{ fontWeight: "bold", fontSize: "1.2rem" }}>
+          {/* <Box sx={{ fontWeight: "bold", fontSize: "1.2rem" }}>
             Gestión Farmacia
-          </Box>
-          <IconButton onClick={toggleMode} color="inherit">
-            {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
-        </Box>
+          </Box> */}
 
-        {/* Navbar */}
-        <Navbar />
+          {/* <IconButton id="HOLA" onClick={toggleMode} color="inherit">
+            {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton> */}
+
+        </Box>
 
         {/* Contenido principal */}
         <Box sx={{ flexGrow: 1, px: 2, pb: 4 }}>

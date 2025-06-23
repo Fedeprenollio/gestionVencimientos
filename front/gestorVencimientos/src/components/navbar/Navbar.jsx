@@ -1,8 +1,10 @@
-import { AppBar, Toolbar, Typography, Button, Menu, MenuItem } from "@mui/material";
+import { AppBar, Toolbar, Typography, Button, Menu, MenuItem, IconButton } from "@mui/material";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import Brightness4Icon from "@mui/icons-material/Brightness4";
+import Brightness7Icon from "@mui/icons-material/Brightness7";
 
-export default function Navbar() {
+export default function Navbar({onToggleTheme,mode}) {
   const [anchorElProd, setAnchorElProd] = useState(null);
   const [anchorElLote, setAnchorElLote] = useState(null);
   const [anchorElStock, setAnchorElStock] = useState(null);
@@ -12,11 +14,15 @@ export default function Navbar() {
   const openStock = Boolean(anchorElStock);
 
   return (
-    <AppBar>
+    <AppBar >
       <Toolbar>
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
           Gestión Farmacia
         </Typography>
+
+         <IconButton onClick={onToggleTheme} color="inherit">
+        {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
+      </IconButton>
 
         {/* Productos */}
         <Button

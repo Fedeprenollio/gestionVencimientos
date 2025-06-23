@@ -1,8 +1,11 @@
-import { FormControl, InputLabel, Select, MenuItem, Box } from "@mui/material";
+import { FormControl, InputLabel, Select, MenuItem, Box, Typography } from "@mui/material";
 
 export default function SucursalSelector({ branch, setBranch }) {
   return (
-    <Box sx={{ width: "100vw", pt: 2 }}>
+    <Box sx={{ maxWidth: 500, mx: "auto", p: 2 }}>
+      <Typography variant="h6">
+        Selecciona una sucursal para empezar
+      </Typography>
       <FormControl fullWidth sx={{ mb: 3 }}>
         <InputLabel>Sucursal</InputLabel>
         <Select
