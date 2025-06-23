@@ -87,7 +87,7 @@ export default function Productos() {
   };
 
   return (
-    <>
+    <Box sx={{  width: "100vw", pt: 2 }}>
       <Box sx={{ maxWidth: 800, mx: "auto", p: 2 }}>
         <ProductQuickSearch
           query={query}
@@ -124,9 +124,9 @@ export default function Productos() {
           ))
         )}
       </Box>
-      <Box sx={{ mt: 4, px: 2 }}>
+      <Box sx={{pt:2, pb: 6,  mt: 4, px: 2 }}>
         <ProductListGrid />
       </Box>
-    </>
+    </Box>
   );
 }

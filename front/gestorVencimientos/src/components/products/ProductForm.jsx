@@ -161,7 +161,8 @@ export default function ProductForm() {
   };
 
   return (
-    <>
+    <Box sx={{  width: "100vw", pt: 2 }}>
+
       <SucursalSelector branch={branch} setBranch={setBranch} />
       <Box sx={{ maxWidth: 500, mx: "auto", p: 2 }}>
         <Typography variant="h6" gutterBottom>
@@ -188,69 +189,6 @@ export default function ProductForm() {
           setScanning={setScanning}
           barcodeInputRef={barcodeInputRef}
         />
-
-        {/* <Box
-          component="form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSearch(barcode);
-          }}
-        >
-          <Autocomplete
-            options={nameResults}
-            getOptionLabel={(option) => `${option.name}`}
-            onInputChange={(e, newInputValue) => setNameQuery(newInputValue)}
-            onChange={(e, selected) => {
-              if (selected) {
-                setBarcode(selected.barcode);
-                setProductExists(true);
-                setProductInfo({
-                  id: selected._id, // o productId
-                  name: selected.name,
-                  type: selected.type,
-                });
-              }
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Buscar por nombre"
-                fullWidth
-                sx={{ mb: 2 }}
-              />
-            )}
-          />
-
-          <Grid container spacing={1} alignItems="center" sx={{ mb: 2 }}>
-            <Grid item xs>
-              <TextField
-                label="Código de barras"
-                value={barcode}
-                onChange={handleBarcodeChange}
-                fullWidth
-                required
-                inputRef={barcodeInputRef}
-              />
-            </Grid>
-            <Grid item>
-              <Button type="submit" variant="outlined" disabled={!barcode}>
-                Buscar
-              </Button>
-            </Grid>
-            <Grid item>
-              <Button variant="outlined" onClick={() => setScanning(true)}>
-                Escanear
-              </Button>
-            </Grid>
-          </Grid>
-        </Box>
-
-        {scanning && (
-          <BarcodeScanner
-            onDetected={handleDetected}
-            onClose={() => setScanning(false)}
-          />
-        )} */}
 
         {productExists && (
           <Box sx={{ mb: 2 }}>
@@ -285,46 +223,8 @@ export default function ProductForm() {
         {createdLots.length > 0 && (
           <CreatedLotsTable createdLots={createdLots} onClear={clearLots} />
 
-          // <Box mt={4}>
-          //   <Typography variant="h6" gutterBottom>
-          //     Lotes cargados hoy
-          //   </Typography>
-          //   <Table size="small">
-          //     <TableHead>
-          //       <TableRow>
-          //         <TableCell>Producto</TableCell>
-          //         <TableCell>Código</TableCell>
-          //         <TableCell>Vencimiento</TableCell>
-          //         <TableCell>Cantidad</TableCell>
-          //         <TableCell>Sucursal</TableCell>
-          //       </TableRow>
-          //     </TableHead>
-          //     <TableBody>
-          //       {createdLots.map((lot, idx) => (
-          //         <TableRow key={idx}>
-          //           <TableCell>{lot.name}</TableCell>
-          //           <TableCell>{lot.barcode}</TableCell>
-          //           <TableCell>{formatDate(lot.expirationDate)}</TableCell>
-          //           <TableCell>{lot.quantity}</TableCell>
-          //           <TableCell>{lot.branch}</TableCell>
-          //         </TableRow>
-          //       ))}
-          //     </TableBody>
-          //   </Table>
-          //   <Box mt={2} display="flex" gap={2}>
-          //     <Button
-          //       variant="outlined"
-          //       onClick={() => exportToExcelLots(createdLots)}
-          //     >
-          //       Exportar a Excel
-          //     </Button>
-          //     <Button variant="outlined" color="error" onClick={clearLots}>
-          //       Limpiar jornada
-          //     </Button>
-          //   </Box>
-          // </Box>
         )}
       </Box>
-    </>
+    </Box>
   );
 }
