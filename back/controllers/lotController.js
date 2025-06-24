@@ -8,19 +8,24 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 
+
 // export const addLot = async (req, res) => {
-//   const { productId, expirationDate, quantity, branch } = req.body;
-//   console.log("CREANDO LTE", productId, expirationDate, quantity, branch);
+//   const { productId, expirationDate, quantity, branch, overstock = false } = req.body;
+//   console.log("CREANDO LOTE", productId, expirationDate, quantity, branch, overstock);
+
 //   if (!productId || !expirationDate || !quantity || !branch) {
 //     return res
 //       .status(400)
 //       .json({ message: "Faltan campos obligatorios para agregar lotes" });
 //   }
+
+//   // Parse expirationDate in Argentina timezone, normalize to month start
 //   const parsedExpirationDate = dayjs
 //     .tz(expirationDate, "America/Argentina/Buenos_Aires")
-//     .startOf("month") // si querés normalizar al inicio del mes
+//     .startOf("month")
 //     .utc()
 //     .toDate();
+
 //   try {
 //     const product = await Product.findById(productId);
 //     if (!product) {
@@ -32,6 +37,7 @@ dayjs.extend(timezone);
 //       expirationDate: parsedExpirationDate,
 //       quantity,
 //       branch,
+//       overstock: Boolean(overstock), // flag this lot as overstock
 //     });
 
 //     await lot.save();
@@ -41,44 +47,114 @@ dayjs.extend(timezone);
 //     res.status(500).json({ message: "Error al agregar lote" });
 //   }
 // };
+
 export const addLot = async (req, res) => {
   const { productId, expirationDate, quantity, branch, overstock = false } = req.body;
-  console.log("CREANDO LOTE", productId, expirationDate, quantity, branch, overstock);
 
   if (!productId || !expirationDate || !quantity || !branch) {
-    return res
-      .status(400)
-      .json({ message: "Faltan campos obligatorios para agregar lotes" });
+    return res.status(400).json({ message: "Faltan datos requeridos del lote" });
   }
 
-  // Parse expirationDate in Argentina timezone, normalize to month start
-  const parsedExpirationDate = dayjs
-    .tz(expirationDate, "America/Argentina/Buenos_Aires")
-    .startOf("month")
-    .utc()
-    .toDate();
-
   try {
+    // Validar producto
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: "Producto no encontrado" });
     }
 
-    const lot = new Lot({
+    // Normalizar fecha
+    const parsedExpirationDate = dayjs
+      .tz(expirationDate, "America/Argentina/Buenos_Aires")
+      .startOf("month")
+      .utc()
+      .toDate();
+
+    // Buscar si ya existe (teniendo en cuenta overstock)
+    const existingLot = await Lot.findOne({
+      productId,
+      expirationDate: parsedExpirationDate,
+      branch,
+      overstock: Boolean(overstock),
+    });
+
+    if (existingLot) {
+      existingLot.quantity += Number(quantity);
+      await existingLot.save();
+      return res.status(200).json({ message: "Cantidad actualizada", lot: existingLot });
+    }
+
+    // Si no existe, crear nuevo lote
+    const newLot = new Lot({
       productId,
       expirationDate: parsedExpirationDate,
       quantity,
       branch,
-      overstock: Boolean(overstock), // flag this lot as overstock
+      overstock: Boolean(overstock),
     });
 
-    await lot.save();
-    res.status(201).json({ message: "Lote agregado", lot });
+    await newLot.save();
+    res.status(201).json({ message: "Lote creado", lot: newLot });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Error al agregar lote" });
+    res.status(500).json({ message: "Error al crear lote" });
   }
 };
+
+
+
+// export const addLot = async (req, res) => {
+//   const { productId, expirationDate, quantity, branch, overstock = false } = req.body;
+
+//   if (!productId || !expirationDate || !quantity || !branch) {
+//     return res.status(400).json({ message: "Faltan datos requeridos del lote" });
+//   }
+
+//   try {
+//     // Validar producto
+//     const product = await Product.findById(productId);
+//     if (!product) {
+//       return res.status(404).json({ message: "Producto no encontrado" });
+//     }
+
+//     // Normalizar fecha
+//     const parsedExpirationDate = dayjs
+//       .tz(expirationDate, "America/Argentina/Buenos_Aires")
+//       .startOf("month")
+//       .utc()
+//       .toDate();
+
+//     // Buscar si ya existe
+//     const existingLot = await Lot.findOne({
+//       productId,
+//       expirationDate: parsedExpirationDate,
+//       branch,
+//     });
+
+//     if (existingLot) {
+//       existingLot.quantity += Number(quantity);
+//       await existingLot.save();
+//       return res.status(200).json({ message: "Cantidad actualizada", lot: existingLot });
+//     }
+
+//     const newLot = new Lot({
+//       productId,
+//       expirationDate: parsedExpirationDate,
+//       quantity,
+//       branch,
+//       overstock: Boolean(overstock),
+//     });
+
+//     await newLot.save();
+//     res.status(201).json({ message: "Lote creado", lot: newLot });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: "Error al crear lote" });
+//   }
+// };
+
+
+
+
 
 export const deleteLot = async (req, res) => {
   const { lotId } = req.params;

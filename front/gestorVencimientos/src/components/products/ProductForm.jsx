@@ -104,30 +104,35 @@ export default function ProductForm() {
     handleSearch(code);
   };
 
-  const submit = async (e) => {
-    // e.preventDefault();
+const submit = async () => {
+  try {
+    let pid = productInfo.id;
+
+    // Si no existe el producto, crear primero
+    if (!productExists) {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/products`, {
+        name: productInfo.name,
+        barcode,
+        type: productInfo.type,
+      });
+      pid = res.data.product._id;
+      setProductExists(true);
+    }
+
+    // Luego crear el lote
     const expirationDate = new Date(`${expYear}-${expMonth}-01`).toISOString();
-    const payload = {
-      barcode,
-      name: productInfo.name,
-      type: productInfo.type,
-      branch,
+
+    const lotePayload = {
+      productId: pid,
       expirationDate,
       quantity: Number(quantity),
-      productId: productInfo.id,
+      branch,
       overstock,
     };
-    console.log("productInfo", payload);
-    try {
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/lots`,
-        payload
-      );
-      console.log("res.data", res.data);
-      // ✅ Agregar lote a la lista local
-      // const updatedProduct = res.data; // el producto completo con todos sus lots
 
-      // ✅ Agregar lote a la lista local
+    const loteRes = await axios.post(`${import.meta.env.VITE_API_URL}/lots`, lotePayload);
+    console.log("Lote creado:", loteRes.data);
+         // ✅ Agregar lote a la lista local
       setCreatedLots((prev) => [
         ...prev,
         {
@@ -137,32 +142,90 @@ export default function ProductForm() {
           quantity,
           branch,
           type: productInfo.type,
-           overstock,
+          overstock,
         },
       ]);
+  } catch (err) {
+    console.error("Error:", err);
+    alert(err.response?.data?.message || "Error");
+  }
+};
 
-      // reset
-      setBarcode("");
-      // setProductExists(null);
-      // setProductInfo({ name: "", type: "medicamento" });
-      setQuantity(1);
-      setExpMonth("");
-      setExpYear("");
-      setOverstock(false);
 
-      // setNameQuery("");
-      // setNameResults([]);
-      // onAdded();
-      barcodeInputRef.current?.focus();
-    } catch (err) {
-      console.log("ERROR,", err);
-      alert(err.response?.data?.message || "Error");
-    }
-  };
+  // const submit = async (e) => {
+  //   // e.preventDefault();
+
+  //   let productId = productInfo.id;
+
+  //   // 🟡 Si el producto no existe, primero lo creamos
+  //   if (!productExists) {
+  //     const resProduct = await axios.post(
+  //       `${import.meta.env.VITE_API_URL}/products`,
+  //       {
+  //         name: productInfo.name,
+  //         barcode,
+  //         type: productInfo.type,
+  //       }
+  //     );
+  //     productId = resProduct.data._id; // ⬅️ Ahora sí tenemos el ID
+  //   }
+
+  //   const expirationDate = new Date(`${expYear}-${expMonth}-01`).toISOString();
+  //   const payload = {
+  //     barcode,
+  //     name: productInfo.name,
+  //     type: productInfo.type,
+  //     branch,
+  //     expirationDate,
+  //     quantity: Number(quantity),
+  //     productId: productId,
+  //     overstock,
+  //   };
+  //   console.log("productInfo", payload);
+  //   try {
+  //     const res = await axios.post(
+  //       `${import.meta.env.VITE_API_URL}/lots`,
+  //       payload
+  //     );
+  //     console.log("res.data", res.data);
+  //     // ✅ Agregar lote a la lista local
+  //     // const updatedProduct = res.data; // el producto completo con todos sus lots
+
+  //     // ✅ Agregar lote a la lista local
+  //     setCreatedLots((prev) => [
+  //       ...prev,
+  //       {
+  //         name: productInfo.name,
+  //         barcode,
+  //         expirationDate,
+  //         quantity,
+  //         branch,
+  //         type: productInfo.type,
+  //         overstock,
+  //       },
+  //     ]);
+
+  //     // reset
+  //     setBarcode("");
+  //     // setProductExists(null);
+  //     // setProductInfo({ name: "", type: "medicamento" });
+  //     setQuantity(1);
+  //     setExpMonth("");
+  //     setExpYear("");
+  //     setOverstock(false);
+
+  //     // setNameQuery("");
+  //     // setNameResults([]);
+  //     // onAdded();
+  //     barcodeInputRef.current?.focus();
+  //   } catch (err) {
+  //     console.log("ERROR,", err);
+  //     alert(err.response?.data?.message || "Error");
+  //   }
+  // };
 
   return (
-    <Box sx={{  width: "100vw", pt: 2 }}>
-
+    <Box sx={{ width: "100vw", pt: 2 }}>
       <SucursalSelector branch={branch} setBranch={setBranch} />
       <Box sx={{ maxWidth: 500, mx: "auto", p: 2 }}>
         <Typography variant="h6" gutterBottom>
@@ -222,7 +285,6 @@ export default function ProductForm() {
         {/* 🧾 TABLA DE LOTES CREADOS */}
         {createdLots.length > 0 && (
           <CreatedLotsTable createdLots={createdLots} onClear={clearLots} />
-
         )}
       </Box>
     </Box>
