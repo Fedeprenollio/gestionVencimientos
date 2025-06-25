@@ -28,7 +28,7 @@ export default function ExpiringProductFilter({ onFilter }) {
       type,
       createdFrom,
       createdTo,
-      overstock
+      overstock,
     });
   };
 
@@ -88,6 +88,7 @@ export default function ExpiringProductFilter({ onFilter }) {
               <MenuItem value="sucursal1">Sucursal 1</MenuItem>
               <MenuItem value="sucursal2">Sucursal 2</MenuItem>
               <MenuItem value="sucursal3">Sucursal 3</MenuItem>
+              <MenuItem value="sucursal9dejulio">9 de julio</MenuItem>
             </Select>
           </FormControl>
         </Grid>
@@ -110,25 +111,25 @@ export default function ExpiringProductFilter({ onFilter }) {
           </FormControl>
         </Grid>
 
-{/* Sobrestock */}
-<Grid item xs={12} sm={6} md={4}>
-  <FormControl fullWidth sx={{ minWidth: 240 }} variant="outlined">
-    <InputLabel id="overstock-label">Sobrestock</InputLabel>
-    <Select
-      labelId="overstock-label"
-      id="overstock"
-      value={overstock}
-      label="Sobrestock"
-      onChange={(e) => setOverstock(e.target.value)}
-    >
-        
-      <MenuItem  value="all">Todos (incluye sobrestock)</MenuItem>
-      <MenuItem value="false">Solo por vencer (excluye sobrestock)</MenuItem>
-      <MenuItem value="only">Solo sobrestock</MenuItem>
-    </Select>
-  </FormControl>
-</Grid>
-
+        {/* Sobrestock */}
+        <Grid item xs={12} sm={6} md={4}>
+          <FormControl fullWidth sx={{ minWidth: 240 }} variant="outlined">
+            <InputLabel id="overstock-label">Sobrestock</InputLabel>
+            <Select
+              labelId="overstock-label"
+              id="overstock"
+              value={overstock}
+              label="Sobrestock"
+              onChange={(e) => setOverstock(e.target.value)}
+            >
+              <MenuItem value="all">Todos (incluye sobrestock)</MenuItem>
+              <MenuItem value="false">
+                Solo por vencer (excluye sobrestock)
+              </MenuItem>
+              <MenuItem value="only">Solo sobrestock</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
 
         {/* Creado desde */}
         <Grid item xs={12} sm={6} md={4}>

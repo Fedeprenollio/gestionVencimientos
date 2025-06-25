@@ -27,6 +27,8 @@ import {
   TableSortLabel,
   TextField,
 } from "@mui/material";
+import useSnackbar from "../../hooks/useSnackbar";
+import AppSnackbar from "../shared/AppSnackbar";
 
 export default function ExpiringProductList() {
   const [products, setProducts] = useState([]);
@@ -39,6 +41,9 @@ export default function ExpiringProductList() {
     branch: "",
   });
   console.log("products", products);
+
+const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
+
   const fetchProducts = async (filterParams = {}) => {
     const params = new URLSearchParams();
 
@@ -69,9 +74,11 @@ export default function ExpiringProductList() {
   try {
     await axios.delete(`${import.meta.env.VITE_API_URL}/lots/${lotId}`);
     fetchProducts(filters); // mantener filtros activos
+     showSnackbar("Lote eliminado correctamente", "success");
   } catch (err) {
     alert("Error al eliminar el lote");
     console.error(err);
+    showSnackbar("Error al eliminar el lote", "error");
   }
 };
 
@@ -288,6 +295,7 @@ export default function ExpiringProductList() {
           </TableBody>
         </Table>
       </TableContainer>
+      <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>
   );
 }
