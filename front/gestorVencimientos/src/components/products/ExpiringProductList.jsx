@@ -37,12 +37,13 @@ export default function ExpiringProductList() {
   const [order, setOrder] = useState("asc");
   const [quickFilters, setQuickFilters] = useState({
     productName: "",
+    barcode: "",
     type: "",
     branch: "",
   });
   console.log("products", products);
 
-const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   const fetchProducts = async (filterParams = {}) => {
     const params = new URLSearchParams();
@@ -57,6 +58,7 @@ const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
       params.append("createdTo", filterParams.createdTo);
     if (filterParams.overstock)
       params.append("overstock", filterParams.overstock); // ✅ NUEVO
+    if (filterParams.barcodes) params.append("barcodes", filterParams.barcodes);
 
     const res = await axios.get(
       `${import.meta.env.VITE_API_URL}/products?${params}`
@@ -69,19 +71,18 @@ const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
     fetchProducts(newFilters);
   };
 
- const deleteLot = async (productId, lotId) => {
-  if (!confirm("¿Eliminar este lote?")) return;
-  try {
-    await axios.delete(`${import.meta.env.VITE_API_URL}/lots/${lotId}`);
-    fetchProducts(filters); // mantener filtros activos
-     showSnackbar("Lote eliminado correctamente", "success");
-  } catch (err) {
-    alert("Error al eliminar el lote");
-    console.error(err);
-    showSnackbar("Error al eliminar el lote", "error");
-  }
-};
-
+  const deleteLot = async (productId, lotId) => {
+    if (!confirm("¿Eliminar este lote?")) return;
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/lots/${lotId}`);
+      fetchProducts(filters); // mantener filtros activos
+      showSnackbar("Lote eliminado correctamente", "success");
+    } catch (err) {
+      alert("Error al eliminar el lote");
+      console.error(err);
+      showSnackbar("Error al eliminar el lote", "error");
+    }
+  };
 
   // useEffect(() => {
   //   fetchProducts();
@@ -93,6 +94,7 @@ const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
       prod.lots.forEach((lot) => {
         flat.push({
           productName: prod.name,
+          barcode: prod.barcode,
           type: prod.type,
           branch: lot.branch,
           quantity: lot.quantity,
@@ -111,6 +113,9 @@ const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
         row.productName
           .toLowerCase()
           .includes(quickFilters.productName.toLowerCase()) &&
+        row.barcode
+          .toLowerCase()
+          .includes(quickFilters.barcode?.toLowerCase() || "") &&
         row.type.toLowerCase().includes(quickFilters.type.toLowerCase()) &&
         row.branch.toLowerCase().includes(quickFilters.branch.toLowerCase())
       );
@@ -204,6 +209,8 @@ const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
             <TableRow>
               {[
                 { id: "productName", label: "Producto" },
+                { id: "barcode", label: "Código de barras" },
+
                 { id: "type", label: "Tipo" },
                 { id: "branch", label: "Sucursal" },
                 { id: "quantity", label: "Cantidad" },
@@ -240,6 +247,18 @@ const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
                   placeholder="Buscar"
                 />
               </TableCell>
+
+              <TableCell>
+                <TextField
+                  value={quickFilters.barcode}
+                  onChange={(e) =>
+                    setQuickFilters((f) => ({ ...f, barcode: e.target.value }))
+                  }
+                  size="small"
+                  placeholder="Código"
+                />
+              </TableCell>
+
               <TableCell>
                 <TextField
                   value={quickFilters.type}
@@ -268,6 +287,8 @@ const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
             {rows.map((row) => (
               <TableRow key={`${row.productId}-${row.lotId}`}>
                 <TableCell>{row.productName}</TableCell>
+                <TableCell>{row.barcode}</TableCell>
+
                 <TableCell>{row.type}</TableCell>
                 <TableCell>{row.branch}</TableCell>
                 <TableCell>{row.quantity}</TableCell>

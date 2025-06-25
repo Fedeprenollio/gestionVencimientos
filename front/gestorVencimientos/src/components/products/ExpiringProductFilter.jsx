@@ -19,6 +19,7 @@ export default function ExpiringProductFilter({ onFilter }) {
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
   const [overstock, setOverstock] = useState("all");
+  const [barcodes, setBarcodes] = useState("");
 
   const applyFilter = () => {
     onFilter({
@@ -29,6 +30,7 @@ export default function ExpiringProductFilter({ onFilter }) {
       createdFrom,
       createdTo,
       overstock,
+      barcodes, // ✅
     });
   };
 
@@ -109,6 +111,20 @@ export default function ExpiringProductFilter({ onFilter }) {
               <MenuItem value="perfumeria">Perfumería</MenuItem>
             </Select>
           </FormControl>
+        </Grid>
+        {/* Códigos de barra (lista separada por comas) */}
+        <Grid item xs={12} sm={6} md={4}>
+          <TextField
+            label="Códigos de barra"
+            value={barcodes}
+            onChange={(e) => setBarcodes(e.target.value)}
+            fullWidth
+            multiline
+            rows={2}
+            placeholder="Ej: 7791, 1112223"
+            variant="outlined"
+            size="small"
+          />
         </Grid>
 
         {/* Sobrestock */}

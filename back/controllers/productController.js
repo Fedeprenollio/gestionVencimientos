@@ -22,7 +22,7 @@ dayjs.extend(timezone);
 
 // // if (!barcode || !name || !type || !branch || !expirationDate || !quantity) {
 // //   return res.status(400).json({ message: "Faltan datos requeridos" });
-// // } 
+// // }
 
 // try {
 //   let product = await Product.findOne({ barcode });
@@ -38,12 +38,10 @@ dayjs.extend(timezone);
 //     await product.save();
 //   }
 
-
 //   const parsedDate = new Date(expirationDate);
 // if (isNaN(parsedDate.getTime())) {
 //   return res.status(400).json({ message: "Fecha de vencimiento inválida" });
 // }
-
 
 //   // Buscar si ya hay un lote con mismo vencimiento y sucursal
 //   const existingLot = await Lot.findOne({
@@ -59,7 +57,7 @@ dayjs.extend(timezone);
 //   } else {
 // if (!barcode || !name || !type || !branch || !expirationDate || !quantity) {
 //   return res.status(400).json({ message: "Faltan datos requeridos" });
-// } 
+// }
 
 //     // Crear nuevo lote
 //     const newLot = new Lot({
@@ -90,7 +88,9 @@ export const createProduct = async (req, res) => {
   try {
     let existing = await Product.findOne({ barcode });
     if (existing) {
-      return res.status(200).json({ message: "Producto ya existente", product: existing });
+      return res
+        .status(200)
+        .json({ message: "Producto ya existente", product: existing });
     }
 
     const product = new Product({ barcode, name, type });
@@ -242,6 +242,12 @@ export const getExpiringProducts = async (req, res) => {
     overstock, // puede ser "true", "false", "only"
   } = req.query;
 
+  // Obtener y procesar barcodes (separados por coma)
+  const barcodes = req.query.barcodes
+    ? req.query.barcodes.split(",").map((b) => b.trim())
+    : null;
+
+  
   const filtrosActivos = from || months || branch || createdFrom || createdTo;
 
   const includeOnlyOverstock = overstock === "only";
@@ -249,8 +255,12 @@ export const getExpiringProducts = async (req, res) => {
   const includeRegular = overstock !== "true" && overstock !== "only";
 
   try {
+    // 1. Armar el query de productos
     // 1. Buscar productos (filtrando por tipo si es necesario)
     const productQuery = type ? { type } : {};
+     if (barcodes && barcodes.length > 0) {
+      productQuery.barcode = { $in: barcodes };
+    }
     const products = await Product.find(productQuery).sort({ name: 1 });
     const productIds = products.map((p) => p._id);
 
@@ -324,7 +334,7 @@ export const getExpiringProducts = async (req, res) => {
     }
 
     if (productIds.length === 0) {
-      return res.json([]);      
+      return res.json([]);
     }
 
     // 5. Armar la respuesta combinada
