@@ -64,18 +64,17 @@ export default function ExpiringProductList() {
     fetchProducts(newFilters);
   };
 
-  const deleteLot = async (productId, lotId) => {
-    if (!confirm("¿Eliminar este lote?")) return;
-    try {
-      await axios.delete(
-        `${import.meta.env.VITE_API_URL}/products/${productId}/lots/${lotId}`
-      );
-      fetchProducts(filters); // mantener filtros activos
-    } catch (err) {
-      alert("Error al eliminar el lote");
-      console.error(err);
-    }
-  };
+ const deleteLot = async (productId, lotId) => {
+  if (!confirm("¿Eliminar este lote?")) return;
+  try {
+    await axios.delete(`${import.meta.env.VITE_API_URL}/lots/${lotId}`);
+    fetchProducts(filters); // mantener filtros activos
+  } catch (err) {
+    alert("Error al eliminar el lote");
+    console.error(err);
+  }
+};
+
 
   // useEffect(() => {
   //   fetchProducts();
