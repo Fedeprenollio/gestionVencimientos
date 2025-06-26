@@ -56,11 +56,11 @@ export default function Navbar({onToggleTheme,mode}) {
           <MenuItem component={Link} to="/lotes/cargar" onClick={() => setAnchorElLote(null)}>
             Cargar vencimientos
           </MenuItem>
-          <MenuItem component={Link} to="/lots/manage" onClick={() => setAnchorElLote(null)}>
+          {/* <MenuItem component={Link} to="/lots/manage" onClick={() => setAnchorElLote(null)}>
             Administrar lotes
-          </MenuItem>
+          </MenuItem> */}
           <MenuItem component={Link} to="/expiring" onClick={() => setAnchorElLote(null)}>
-            Lotes por vencer
+            Medicamentos por vencer
           </MenuItem>
         </Menu>
 
