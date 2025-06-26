@@ -18,6 +18,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import ProductFormSimple from "./formularios/ProductFormSimple";
 import LotForm from "../lots/formularios/LotForm.jsx";
+import InputAdornment from "@mui/material/InputAdornment";
+import ClearIcon from "@mui/icons-material/Clear";
 
 const modalStyle = {
   position: "absolute",
@@ -36,6 +38,17 @@ export default function ProductListGrid() {
   const [query, setQuery] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
   const [addingLotProduct, setAddingLotProduct] = useState(null);
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (query.trim() === "") {
+        fetchProducts("");
+      } else {
+        fetchProducts(query);
+      }
+    }, 500); // Espera 500ms después de dejar de escribir
+
+    return () => clearTimeout(delayDebounce); // Limpia el timeout anterior si el usuario sigue escribiendo
+  }, [query]);
 
   // Estados para LotForm
   const [productInfo, setProductInfo] = useState({
@@ -84,10 +97,12 @@ export default function ProductListGrid() {
     }
   }, [addingLotProduct]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (customQuery = query) => {
+    console.log("query", query);
+    console.log("customQuery", customQuery);
     try {
-      const url = query.trim()
-        ? `${import.meta.env.VITE_API_URL}/products/search?name=${query}`
+      const url = customQuery.trim()
+        ? `${import.meta.env.VITE_API_URL}/products/search?name=${customQuery}`
         : `${import.meta.env.VITE_API_URL}/products`;
       const res = await axios.get(url);
       setProducts(res.data);
@@ -147,19 +162,56 @@ export default function ProductListGrid() {
   return (
     <Box sx={{ height: 500, width: "100%", pt: 2 }}>
       <Typography variant="h6" gutterBottom>
-        Lista de Todos los Productos
+        Lista de Todos los Productos por Vencer
       </Typography>
 
       <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
         <TextField
           label="Buscar por nombre o código"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          // onChange={(e) => {
+          //   const newValue = e.target.value;
+          //   setQuery(newValue);
+          //   if (newValue.trim() === "") {
+          //     fetchProducts(""); // Si el usuario borra todo, recarga la lista completa
+          //   }
+          // }}
+          onChange={(e) => {
+            setQuery(e.target.value);
+          }}
           fullWidth
+          InputProps={{
+            endAdornment: query && (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="Limpiar búsqueda"
+                  onClick={() => {
+                    setQuery("");
+                    fetchProducts(""); // Vuelve a mostrar todo
+                  }}
+                  edge="end"
+                >
+                  <ClearIcon />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
         />
-        <Button variant="contained" onClick={fetchProducts}>
+        <Button variant="contained" onClick={() => fetchProducts()}>
           Buscar
         </Button>
+        {query && (
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={() => {
+              fetchProducts(""); // vuelve a cargar todos
+              setQuery("");
+            }}
+          >
+            Ver todos
+          </Button>
+        )}
       </Box>
 
       {/* /DELETE SSELECCIONADOS: / */}
@@ -204,7 +256,7 @@ export default function ProductListGrid() {
         rowsPerPageOptions={[10, 20, 50]}
         checkboxSelection
         onRowSelectionModelChange={(newSelection) => {
-          console.log("newSelection",newSelection)
+          console.log("newSelection", newSelection);
           // Compatible con estructura actual del modelo de selección
           if (newSelection?.ids && newSelection.ids instanceof Set) {
             setSelectedIds(Array.from(newSelection.ids));

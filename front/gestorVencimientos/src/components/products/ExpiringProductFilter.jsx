@@ -12,7 +12,9 @@ import {
 } from "@mui/material";
 
 export default function ExpiringProductFilter({ onFilter }) {
-  const [from, setFrom] = useState("");
+  // const [from, setFrom] = useState("");
+  const getTodayDate = () => new Date().toISOString().split("T")[0];
+  const [from, setFrom] = useState(getTodayDate());
   const [months, setMonths] = useState(6);
   const [branch, setBranch] = useState("");
   const [type, setType] = useState("");
@@ -20,6 +22,7 @@ export default function ExpiringProductFilter({ onFilter }) {
   const [createdTo, setCreatedTo] = useState("");
   const [overstock, setOverstock] = useState("all");
   const [barcodes, setBarcodes] = useState("");
+
 
   const applyFilter = () => {
     onFilter({
@@ -54,6 +57,7 @@ export default function ExpiringProductFilter({ onFilter }) {
           <TextField
             label="Desde (vencimiento)"
             type="date"
+            
             value={from}
             onChange={(e) => setFrom(e.target.value)}
             fullWidth

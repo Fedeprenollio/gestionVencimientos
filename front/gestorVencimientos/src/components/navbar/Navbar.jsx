@@ -46,7 +46,7 @@ export default function Navbar({onToggleTheme,mode}) {
           color="inherit"
           onClick={(e) => setAnchorElLote(e.currentTarget)}
         >
-          Lotes
+          Vencimientos
         </Button>
         <Menu
           anchorEl={anchorElLote}
