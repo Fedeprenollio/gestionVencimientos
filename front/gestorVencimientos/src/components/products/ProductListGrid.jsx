@@ -20,6 +20,9 @@ import ProductFormSimple from "./formularios/ProductFormSimple";
 import LotForm from "../lots/formularios/LotForm.jsx";
 import InputAdornment from "@mui/material/InputAdornment";
 import ClearIcon from "@mui/icons-material/Clear";
+import useLoading from "../../hooks/useLoading";
+import CircularProgress from "@mui/material/CircularProgress";
+import FullPageLoader from "../shared/FullPageLoader.jsx";
 
 const modalStyle = {
   position: "absolute",
@@ -38,6 +41,8 @@ export default function ProductListGrid() {
   const [query, setQuery] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
   const [addingLotProduct, setAddingLotProduct] = useState(null);
+  const { loading, withLoading } = useLoading();
+
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (query.trim() === "") {
@@ -97,19 +102,28 @@ export default function ProductListGrid() {
     }
   }, [addingLotProduct]);
 
+  // const fetchProducts = async (customQuery = query) => {
+
+  //   try {
+  //     const url = customQuery.trim()
+  //       ? `${import.meta.env.VITE_API_URL}/products/search?name=${customQuery}`
+  //       : `${import.meta.env.VITE_API_URL}/products`;
+  //     const res = await axios.get(url);
+  //     setProducts(res.data);
+  //   } catch (err) {
+  //     console.error("Error buscando productos", err);
+  //     alert("Error buscando productos");
+  //   }
+  // };
+
   const fetchProducts = async (customQuery = query) => {
-    console.log("query", query);
-    console.log("customQuery", customQuery);
-    try {
+    await withLoading(async () => {
       const url = customQuery.trim()
         ? `${import.meta.env.VITE_API_URL}/products/search?name=${customQuery}`
         : `${import.meta.env.VITE_API_URL}/products`;
       const res = await axios.get(url);
       setProducts(res.data);
-    } catch (err) {
-      console.error("Error buscando productos", err);
-      alert("Error buscando productos");
-    }
+    });
   };
 
   useEffect(() => {
@@ -162,7 +176,7 @@ export default function ProductListGrid() {
   return (
     <Box sx={{ height: 500, width: "100%", pt: 2 }}>
       <Typography variant="h6" gutterBottom>
-        Lista de Todos los Productos por Vencer
+        Lista de Todos los Productos en Base de Datos
       </Typography>
 
       <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
@@ -247,8 +261,35 @@ export default function ProductListGrid() {
           </Box>
         </Box>
       </Dialog>
+      {loading && <FullPageLoader />}
 
       <DataGrid
+        // loading
+        // slotProps={{
+        //   loadingOverlay: {
+        //     variant: "linear-progress",
+        //     noRowsVariant: "skeleton",
+        //   },
+        // }}
+        rows={products}
+        columns={columns}
+        getRowId={(row) => row._id}
+        pageSize={10}
+        rowsPerPageOptions={[10, 20, 50]}
+        checkboxSelection
+        disableRowSelectionOnClick
+        onRowSelectionModelChange={(newSelection) => {
+          if (newSelection?.ids instanceof Set) {
+            setSelectedIds(Array.from(newSelection.ids));
+          } else if (Array.isArray(newSelection)) {
+            setSelectedIds(newSelection);
+          } else {
+            setSelectedIds([]);
+          }
+        }}
+      />
+
+      {/* <DataGrid
         rows={products}
         columns={columns}
         getRowId={(row) => row._id}
@@ -268,7 +309,7 @@ export default function ProductListGrid() {
         }}
         // rowSelectionModel={selectedIds}
         disableRowSelectionOnClick
-      />
+      /> */}
 
       {/* Modal de edición */}
       <Modal open={!!editingProduct} onClose={() => setEditingProduct(null)}>

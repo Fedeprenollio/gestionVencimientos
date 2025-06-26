@@ -29,6 +29,8 @@ import {
 } from "@mui/material";
 import useSnackbar from "../../hooks/useSnackbar";
 import AppSnackbar from "../shared/AppSnackbar";
+import useLoading from "../../hooks/useLoading";
+import FullPageLoader from "../shared/FullPageLoader";
 
 export default function ExpiringProductList() {
   const [products, setProducts] = useState([]);
@@ -41,7 +43,7 @@ export default function ExpiringProductList() {
     type: "",
     branch: "",
   });
-  console.log("products", products);
+  const { loading, withLoading } = useLoading();
 
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
@@ -66,9 +68,10 @@ export default function ExpiringProductList() {
     setProducts(res.data);
   };
 
-  const handleFilter = (newFilters) => {
+  const handleFilter =  (newFilters) => {
     setFilters(newFilters);
-    fetchProducts(newFilters);
+    // fetchProducts(newFilters);
+      withLoading(()=>  fetchProducts(newFilters)  )
   };
 
   const deleteLot = async (productId, lotId) => {
@@ -173,6 +176,9 @@ export default function ExpiringProductList() {
         case "created":
           comp = a.createdAt - b.createdAt;
           break;
+        case "overstock":
+          comp = a.overstock === b.overstock ? 0 : a.overstock ? -1 : 1;
+          break;
         default:
           comp = 0;
       }
@@ -202,7 +208,7 @@ export default function ExpiringProductList() {
       <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
         <Button onClick={() => exportToExcel(products)}>Exportar Excel</Button>
       </Box>
-
+      {loading && <FullPageLoader />}   
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
