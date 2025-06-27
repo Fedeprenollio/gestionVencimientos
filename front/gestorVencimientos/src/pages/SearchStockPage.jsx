@@ -183,6 +183,7 @@ import {
   Grid,
   Paper,
   Stack,
+  Divider,
 } from "@mui/material";
 import * as XLSX from "xlsx";
 
@@ -196,7 +197,6 @@ export default function SearchStockPage() {
   const handleTxtUpload = (event) => {
     const files = event.target.files;
     setTxtFiles(Array.from(files).map((f) => f.name));
-
     const allCodigos = [];
 
     const readAllTxts = Array.from(files).map((file) =>
@@ -235,7 +235,7 @@ export default function SearchStockPage() {
 
   const cruzarDatos = () => {
     if (!pedidoCodigos.length || !stockPorVencer.length) {
-      alert("Primero subí los archivos TXT y Excel.");
+      alert("Subí primero los archivos TXT y Excel.");
       return;
     }
 
@@ -268,94 +268,147 @@ export default function SearchStockPage() {
 
   return (
     <Box sx={{ px: 2, py: 3, maxWidth: 1000, mx: "auto" }}>
-      <Typography variant="h5" gutterBottom>
-        Buscar Stock en Sucursales
+      <Typography variant="h4" gutterBottom>
+        Comparar pedidos vs stock por vencer
       </Typography>
 
-      <Typography variant="body1" gutterBottom>
-        1. Subí archivos TXT con los pedidos del día.
-      </Typography>
+      {/* Paso 1 */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Typography variant="h6">1. Subir pedidos en formato TXT</Typography>
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          Podés seleccionar múltiples archivos TXT. Extraeremos automáticamente
+          los códigos de barra.
+        </Typography>
 
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} sm={6}>
-          <Button variant="outlined" component="label" fullWidth>
-            Subir TXT
-            <input
-              type="file"
-              multiple
-              accept=".txt"
-              hidden
-              onChange={handleTxtUpload}
-            />
-          </Button>
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <Button variant="outlined" component="label" fullWidth>
-            Subir Excel
-            <input
-              type="file"
-              accept=".xlsx, .xls, .csv"
-              hidden
-              onChange={handleExcelUpload}
-            />
-          </Button>
-        </Grid>
-      </Grid>
+        <Button variant="outlined" component="label">
+          Subir TXT
+          <input
+            type="file"
+            multiple
+            accept=".txt"
+            hidden
+            onChange={handleTxtUpload}
+          />
+        </Button>
 
       {txtFiles.length > 0 && (
-        <Box mb={2}>
-          <Typography variant="subtitle2">Archivos TXT cargados:</Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
-            {txtFiles.map((name, idx) => (
-              <Chip key={idx} label={name} />
-            ))}
-          </Box>
-
-          <Typography variant="subtitle2" mt={2}>
-            Códigos detectados:
-          </Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
-            {pedidoCodigos.map((code, i) => (
-              <Chip key={i} label={code} size="small" />
-            ))}
-          </Box>
-        </Box>
-      )}
-
-      {excelFile && (
-        <Typography variant="body2" mb={2}>
-          Archivo Excel cargado: <strong>{excelFile}</strong>
-        </Typography>
-      )}
-
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 2 }}>
-        <Button
-          variant="contained"
-          onClick={cruzarDatos}
-          disabled={!pedidoCodigos.length || !stockPorVencer.length}
-          fullWidth
-        >
-          Buscar coincidencias
-        </Button>
-
-        <Button
-          variant="outlined"
-          onClick={exportarExcel}
-          disabled={!coincidencias.length}
-          fullWidth
-        >
-          Exportar a Excel
-        </Button>
-
-        <Button variant="text" onClick={limpiarTodo} color="error" fullWidth>
-          Reiniciar
-        </Button>
+  <Box mb={3}>
+    {/* Archivos cargados */}
+    <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+      <Typography variant="subtitle1" gutterBottom color="primary">
+        ✅ Archivos TXT cargados
+      </Typography>
+      <Stack direction="row" spacing={1} flexWrap="wrap">
+        {txtFiles.map((name, idx) => (
+          <Chip
+            key={idx}
+            label={name}
+            variant="filled"
+            color="info"
+            sx={{ fontWeight: 500 }}
+          />
+        ))}
       </Stack>
+    </Paper>
 
+    {/* Códigos detectados */}
+    <Paper variant="outlined" sx={{ p: 2 }}>
+      <Typography variant="subtitle1" gutterBottom color="secondary">
+        🧾 Códigos detectados automáticamente ({pedidoCodigos.length})
+      </Typography>
+      <Stack direction="row" spacing={1} flexWrap="wrap">
+        {pedidoCodigos.map((code, i) => (
+          <Chip
+            key={i}
+            label={code}
+            variant="outlined"
+            color="default"
+            size="small"
+            sx={{ fontFamily: "monospace" }}
+          />
+        ))}
+      </Stack>
+    </Paper>
+  </Box>
+)}
+
+        {/* {pedidoCodigos.length > 0 && (
+          <Box mt={2}>
+            <Typography variant="subtitle2">
+              Códigos detectados ({pedidoCodigos.length}):
+            </Typography>
+            <Stack direction="row" flexWrap="wrap" gap={1} mt={1}>
+              {pedidoCodigos.map((code, i) => (
+                <Chip key={i} label={code} size="small" />
+              ))}
+            </Stack>
+          </Box>
+        )} */}
+      </Paper>
+
+      {/* Paso 2 */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Typography variant="h6">2. Subir archivo Excel con stock</Typography>
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          Subí un archivo .xlsx o .csv que contenga stock con columnas como
+          Código, Producto, Vencimiento, etc.
+        </Typography>
+
+        <Button variant="outlined" component="label">
+          Subir Excel
+          <input
+            type="file"
+            accept=".xlsx, .xls, .csv"
+            hidden
+            onChange={handleExcelUpload}
+          />
+        </Button>
+
+        {excelFile && (
+          <Typography variant="body2" mt={2}>
+            Archivo cargado: <strong>{excelFile}</strong>
+          </Typography>
+        )}
+      </Paper>
+
+      {/* Paso 3 */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Typography variant="h6">3. Buscar coincidencias</Typography>
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          Compararemos los códigos detectados con el stock para encontrar
+          coincidencias.
+        </Typography>
+
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          <Button
+            variant="contained"
+            onClick={cruzarDatos}
+            disabled={!pedidoCodigos.length || !stockPorVencer.length}
+            fullWidth
+          >
+            Buscar coincidencias
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={exportarExcel}
+            disabled={!coincidencias.length}
+            fullWidth
+          >
+            Exportar a Excel
+          </Button>
+
+          <Button variant="text" onClick={limpiarTodo} color="error" fullWidth>
+            Reiniciar
+          </Button>
+        </Stack>
+      </Paper>
+
+      {/* Paso 4: Resultados */}
       {coincidencias.length > 0 && (
         <Box mt={4}>
           <Typography variant="h6" gutterBottom>
-            Productos pedidos en stock por vencer
+            Resultados encontrados ({coincidencias.length})
           </Typography>
           <Paper sx={{ overflowX: "auto" }}>
             <Table size="small">
@@ -388,5 +441,3 @@ export default function SearchStockPage() {
     </Box>
   );
 }
-
-
