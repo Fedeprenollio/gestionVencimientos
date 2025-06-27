@@ -93,6 +93,7 @@ export const addLot = async (req, res) => {
     });
 
     await newLot.save();
+    await newLot.populate("productId", "name barcode type"); // <-- trae el producto asociado
     res.status(201).json({ message: "Lote creado", lot: newLot });
   } catch (err) {
     console.error(err);
@@ -174,7 +175,7 @@ export const deleteLot = async (req, res) => {
 
 // Listar productos con lotes próximos a vencer
 export const getExpiringLots = async (req, res) => {
-  console.log("req.query;", req.query);
+  console.log("AAAAAreq.query;", req.query);
   const { from, months = 6, branch, type, createdFrom, createdTo } = req.query;
 
   try {

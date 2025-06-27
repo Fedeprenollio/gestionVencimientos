@@ -104,53 +104,67 @@ export default function ProductForm() {
     handleSearch(code);
   };
 
-const submit = async () => {
-  try {
-    let pid = productInfo.id;
+  const submit = async () => {
+    try {
+      let pid = productInfo.id;
 
-    // Si no existe el producto, crear primero
-    if (!productExists) {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/products`, {
+      // Si no existe el producto, crear primero
+      if (!productExists) {
+        const res = await axios.post(
+          `${import.meta.env.VITE_API_URL}/products`,
+          {
+            name: productInfo.name,
+            barcode,
+            type: productInfo.type,
+          }
+        );
+        pid = res.data.product._id;
+        setProductExists(true);
+      }
+
+      // Luego crear el lote
+      const expirationDate = new Date(
+        `${expYear}-${expMonth}-01`
+      ).toISOString();
+
+      const lotePayload = {
+        productId: pid,
+        expirationDate,
+        quantity: Number(quantity),
+        branch,
+        overstock,
+      };
+
+      const loteRes = await axios.post(
+        `${import.meta.env.VITE_API_URL}/lots`,
+        lotePayload
+      );
+      console.log("Lote creado:", loteRes.data);
+      // ✅ Agregar lote a la lista local
+      const lote = loteRes.data.lot;
+      lote.product = {
         name: productInfo.name,
         barcode,
         type: productInfo.type,
-      });
-      pid = res.data.product._id;
-      setProductExists(true);
+      };
+      setCreatedLots((prev) => [...prev, lote]);
+      // setCreatedLots((prev) => [
+      //   ...prev,
+      //   {
+      //     name: productInfo.name,
+      //     barcode,
+      //     expirationDate,
+      //     quantity,
+      //     branch,
+      //     type: productInfo.type,
+      //     overstock,
+      //   },
+      // ]);
+    } catch (err) {
+      console.error("Error:", err);
+      alert(err.response?.data?.message || "Error");
     }
-
-    // Luego crear el lote
-    const expirationDate = new Date(`${expYear}-${expMonth}-01`).toISOString();
-
-    const lotePayload = {
-      productId: pid,
-      expirationDate,
-      quantity: Number(quantity),
-      branch,
-      overstock,
-    };
-
-    const loteRes = await axios.post(`${import.meta.env.VITE_API_URL}/lots`, lotePayload);
-    console.log("Lote creado:", loteRes.data);
-         // ✅ Agregar lote a la lista local
-      setCreatedLots((prev) => [
-        ...prev,
-        {
-          name: productInfo.name,
-          barcode,
-          expirationDate,
-          quantity,
-          branch,
-          type: productInfo.type,
-          overstock,
-        },
-      ]);
-  } catch (err) {
-    console.error("Error:", err);
-    alert(err.response?.data?.message || "Error");
-  }
-};
-
+  };
 
   // const submit = async (e) => {
   //   // e.preventDefault();
@@ -284,7 +298,12 @@ const submit = async () => {
 
         {/* 🧾 TABLA DE LOTES CREADOS */}
         {createdLots.length > 0 && (
-          <CreatedLotsTable createdLots={createdLots} onClear={clearLots} />
+          // <CreatedLotsTable createdLots={createdLots} onClear={clearLots} />
+          <CreatedLotsTable
+            createdLots={createdLots}
+            onClear={clearLots}
+            onUpdate={setCreatedLots}
+          />
         )}
       </Box>
     </Box>

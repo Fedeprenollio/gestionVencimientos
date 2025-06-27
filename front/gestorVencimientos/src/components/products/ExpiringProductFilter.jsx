@@ -10,6 +10,7 @@ import {
   Button,
   Typography,
 } from "@mui/material";
+import dayjs from "dayjs";
 
 export default function ExpiringProductFilter({ onFilter }) {
   // const [from, setFrom] = useState("");
@@ -24,18 +25,40 @@ export default function ExpiringProductFilter({ onFilter }) {
   const [barcodes, setBarcodes] = useState("");
 
 
-  const applyFilter = () => {
-    onFilter({
-      from,
-      months,
-      branch,
-      type,
-      createdFrom,
-      createdTo,
-      overstock,
-      barcodes, // ✅
-    });
+  // const applyFilter = () => {
+  //   onFilter({
+  //     from,
+  //     months,
+  //     branch,
+  //     type,
+  //     createdFrom,
+  //     createdTo,
+  //     overstock,
+  //     barcodes, // ✅
+  //   });
+  // };
+
+const applyFilter = () => {
+  const filtros = {
+    from,
+    months,
+    branch,
+    type,
+    overstock,
+    barcodes,
   };
+
+  if (createdFrom && dayjs(createdFrom).isValid()) {
+    filtros.createdFrom = dayjs(createdFrom).format("YYYY-MM-DD");
+  }
+
+  if (createdTo && dayjs(createdTo).isValid()) {
+    filtros.createdTo = dayjs(createdTo).format("YYYY-MM-DD");
+  }
+console.log("Filtros aplicados:",   );
+
+  onFilter(filtros);
+};
 
   return (
     <Box
