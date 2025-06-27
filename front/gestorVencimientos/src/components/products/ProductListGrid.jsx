@@ -261,16 +261,15 @@ export default function ProductListGrid() {
           </Box>
         </Box>
       </Dialog>
-      {loading && <FullPageLoader />}
+      {/* {loading && <FullPageLoader />} */}
 
       <DataGrid
-        // loading
-        // slotProps={{
-        //   loadingOverlay: {
-        //     variant: "linear-progress",
-        //     noRowsVariant: "skeleton",
-        //   },
-        // }}
+        loading={loading}
+        slotProps={{
+          loadingOverlay: {
+            sx: { backgroundColor: "rgba(255,255,255,0.8)" },
+          },
+        }}
         rows={products}
         columns={columns}
         getRowId={(row) => row._id}

@@ -1,72 +1,3 @@
-// import React from "react";
-// import {
-//   Box,
-//   Button,
-//   Typography,
-//   Table,
-//   TableHead,
-//   TableRow,
-//   TableCell,
-//   TableBody,
-//   Chip,
-// } from "@mui/material";
-// import { exportToExcelLots, formatDate } from "../../../utils/exportUtils";
-
-// export default function CreatedLotsTable({ createdLots, onClear }) {
-//   if (!createdLots || createdLots.length === 0) return null;
-
-//   return (
-//     <Box mt={4}>
-//       <Typography variant="h6" gutterBottom>
-//         Lotes cargados hoy
-//       </Typography>
-//       <Table size="small">
-//         <TableHead>
-//           <TableRow>
-//             <TableCell>Producto</TableCell>
-//             <TableCell>Código</TableCell>
-//             <TableCell>Vencimiento</TableCell>
-//             <TableCell>Cantidad</TableCell>
-//             <TableCell>Sucursal</TableCell>
-//             <TableCell>SobreStock</TableCell>
-//           </TableRow>
-//         </TableHead>
-//         <TableBody>
-//           {createdLots.map((lot, idx) => (
-//             <TableRow key={idx}>
-//               <TableCell>{lot.name}</TableCell>
-//               <TableCell>{lot.barcode}</TableCell>
-//               <TableCell>{formatDate(lot.expirationDate)}</TableCell>
-//               <TableCell>{lot.quantity}</TableCell>
-//               <TableCell>{lot.branch}</TableCell>
-//               <TableCell>
-//                 {lot.overstock ? (
-//                   <Chip label="Sí" color="warning" size="small" />
-//                 ) : (
-//                   <Chip label="No" variant="outlined" size="small" />
-//                 )}
-//               </TableCell>
-//             </TableRow>
-//           ))}
-//         </TableBody>
-//       </Table>
-
-//       <Box mt={2} display="flex" gap={2}>
-//         <Button
-//           variant="outlined"
-//           onClick={() => exportToExcelLots(createdLots)}
-//         >
-//           Exportar a Excel
-//         </Button>
-//         <Button variant="outlined" color="error" onClick={onClear}>
-//           Limpiar jornada
-//         </Button>
-//       </Box>
-//     </Box>
-//   );
-// }
-
-
 import {
   Box,
   Table,
@@ -92,6 +23,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import { useState } from "react";
 import dayjs from "dayjs";
+import { exportToExcel, exportToExcelLots } from "../../../utils/exportUtils";
 
 export default function CreatedLotsTable({ createdLots, onClear, onUpdate }) {
   const [editingLot, setEditingLot] = useState(null);
@@ -113,58 +45,78 @@ export default function CreatedLotsTable({ createdLots, onClear, onUpdate }) {
   };
 
   return (
-    <Box sx={{ mt: 4 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+    <Box
+      sx={{
+        mt: 4,
+        px: { xs: 1, sm: 2 },
+        maxWidth: "1200px", // ancho máximo en pantallas grandes
+        mx: "auto", // centra horizontalmente
+        width: "100%",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          mb: 2,
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "flex-start", sm: "center" },
+          gap: 1,
+        }}
+      >
         <Typography variant="subtitle1">Lotes creados</Typography>
         <Button color="error" onClick={onClear}>
           Limpiar todos
         </Button>
       </Box>
-
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Producto</TableCell>
-            <TableCell>Código</TableCell>
-            <TableCell>Tipo</TableCell>
-            <TableCell>Cantidad</TableCell>
-            <TableCell>Sucursal</TableCell>
-            <TableCell>Vencimiento</TableCell>
-            <TableCell>Sobrestock</TableCell>
-            <TableCell>Acciones</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {createdLots.map((lot) => (
-            <TableRow key={lot._id}>
-              <TableCell>{lot.product?.name || "-"}</TableCell>
-              <TableCell>{lot.product?.barcode || "-"}</TableCell>
-              <TableCell>{lot.product?.type || "-"}</TableCell>
-              <TableCell>{lot.quantity}</TableCell>
-              <TableCell>{lot.branch}</TableCell>
-              <TableCell>
-                {dayjs(lot.expirationDate).format("MM/YYYY")}
-              </TableCell>
-              <TableCell>{lot.overstock ? "Sí" : "No"}</TableCell>
-              <TableCell>
-                <IconButton onClick={() => setEditingLot({ ...lot })}>
-                  <EditIcon fontSize="small" />
-                </IconButton>
-                <IconButton onClick={() => handleDelete(lot._id)}>
-                  <DeleteIcon fontSize="small" color="error" />
-                </IconButton>
-              </TableCell>
+      <Box sx={{ overflowX: { xs: "auto", sm: "visible" } }}>
+        <Table size="small" sx={{ minWidth: "600px" }}  >
+          <TableHead>
+            <TableRow>
+              <TableCell>Producto</TableCell>
+              <TableCell>Código</TableCell>
+              <TableCell>Tipo</TableCell>
+              <TableCell>Cantidad</TableCell>
+              <TableCell>Sucursal</TableCell>
+              <TableCell>Vencimiento</TableCell>
+              <TableCell>Sobrestock</TableCell>
+              <TableCell>Acciones</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {createdLots.map((lot) => (
+              <TableRow key={lot._id}>
+                <TableCell>{lot.product?.name || "-"}</TableCell>
+                <TableCell>{lot.product?.barcode || "-"}</TableCell>
+                <TableCell>{lot.product?.type || "-"}</TableCell>
+                <TableCell>{lot.quantity}</TableCell>
+                <TableCell>{lot.branch}</TableCell>
+                <TableCell>
+                  {dayjs(lot.expirationDate).format("MM/YYYY")}
+                </TableCell>
+                <TableCell>{lot.overstock ? "Sí" : "No"}</TableCell>
+                <TableCell>
+                  <IconButton onClick={() => setEditingLot({ ...lot })}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton onClick={() => handleDelete(lot._id)}>
+                    <DeleteIcon fontSize="small" color="error" />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Box>
 
       {/* Modal de edición */}
       <Dialog open={!!editingLot} onClose={() => setEditingLot(null)}>
         <DialogTitle>Editar lote</DialogTitle>
         <DialogContent>
           {editingLot && (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+            <Box
+              sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
+            >
               <TextField
                 label="Cantidad"
                 type="number"
@@ -247,6 +199,15 @@ export default function CreatedLotsTable({ createdLots, onClear, onUpdate }) {
           )}
         </DialogContent>
       </Dialog>
+
+      <Box  mt={2} display="flex" justifyContent="flex-end">
+        <Button
+          variant="outlined"
+          onClick={() => exportToExcelLots(createdLots)}
+        >
+          Exportar a Excel
+        </Button>
+      </Box>
     </Box>
   );
 }

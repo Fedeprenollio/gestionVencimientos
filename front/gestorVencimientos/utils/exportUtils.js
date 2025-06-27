@@ -126,17 +126,18 @@ export const exportToPDF = (products, sortBy = "expiration") => {
   //   saveAs(blob, "productos_por_vencer.xlsx");
   // }
 
-  export function exportToExcelLots(lots) {
+export function exportToExcelLots(lots) {
   console.log("Lote a exportar,", lots);
+
   const rows = lots.map((lot) => ({
-    Codigo: lot.barcode,
-    Producto: lot.name,
-    Tipo: lot.type || "-",
+    Codigo: lot.product?.barcode || lot.barcode || "-",
+    Producto: lot.product?.name || lot.name || "-",
+    Tipo: lot.product?.type || lot.type || "-",
     Sucursal: lot.branch,
     Cantidad: lot.quantity,
     Vencimiento: formatDate(lot.expirationDate),
     Carga: formatDateWhitDay(lot.createdAt || new Date()),
-    SobreStock: lot.overstock ? "Sí" : "No", // ✅ nueva columna
+    SobreStock: lot.overstock ? "Sí" : "No",
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(rows);

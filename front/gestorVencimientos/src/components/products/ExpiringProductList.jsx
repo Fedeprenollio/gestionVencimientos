@@ -44,7 +44,7 @@ export default function ExpiringProductList() {
     branch: "",
   });
   const { loading, withLoading } = useLoading();
-console.log("products",products)
+  console.log("products", products);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   const fetchProducts = async (filterParams = {}) => {
@@ -68,10 +68,10 @@ console.log("products",products)
     setProducts(res.data);
   };
 
-  const handleFilter =  (newFilters) => {
+  const handleFilter = (newFilters) => {
     setFilters(newFilters);
     // fetchProducts(newFilters);
-      withLoading(()=>  fetchProducts(newFilters)  )
+    withLoading(() => fetchProducts(newFilters));
   };
 
   const deleteLot = async (productId, lotId) => {
@@ -208,9 +208,15 @@ console.log("products",products)
       <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
         <Button onClick={() => exportToExcel(products)}>Exportar Excel</Button>
       </Box>
-      {loading && <FullPageLoader />}   
-      <TableContainer component={Paper}>
-        <Table>
+      {loading && <FullPageLoader />}
+      <TableContainer
+      component={Paper}
+        sx={{
+          width: "100%",
+          overflowX: "auto", // habilita scroll horizontal
+        }}
+      >
+        <Table  sx={{ minWidth: 800 }}>
           <TableHead>
             <TableRow>
               {[

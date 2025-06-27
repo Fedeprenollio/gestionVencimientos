@@ -239,9 +239,27 @@ export default function ProductForm() {
   // };
 
   return (
-    <Box sx={{ width: "100vw", pt: 2 }}>
+    <Box
+      sx={{
+        width: "100%",
+        pt: 2,
+        minHeight: "100vh",
+        bgcolor: "background.default",
+      }}
+    >
       <SucursalSelector branch={branch} setBranch={setBranch} />
-      <Box sx={{ maxWidth: 500, mx: "auto", p: 2 }}>
+      <Box
+        sx={{
+          width: "100%",
+          maxWidth: { xs: 700, sm: 900, md: 1000 },
+          mx: "auto",
+          minHeight: "100vh", 
+          p: 2,
+          bgcolor: "background.paper",
+          borderRadius: 1,
+          boxShadow: 1,
+        }}
+      >
         <Typography variant="h6" gutterBottom>
           {productExists === null
             ? "Nuevo producto o lote"
