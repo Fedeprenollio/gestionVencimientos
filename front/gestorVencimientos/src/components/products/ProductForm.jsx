@@ -17,12 +17,17 @@ import {
   TableRow,
   TableCell,
   TableBody,
+  DialogTitle,
+  Dialog,
+  DialogContent,
 } from "@mui/material";
 
 import SucursalSelector from "./SucursalSelector.jsx";
 import LotForm from "../lots/formularios/LotForm.jsx";
 import CreatedLotsTable from "../lots/CreatedLotsTable.jsx";
 import BarcodeSearchSection from "../lots/BarcodeSearchSection.jsx";
+import useSnackbar from "../../hooks/useSnackbar.js";
+import AppSnackbar from "../shared/AppSnackbar.jsx";
 
 export default function ProductForm() {
   const [barcode, setBarcode] = useState("");
@@ -36,15 +41,21 @@ export default function ProductForm() {
   const [expMonth, setExpMonth] = useState("");
   const [expYear, setExpYear] = useState("");
   const [scanning, setScanning] = useState(false);
-  const [branch, setBranch] = useState("sucursal1");
+  const [branch, setBranch] = useState(() => {
+  return localStorage.getItem("selectedBranch") || "sucursal1";
+});
+
   const [nameQuery, setNameQuery] = useState("");
   const [nameResults, setNameResults] = useState([]);
   const [overstock, setOverstock] = useState(false);
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   const [createdLots, setCreatedLots] = useState(() => {
     const saved = localStorage.getItem("lotes_jornada");
     return saved ? JSON.parse(saved) : [];
   });
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const barcodeInputRef = useRef(null);
 
   useEffect(() => {
@@ -95,6 +106,7 @@ export default function ProductForm() {
     } catch (err) {
       setProductExists(false);
       setProductInfo({ name: "", type: "medicamento", id: "" });
+      setShowCreateModal(true);
     }
   };
 
@@ -137,7 +149,12 @@ export default function ProductForm() {
 
       const loteRes = await axios.post(
         `${import.meta.env.VITE_API_URL}/lots`,
-        lotePayload
+        lotePayload,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
       );
       console.log("Lote creado:", loteRes.data);
       // ✅ Agregar lote a la lista local
@@ -165,6 +182,34 @@ export default function ProductForm() {
       alert(err.response?.data?.message || "Error");
     }
   };
+
+  // Crear producto nuevo para el modal
+  const crearProducto = async () => {
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/products`, {
+        name: productInfo.name,
+        barcode,
+        type: productInfo.type,
+      });
+
+      setProductInfo((prev) => ({
+        ...prev,
+        id: res.data.product._id,
+      }));
+      setProductExists(true);
+      setShowCreateModal(false);
+      showSnackbar("Pruducto creado correctamente!", "success");
+    } catch (err) {
+      console.error("Error creando producto:", err);
+      showSnackbar("Error al crear producto", "error");
+    }
+  };
+
+const handleBranchChange = (value) => {
+  setBranch(value);
+  localStorage.setItem("selectedBranch", value);
+};
+
 
   // const submit = async (e) => {
   //   // e.preventDefault();
@@ -237,7 +282,7 @@ export default function ProductForm() {
   //     alert(err.response?.data?.message || "Error");
   //   }
   // };
-
+  console.log("createdLots", createdLots);
   return (
     <Box
       sx={{
@@ -247,13 +292,13 @@ export default function ProductForm() {
         bgcolor: "background.default",
       }}
     >
-      <SucursalSelector branch={branch} setBranch={setBranch} />
+      <SucursalSelector branch={branch} onBranchChange ={handleBranchChange} />
       <Box
         sx={{
           width: "100%",
           maxWidth: { xs: 700, sm: 900, md: 1000 },
           mx: "auto",
-          minHeight: "100vh", 
+          minHeight: "100vh",
           p: 2,
           bgcolor: "background.paper",
           borderRadius: 1,
@@ -295,7 +340,7 @@ export default function ProductForm() {
         )}
 
         {/* 📝 FORMULARIO DE CREACIÓN DE PRODUCTO O LOTE */}
-        {productExists !== null && (
+        {productExists === true && (
           <LotForm
             productInfo={productInfo}
             setProductInfo={setProductInfo}
@@ -314,6 +359,58 @@ export default function ProductForm() {
           />
         )}
 
+        {/* Modal para crear producto nuevo */}
+        <Dialog
+          open={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle>Crear nuevo producto</DialogTitle>
+          <DialogContent>
+            <TextField
+              label="Código de barra"
+              value={barcode}
+              disabled
+              fullWidth
+              margin="dense"
+              InputProps={{ readOnly: true }}
+            />
+            <TextField
+              label="Nombre"
+              value={productInfo.name}
+              onChange={(e) =>
+                setProductInfo((prev) => ({ ...prev, name: e.target.value }))
+              }
+              fullWidth
+              margin="dense"
+              autoFocus
+            />
+            <FormControl fullWidth margin="dense">
+              <InputLabel>Tipo</InputLabel>
+              <Select
+                value={productInfo.type}
+                onChange={(e) =>
+                  setProductInfo((prev) => ({ ...prev, type: e.target.value }))
+                }
+                label="Tipo"
+              >
+                <MenuItem value="medicamento">Medicamento</MenuItem>
+                <MenuItem value="perfumeria">Perfumería</MenuItem>
+              </Select>
+            </FormControl>
+
+            <Box mt={2} display="flex" justifyContent="flex-end" gap={1}>
+              <Button onClick={() => setShowCreateModal(false)}>
+                Cancelar
+              </Button>
+              <Button variant="contained" onClick={crearProducto}>
+                Crear producto
+              </Button>
+            </Box>
+          </DialogContent>
+        </Dialog>
+
         {/* 🧾 TABLA DE LOTES CREADOS */}
         {createdLots.length > 0 && (
           // <CreatedLotsTable createdLots={createdLots} onClear={clearLots} />
@@ -324,6 +421,7 @@ export default function ProductForm() {
           />
         )}
       </Box>
+      <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>
   );
 }

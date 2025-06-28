@@ -24,24 +24,45 @@ import EditIcon from "@mui/icons-material/Edit";
 import { useState } from "react";
 import dayjs from "dayjs";
 import { exportToExcel, exportToExcelLots } from "../../../utils/exportUtils";
+import axios from "axios";
+import LotEditModal from "./LotEditModal";
 
 export default function CreatedLotsTable({ createdLots, onClear, onUpdate }) {
   const [editingLot, setEditingLot] = useState(null);
 
-  const handleDelete = (lotId) => {
+  const handleDelete = async (lotId) => {
     const confirmDelete = confirm("¿Eliminar este lote de la lista?");
     if (!confirmDelete) return;
 
-    const updated = createdLots.filter((lot) => lot._id !== lotId);
-    onUpdate(updated);
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/lots/${lotId}`);
+      const updated = createdLots.filter((lot) => lot._id !== lotId);
+      onUpdate(updated);
+      alert("Lote eliminado correctamente");
+    } catch (err) {
+      console.error("Error al eliminar el lote:", err);
+      alert("Error al eliminar el lote");
+    }
   };
 
-  const handleSaveEdit = () => {
-    const updated = createdLots.map((lot) =>
-      lot._id === editingLot._id ? editingLot : lot
-    );
-    onUpdate(updated);
-    setEditingLot(null);
+  const handleSaveEdit = async () => {
+    try {
+      const res = await axios.put(
+        `${import.meta.env.VITE_API_URL}/lots/${editingLot._id}`,
+        editingLot
+      );
+      const updatedLot = res.data.lot;
+
+      const updated = createdLots.map((lot) =>
+        lot._id === updatedLot._id ? updatedLot : lot
+      );
+      onUpdate(updated);
+      setEditingLot(null);
+      alert("Lote actualizado con éxito");
+    } catch (err) {
+      console.error("Error al actualizar el lote:", err);
+      alert("Error al actualizar el lote");
+    }
   };
 
   return (
@@ -70,7 +91,7 @@ export default function CreatedLotsTable({ createdLots, onClear, onUpdate }) {
         </Button>
       </Box>
       <Box sx={{ overflowX: { xs: "auto", sm: "visible" } }}>
-        <Table size="small" sx={{ minWidth: "600px" }}  >
+        <Table size="small" sx={{ minWidth: "600px" }}>
           <TableHead>
             <TableRow>
               <TableCell>Producto</TableCell>
@@ -80,6 +101,7 @@ export default function CreatedLotsTable({ createdLots, onClear, onUpdate }) {
               <TableCell>Sucursal</TableCell>
               <TableCell>Vencimiento</TableCell>
               <TableCell>Sobrestock</TableCell>
+              <TableCell>Usuario</TableCell>
               <TableCell>Acciones</TableCell>
             </TableRow>
           </TableHead>
@@ -95,6 +117,7 @@ export default function CreatedLotsTable({ createdLots, onClear, onUpdate }) {
                   {dayjs(lot.expirationDate).format("MM/YYYY")}
                 </TableCell>
                 <TableCell>{lot.overstock ? "Sí" : "No"}</TableCell>
+                <TableCell>{lot.createdBy?.username || "?"}</TableCell>
                 <TableCell>
                   <IconButton onClick={() => setEditingLot({ ...lot })}>
                     <EditIcon fontSize="small" />
@@ -110,7 +133,7 @@ export default function CreatedLotsTable({ createdLots, onClear, onUpdate }) {
       </Box>
 
       {/* Modal de edición */}
-      <Dialog open={!!editingLot} onClose={() => setEditingLot(null)}>
+      {/* <Dialog open={!!editingLot} onClose={() => setEditingLot(null)}>
         <DialogTitle>Editar lote</DialogTitle>
         <DialogContent>
           {editingLot && (
@@ -170,7 +193,6 @@ export default function CreatedLotsTable({ createdLots, onClear, onUpdate }) {
                 >
                   <MenuItem value="sucursal1">Sucursal 1</MenuItem>
                   <MenuItem value="sucursal2">Sucursal 2</MenuItem>
-                  {/* Agrega más sucursales si necesitás */}
                 </Select>
               </FormControl>
 
@@ -198,9 +220,16 @@ export default function CreatedLotsTable({ createdLots, onClear, onUpdate }) {
             </Box>
           )}
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
+      <LotEditModal
+        open={!!editingLot}
+        lot={editingLot}
+        onChange={setEditingLot}
+        onClose={() => setEditingLot(null)}
+        onSave={handleSaveEdit}
+      />
 
-      <Box  mt={2} display="flex" justifyContent="flex-end">
+      <Box mt={2} display="flex" justifyContent="flex-end">
         <Button
           variant="outlined"
           onClick={() => exportToExcelLots(createdLots)}

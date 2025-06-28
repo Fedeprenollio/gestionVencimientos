@@ -5,6 +5,8 @@ import ProductFormSimple from "../components/products/formularios/ProductFormSim
 import ProductLotsAccordion from "../components/products/ProductLotsAccordion";
 import ProductListGrid from "../components/products/ProductListGrid";
 import ProductQuickSearch from "../components/products/ProductQuickSearch";
+import { updateLot } from "../services/lotService";
+import LotEditModal from "../components/lots/LotEditModal";
 
 export default function Productos() {
   const [query, setQuery] = useState("");
@@ -13,6 +15,7 @@ export default function Productos() {
   const [expandedProductId, setExpandedProductId] = useState(null);
   const [lots, setLots] = useState({});
   const [loadingLots, setLoadingLots] = useState(false);
+  const [editingLot, setEditingLot] = useState(null);
 
   const searchProducts = async () => {
     if (!query.trim()) return;
@@ -83,11 +86,31 @@ export default function Productos() {
   };
 
   const handleEditLot = (lot) => {
-    alert(`Editar lote ${lot._id}`);
+    setEditingLot({ ...lot }); // abrimos el modal con copia del lote
+  };
+  const handleSaveEditLot = async () => {
+    try {
+      // await axios.put(`${import.meta.env.VITE_API_URL}/lots/${editingLot._id}`, editingLot);
+      await updateLot(editingLot._id, editingLot);
+
+      // Refrescar sólo los lotes de ese producto
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/lots/product/${editingLot.productId}`
+      );
+      setLots((prev) => ({
+        ...prev,
+        [editingLot.productId]: res.data,
+      }));
+
+      setEditingLot(null);
+      searchProducts(); // o actualizá solo los lotes de ese producto si querés ser más eficiente
+    } catch (err) {
+      alert("Error al guardar los cambios del lote");
+    }
   };
 
   return (
-    <Box sx={{  width: "100vw", pt: 2 }}>
+    <Box sx={{ width: "100vw", pt: 2 }}>
       <Box sx={{ maxWidth: 800, mx: "auto", p: 2 }}>
         <ProductQuickSearch
           query={query}
@@ -95,6 +118,7 @@ export default function Productos() {
           onSearch={searchProducts}
         />
 
+        {/* Editar PRODUCTO */}
         {editing ? (
           <>
             <Typography variant="h6" gutterBottom>
@@ -124,9 +148,16 @@ export default function Productos() {
           ))
         )}
       </Box>
-      <Box sx={{pt:2, pb: 6,  mt: 4, px: 2 }}>
+      <Box sx={{ pt: 2, pb: 6, mt: 4, px: 2 }}>
         <ProductListGrid />
       </Box>
+      <LotEditModal
+        open={!!editingLot}
+        lot={editingLot}
+        onChange={setEditingLot}
+        onClose={() => setEditingLot(null)}
+        onSave={handleSaveEditLot}
+      />
     </Box>
   );
 }

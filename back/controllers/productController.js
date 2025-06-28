@@ -437,7 +437,9 @@ export const getExpiringProducts = async (req, res) => {
         }
       }
 
-      lotFilters.push(Lot.find(filterNoOverstock));
+      lotFilters.push(
+        Lot.find(filterNoOverstock).populate("createdBy", "username fullname")
+      );
     }
 
     // Lotes sobrestock
@@ -453,7 +455,9 @@ export const getExpiringProducts = async (req, res) => {
         filterOverstock.createdAt = createdCriteria;
       }
 
-      lotFilters.push(Lot.find(filterOverstock));
+      lotFilters.push(
+        Lot.find(filterOverstock).populate("createdBy", "username fullname")
+      );
     }
 
     const lotResults = await Promise.all(
@@ -485,6 +489,13 @@ export const getExpiringProducts = async (req, res) => {
         branch: lot.branch,
         createdAt: lot.createdAt,
         overstock: lot.overstock === true,
+        createdBy: lot.createdBy
+          ? {
+              _id: lot.createdBy._id,
+              username: lot.createdBy.username,
+              fullname: lot.createdBy.fullname,
+            }
+          : null,
       })),
     }));
 

@@ -44,7 +44,6 @@ export default function ExpiringProductList() {
     branch: "",
   });
   const { loading, withLoading } = useLoading();
-  console.log("products", products);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   const fetchProducts = async (filterParams = {}) => {

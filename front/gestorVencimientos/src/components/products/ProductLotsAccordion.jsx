@@ -9,6 +9,11 @@ import {
   List,
   ListItem,
   ListItemText,
+  Table,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableBody,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EditIcon from "@mui/icons-material/Edit";
@@ -82,7 +87,7 @@ export default function ProductLotsAccordion({
               Agregar Lote
             </Button>
 
-            {lots.length > 0 ? (
+            {/* {lots.length > 0 ? (
               <List dense>
                 {lots.map((lot) => (
                   <ListItem
@@ -119,7 +124,55 @@ export default function ProductLotsAccordion({
               <Typography variant="body2">
                 No hay lotes para este producto.
               </Typography>
-            )}
+            )} */}
+
+            {lots.length > 0 ? (
+  <Table size="small">
+    <TableHead>
+      <TableRow>
+        <TableCell>Vencimiento</TableCell>
+        <TableCell>Cantidad</TableCell>
+        <TableCell>Sucursal</TableCell>
+        <TableCell>Creado por</TableCell>
+        <TableCell align="right">Acciones</TableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {lots.map((lot) => (
+        <TableRow key={lot._id}>
+          <TableCell>
+            {new Date(lot.expirationDate).toLocaleDateString()}
+          </TableCell>
+          <TableCell>{lot.quantity}</TableCell>
+          <TableCell>{lot.branch}</TableCell>
+          <TableCell>
+            {lot.createdBy?.username || "N/A"}
+          </TableCell>
+          <TableCell align="right">
+            <IconButton
+              size="small"
+              onClick={() => onEditLot(lot)}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              size="small"
+              color="error"
+              onClick={() => onDeleteLot(lot)}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+) : (
+  <Typography variant="body2">
+    No hay lotes para este producto.
+  </Typography>
+)}
+
           </>
         )}
       </AccordionDetails>

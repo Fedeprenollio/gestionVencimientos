@@ -27,6 +27,7 @@ export function exportToExcel(products) {
         Sucursal: lot.branch,
         Cantidad: lot.quantity,
         Vencimiento: formatDate(lot.expirationDate),
+         Usuario: lot.createdBy?.username|| "-",
         Carga: formatDateWhitDay(lot.createdAt),
         SobreStock: lot.overstock ? "Sí" : "No", // ✅ nueva columna
       });
@@ -136,6 +137,7 @@ export function exportToExcelLots(lots) {
     Sucursal: lot.branch,
     Cantidad: lot.quantity,
     Vencimiento: formatDate(lot.expirationDate),
+    Usuario: lot.createdBy?.username|| "-",
     Carga: formatDateWhitDay(lot.createdAt || new Date()),
     SobreStock: lot.overstock ? "Sí" : "No",
   }));

@@ -7,8 +7,6 @@ import timezone from "dayjs/plugin/timezone.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-
-
 // export const addLot = async (req, res) => {
 //   const { productId, expirationDate, quantity, branch, overstock = false } = req.body;
 //   console.log("CREANDO LOTE", productId, expirationDate, quantity, branch, overstock);
@@ -49,10 +47,18 @@ dayjs.extend(timezone);
 // };
 
 export const addLot = async (req, res) => {
-  const { productId, expirationDate, quantity, branch, overstock = false } = req.body;
+  const {
+    productId,
+    expirationDate,
+    quantity,
+    branch,
+    overstock = false,
+  } = req.body;
 
   if (!productId || !expirationDate || !quantity || !branch) {
-    return res.status(400).json({ message: "Faltan datos requeridos del lote" });
+    return res
+      .status(400)
+      .json({ message: "Faltan datos requeridos del lote" });
   }
 
   try {
@@ -77,12 +83,14 @@ export const addLot = async (req, res) => {
       overstock: Boolean(overstock),
     });
 
-    if (existingLot) {
-      existingLot.quantity += Number(quantity);
-      await existingLot.save();
-      return res.status(200).json({ message: "Cantidad actualizada", lot: existingLot });
-    }
-
+    // if (existingLot) {
+    //   existingLot.quantity += Number(quantity);
+    //   await existingLot.save();
+    //   return res
+    //     .status(200)
+    //     .json({ message: "Cantidad actualizada", lot: existingLot });
+    // }
+    console.log("USERRRR,", req.user);
     // Si no existe, crear nuevo lote
     const newLot = new Lot({
       productId,
@@ -90,18 +98,21 @@ export const addLot = async (req, res) => {
       quantity,
       branch,
       overstock: Boolean(overstock),
+      createdBy: req.user._id,
     });
 
     await newLot.save();
-    await newLot.populate("productId", "name barcode type"); // <-- trae el producto asociado
+    await newLot.populate([
+      { path: "productId", select: "name barcode type" },
+      { path: "createdBy", select: "fullname username" },
+    ]);
+
     res.status(201).json({ message: "Lote creado", lot: newLot });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error al crear lote" });
   }
 };
-
-
 
 // export const addLot = async (req, res) => {
 //   const { productId, expirationDate, quantity, branch, overstock = false } = req.body;
@@ -153,10 +164,6 @@ export const addLot = async (req, res) => {
 //   }
 // };
 
-
-
-
-
 export const deleteLot = async (req, res) => {
   const { lotId } = req.params;
 
@@ -175,7 +182,6 @@ export const deleteLot = async (req, res) => {
 
 // Listar productos con lotes próximos a vencer
 export const getExpiringLots = async (req, res) => {
-  console.log("AAAAAreq.query;", req.query);
   const { from, months = 6, branch, type, createdFrom, createdTo } = req.query;
 
   try {
@@ -211,7 +217,10 @@ export const getExpiringLots = async (req, res) => {
       }),
     };
 
-    const lots = await Lot.find(filter).populate("productId");
+    const lots = await Lot.find(filter).populate([
+      { path: "productId", select: "name barcode type" },
+      { path: "createdBy", select: "fullname username" },
+    ]);
 
     // Si se filtra por tipo, lo hacemos después del populate
     const filteredLots = type
@@ -229,14 +238,59 @@ export const getLotsByProductId = async (req, res) => {
   const { productId } = req.params;
 
   try {
-    const lots = await Lot.find({ productId: productId }).sort({
-      expirationDate: 1,
-    });
+    const lots = await Lot.find({ productId: productId })
+      .sort({
+        expirationDate: 1,
+      })
+      .populate("createdBy", "username");
+
     console.log("VIENDO LOTES", productId);
 
     res.json(lots);
   } catch (err) {
     console.error("Error al obtener lotes por producto:", err);
     res.status(500).json({ message: "Error del servidor" });
+  }
+};
+
+export const updateLot = async (req, res) => {
+  const { lotId } = req.params;
+  const { quantity, expirationDate, branch, overstock } = req.body;
+
+  try {
+    const lot = await Lot.findById(lotId);
+    if (!lot) {
+      return res.status(404).json({ message: "Lote no encontrado" });
+    }
+
+    // Si se pasa fecha, la normalizamos al inicio del mes en UTC
+    if (expirationDate) {
+      lot.expirationDate = dayjs
+        .tz(expirationDate, "America/Argentina/Buenos_Aires")
+        .startOf("month")
+        .utc()
+        .toDate();
+    }
+
+    if (quantity !== undefined) lot.quantity = quantity;
+    if (branch) lot.branch = branch;
+    if (typeof overstock === "boolean") lot.overstock = overstock;
+
+    await lot.save();
+
+    await lot.populate([
+      { path: "productId", select: "name barcode type" },
+      { path: "createdBy", select: "fullname username" },
+    ]);
+
+    const populatedLot = {
+      ...lot.toObject(),
+      product: lot.productId,
+    };
+
+    res.json({ message: "Lote actualizado", lot: populatedLot });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error al actualizar el lote" });
   }
 };

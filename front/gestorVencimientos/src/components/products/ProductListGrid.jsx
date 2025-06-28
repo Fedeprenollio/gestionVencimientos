@@ -146,7 +146,11 @@ export default function ProductListGrid() {
   };
 
   const handleAddLot = async (lotData) => {
-    await axios.post(`${import.meta.env.VITE_API_URL}/lots`, lotData);
+    await axios.post(`${import.meta.env.VITE_API_URL}/lots`, lotData,{
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+  });
     setAddingLotProduct(null);
     // opcional: refrescar lista o estados relacionados
   };

@@ -37,7 +37,7 @@ export default function LotForm({
   return (
     <Box component="form" onSubmit={handleSubmit}>
       {/* Si el producto no existe, permitir crear */}
-      {productExists === false && (
+      {/* {productExists === false && (
         <>
           <TextField
             label="Nombre"
@@ -65,7 +65,7 @@ export default function LotForm({
             </Select>
           </FormControl>
         </>
-      )}
+      )} */}
 
       {/* Expiración */}
       <Grid container spacing={2} sx={{ mb: 2 }}>

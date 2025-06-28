@@ -5,6 +5,7 @@ import morgan from 'morgan'; // 👈 Importar morgan
 import { connectDB } from './config/db.js';
 import productRoutes from './routes/productRoutes.js';
 import lotRoutes from './routes/lotRoutes.js';
+import userRoutes from './routes/usersRoutes.js';
 
 dotenv.config();
 const app = express();
@@ -17,6 +18,8 @@ connectDB();
 
 app.use('/products', productRoutes);
 app.use('/lots', lotRoutes);
+app.use('/users', userRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Servidor en puerto ${PORT}`));

@@ -12,6 +12,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@hookform/resolvers": "^5.1.1",
     "@mui/icons-material": "^7.1.1",
     "@mui/material": "^7.1.1",
     "@mui/x-data-grid": "^8.5.3",
@@ -25,9 +26,11 @@
     "quagga": "^0.12.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-hook-form": "^7.58.1",
     "react-router-dom": "^7.6.2",
     "react-zxing": "^2.1.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "yup": "^1.6.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",

@@ -107,7 +107,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 
-export default function Navbar({ onToggleTheme, mode }) {
+export default function Navbar({ currentUser, onToggleTheme, mode,onChangeUser  }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -128,9 +128,7 @@ export default function Navbar({ onToggleTheme, mode }) {
   const menuItems = [
     {
       label: "Productos",
-      submenu: [
-        { label: "Administrar productos", to: "/" },
-      ],
+      submenu: [{ label: "Administrar productos", to: "/" }],
     },
     {
       label: "Vencimientos",
@@ -141,147 +139,125 @@ export default function Navbar({ onToggleTheme, mode }) {
     },
     {
       label: "Stock",
-      submenu: [
-        { label: "Buscar stock en sucursales", to: "/stock-search" },
-      ],
+      submenu: [{ label: "Buscar stock en sucursales", to: "/stock-search" }],
     },
   ];
 
   return (
     <>
       <AppBar position="fixed" sx={{ backgroundColor: "#e67819" }}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Gestión Farmacia
-          </Typography>
+       <Toolbar sx={{ justifyContent: "space-between" }}>
+  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+    <Typography variant="h6">Gestión Farmacia</Typography>
 
-          <IconButton onClick={onToggleTheme} color="inherit">
-            {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
+    {!isMobile && (
+      <>
+        {/* Menús para escritorio */}
+        <Button
+          color="inherit"
+          onClick={(e) => setAnchorElProd(e.currentTarget)}
+        >
+          Productos
+        </Button>
+        <Menu
+          anchorEl={anchorElProd}
+          open={openProd}
+          onClose={() => setAnchorElProd(null)}
+        >
+          {menuItems[0].submenu.map(({ label, to }) => (
+            <MenuItem
+              component={Link}
+              to={to}
+              key={label}
+              onClick={() => setAnchorElProd(null)}
+            >
+              {label}
+            </MenuItem>
+          ))}
+        </Menu>
 
-          {isMobile ? (
-            <>
-              {/* Botón hamburguesa para abrir drawer */}
-              <IconButton
-                edge="end"
-                color="inherit"
-                aria-label="menu"
-                onClick={() => setDrawerOpen(true)}
-              >
-                <MenuIcon />
-              </IconButton>
+        <Button
+          color="inherit"
+          onClick={(e) => setAnchorElLote(e.currentTarget)}
+        >
+          Vencimientos
+        </Button>
+        <Menu
+          anchorEl={anchorElLote}
+          open={openLote}
+          onClose={() => setAnchorElLote(null)}
+        >
+          {menuItems[1].submenu.map(({ label, to }) => (
+            <MenuItem
+              component={Link}
+              to={to}
+              key={label}
+              onClick={() => setAnchorElLote(null)}
+            >
+              {label}
+            </MenuItem>
+          ))}
+        </Menu>
 
-              {/* Drawer lateral para móvil */}
-              <Drawer
-                anchor="right"
-                open={drawerOpen}
-                onClose={() => setDrawerOpen(false)}
-              >
-                <Box sx={{ width: 250 }} role="presentation" onClick={() => setDrawerOpen(false)} onKeyDown={() => setDrawerOpen(false)}>
-                  <List>
-                    {menuItems.map(({ label, submenu }) => (
-                      <React.Fragment key={label}>
-                        <ListItem>
-                          <ListItemText primary={label} />
-                        </ListItem>
-                        {submenu.map(({ label: subLabel, to }) => (
-                          <ListItem
-                            button
-                            key={subLabel}
-                            component={Link}
-                            to={to}
-                          >
-                            <ListItemText sx={{ pl: 3 }} primary={subLabel} />
-                          </ListItem>
-                        ))}
-                      </React.Fragment>
-                    ))}
-                  </List>
-                </Box>
-              </Drawer>
-            </>
-          ) : (
-            <>
-              {/* Menús desplegables para desktop */}
-              {/* Productos */}
-              <Button
-                color="inherit"
-                onClick={(e) => setAnchorElProd(e.currentTarget)}
-              >
-                Productos
-              </Button>
-              <Menu
-                anchorEl={anchorElProd}
-                open={openProd}
-                onClose={() => setAnchorElProd(null)}
-              >
-                {menuItems[0].submenu.map(({ label, to }) => (
-                  <MenuItem
-                    component={Link}
-                    to={to}
-                    key={label}
-                    onClick={() => setAnchorElProd(null)}
-                  >
-                    {label}
-                  </MenuItem>
-                ))}
-              </Menu>
+        <Button
+          color="inherit"
+          onClick={(e) => setAnchorElStock(e.currentTarget)}
+        >
+          Stock
+        </Button>
+        <Menu
+          anchorEl={anchorElStock}
+          open={openStock}
+          onClose={() => setAnchorElStock(null)}
+        >
+          {menuItems[2].submenu.map(({ label, to }) => (
+            <MenuItem
+              component={Link}
+              to={to}
+              key={label}
+              onClick={() => setAnchorElStock(null)}
+            >
+              {label}
+            </MenuItem>
+          ))}
+        </Menu>
+      </>
+    )}
+  </Box>
 
-              {/* Vencimientos */}
-              <Button
-                color="inherit"
-                onClick={(e) => setAnchorElLote(e.currentTarget)}
-              >
-                Vencimientos
-              </Button>
-              <Menu
-                anchorEl={anchorElLote}
-                open={openLote}
-                onClose={() => setAnchorElLote(null)}
-              >
-                {menuItems[1].submenu.map(({ label, to }) => (
-                  <MenuItem
-                    component={Link}
-                    to={to}
-                    key={label}
-                    onClick={() => setAnchorElLote(null)}
-                  >
-                    {label}
-                  </MenuItem>
-                ))}
-              </Menu>
+  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+    <IconButton onClick={onToggleTheme} color="inherit">
+      {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
+    </IconButton>
 
-              {/* Stock */}
-              <Button
-                color="inherit"
-                onClick={(e) => setAnchorElStock(e.currentTarget)}
-              >
-                Stock
-              </Button>
-              <Menu
-                anchorEl={anchorElStock}
-                open={openStock}
-                onClose={() => setAnchorElStock(null)}
-              >
-                {menuItems[2].submenu.map(({ label, to }) => (
-                  <MenuItem
-                    component={Link}
-                    to={to}
-                    key={label}
-                    onClick={() => setAnchorElStock(null)}
-                  >
-                    {label}
-                  </MenuItem>
-                ))}
-              </Menu>
-            </>
-          )}
-        </Toolbar>
+    {currentUser ? (
+      <>
+        <Typography variant="body2">Hola {currentUser.username}</Typography>
+        <Button color="inherit" onClick={onChangeUser}>
+          Cambiar usuario
+        </Button>
+      </>
+    ) : (
+      <Typography variant="body2">Iniciar sesión</Typography>
+    )}
+
+    {isMobile && (
+      <IconButton
+        edge="end"
+        color="inherit"
+        aria-label="menu"
+        onClick={() => setDrawerOpen(true)}
+      >
+        <MenuIcon />
+      </IconButton>
+    )}
+  </Box>
+</Toolbar>
+
       </AppBar>
-
+    
       {/* Spacer para que el contenido no quede oculto debajo del navbar */}
       <Toolbar />
     </>
   );
 }
-

@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import ProductForm from "./components/products/ProductForm.jsx";
 import ProductList from "./components/products/ProductList.jsx";
-import ExpiringProductList from "./components/products/ExpiringProductList.jsx";
-import SucursalSelector from "./components/products/SucursalSelector.jsx";
 import Productos from "./pages/Productos.jsx";
 import Lotes from "./pages/Lotes.jsx";
 import Vencimientos from "./pages/Vencimientos.jsx";
@@ -21,10 +19,18 @@ import {
 } from "@mui/material";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
+import UserCreatePage from "./pages/user/UserCreatePage.jsx";
+import LoginPage from "./components/user/LoginPage.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
     return localStorage.getItem("theme") || "light";
+  });
+
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showLogin, setShowLogin] = useState(() => {
+    const savedUser = localStorage.getItem("currentUser");
+    return !savedUser; // si no hay usuario guardado, mostrar login
   });
 
   useEffect(() => {
@@ -36,6 +42,25 @@ function App() {
   };
 
   const theme = useMemo(() => createTheme({ palette: { mode } }), [mode]);
+
+  useEffect(() => {
+    const savedUser = JSON.parse(localStorage.getItem("currentUser"));
+    if (savedUser) setCurrentUser(savedUser);
+  }, []);
+
+  const handleLogin = (userData) => {
+  localStorage.setItem("currentUser", JSON.stringify(userData.user));
+  localStorage.setItem("token", userData.token); // ✅ guardar el token
+  setCurrentUser(userData.user);
+  setShowLogin(false);
+};
+
+
+  const handleLogout = () => {
+    localStorage.removeItem("currentUser");
+    setCurrentUser(null);
+    setShowLogin(true);
+  };
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -49,27 +74,14 @@ function App() {
         }}
       >
         {/* Navbar */}
-        <Navbar onToggleTheme={toggleMode} mode={mode} />
-        {/* Encabezado con modo oscuro */}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            p: 2,
-            borderBottom: "1px solid",
-            borderColor: "divider",
-          }}
-        >
-          {/* <Box sx={{ fontWeight: "bold", fontSize: "1.2rem" }}>
-            Gestión Farmacia
-          </Box> */}
+        <Navbar
+          onToggleTheme={toggleMode}
+          mode={mode}
+          currentUser={currentUser}
+          onChangeUser={() => setShowLogin(true)}
+        />
 
-          {/* <IconButton id="HOLA" onClick={toggleMode} color="inherit">
-            {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton> */}
-
-        </Box>
+        {showLogin && <LoginPage onLogin={handleLogin} />}
 
         {/* Contenido principal */}
         <Box sx={{ flexGrow: 1, px: 2, pb: 4 }}>
@@ -78,6 +90,7 @@ function App() {
             <Route path="/lotes/cargar" element={<ProductForm />} />
             <Route path="/expiring" element={<LotList />} />
             <Route path="/stock-search" element={<SearchStockPage />} />
+            <Route path="/user" element={<UserCreatePage />} />
             <Route path="*" element={<Productos />} />
           </Routes>
         </Box>
