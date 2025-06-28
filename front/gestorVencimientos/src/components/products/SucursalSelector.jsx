@@ -29,7 +29,7 @@ export default function SucursalSelector({ branch, onBranchChange }) {
   };
 
   return (
-    <Box sx={{ maxWidth: 500, mx: "auto", p: 2 }}>
+    <Box sx={{ maxWidth: "70%", mx: "auto", p: 2 }}>
       <Box
         display="flex"
         justifyContent="space-between"

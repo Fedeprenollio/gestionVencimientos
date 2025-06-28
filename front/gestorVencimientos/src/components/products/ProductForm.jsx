@@ -42,8 +42,8 @@ export default function ProductForm() {
   const [expYear, setExpYear] = useState("");
   const [scanning, setScanning] = useState(false);
   const [branch, setBranch] = useState(() => {
-  return localStorage.getItem("selectedBranch") || "sucursal1";
-});
+    return localStorage.getItem("selectedBranch") || "sucursal1";
+  });
 
   const [nameQuery, setNameQuery] = useState("");
   const [nameResults, setNameResults] = useState([]);
@@ -205,11 +205,10 @@ export default function ProductForm() {
     }
   };
 
-const handleBranchChange = (value) => {
-  setBranch(value);
-  localStorage.setItem("selectedBranch", value);
-};
-
+  const handleBranchChange = (value) => {
+    setBranch(value);
+    localStorage.setItem("selectedBranch", value);
+  };
 
   // const submit = async (e) => {
   //   // e.preventDefault();
@@ -292,7 +291,7 @@ const handleBranchChange = (value) => {
         bgcolor: "background.default",
       }}
     >
-      <SucursalSelector branch={branch} onBranchChange ={handleBranchChange} />
+      <SucursalSelector branch={branch} onBranchChange={handleBranchChange} />
       <Box
         sx={{
           width: "100%",
@@ -305,14 +304,17 @@ const handleBranchChange = (value) => {
           boxShadow: 1,
         }}
       >
-        <Typography variant="h6" gutterBottom>
+        {/* <Typography variant="h6" gutterBottom>
           {productExists === null
             ? "Nuevo producto o lote"
             : productExists
             ? "Agregar lote"
             : "Crear nuevo producto"}
-        </Typography>
+        </Typography> */}
 
+        <Typography variant="h6" gutterBottom>
+          Agregar vencimientos
+        </Typography>
         {/* 🔍 FORMULARIO DE BÚSQUEDA */}
 
         <BarcodeSearchSection
@@ -356,6 +358,12 @@ const handleBranchChange = (value) => {
             overstock={overstock}
             setOverstock={setOverstock}
             onSubmit={submit}
+            setBarcode={setBarcode}
+            setNameQuery={setNameQuery}
+            setNameResults={setNameResults}
+            barcodeInputRef={barcodeInputRef}
+            setProductExists={setProductExists}
+    
           />
         )}
 

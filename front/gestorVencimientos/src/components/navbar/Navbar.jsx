@@ -101,11 +101,15 @@ import {
   Box,
   useTheme,
   useMediaQuery,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from "@mui/material";
 import { Link } from "react-router-dom";
 import MenuIcon from "@mui/icons-material/Menu";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 export default function Navbar({
   currentUser,
@@ -291,6 +295,36 @@ export default function Navbar({
 
       {/* Spacer para que el contenido no quede oculto debajo del navbar */}
       <Toolbar />
+      <Drawer
+        anchor="right"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      >
+        <Box sx={{ width: 260, p: 2 }}>
+          {menuItems.map(({ label, submenu }) => (
+            <Accordion key={label} >
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="subtitle1">{label}</Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ p: 0 }}>
+                <List dense>
+                  {submenu.map(({ label: subLabel, to }) => (
+                    <ListItem
+                      button
+                      component={Link}
+                      to={to}
+                      key={subLabel}
+                      onClick={() => setDrawerOpen(false)}
+                    >
+                      <ListItemText primary={subLabel} inset />
+                    </ListItem>
+                  ))}
+                </List>
+              </AccordionDetails>
+            </Accordion>
+          ))}
+        </Box>
+      </Drawer>
     </>
   );
 }

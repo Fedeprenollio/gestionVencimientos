@@ -58,6 +58,7 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem("currentUser");
+    localStorage.removeItem("token");
     setCurrentUser(null);
     setShowLogin(true);
   };
@@ -78,7 +79,7 @@ function App() {
           onToggleTheme={toggleMode}
           mode={mode}
           currentUser={currentUser}
-          onChangeUser={() => setShowLogin(true)}
+          onChangeUser={handleLogout}
         />
 
         {showLogin && <LoginPage onLogin={handleLogin} />}
