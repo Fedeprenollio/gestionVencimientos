@@ -21,6 +21,7 @@ import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import UserCreatePage from "./pages/user/UserCreatePage.jsx";
 import LoginPage from "./components/user/LoginPage.jsx";
+import StockAnalysisUploader from "./pages/StockAnalysisUploader.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -93,6 +94,7 @@ function App() {
             <Route path="/stock-search" element={<SearchStockPage />} />
             <Route path="/user" element={<UserCreatePage />} />
             <Route path="*" element={<Productos />} />
+            <Route path="/analisis" element={<StockAnalysisUploader />} />
           </Routes>
         </Box>
         {/* Footer */}
