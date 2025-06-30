@@ -29,7 +29,7 @@ import LotEditModal from "./LotEditModal";
 
 export default function CreatedLotsTable({ createdLots, onClear, onUpdate }) {
   const [editingLot, setEditingLot] = useState(null);
-
+console.log(createdLots)
   const handleDelete = async (lotId) => {
     const confirmDelete = confirm("¿Eliminar este lote de la lista?");
     if (!confirmDelete) return;

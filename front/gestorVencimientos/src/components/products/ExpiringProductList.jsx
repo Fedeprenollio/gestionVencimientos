@@ -108,7 +108,7 @@ export default function ExpiringProductList() {
         });
       });
     });
-
+    console.log("FLAT",flat)
     // Filtros rápidos
     flat = flat.filter((row) => {
       return (
@@ -118,8 +118,9 @@ export default function ExpiringProductList() {
         row.barcode
           .toLowerCase()
           .includes(quickFilters.barcode?.toLowerCase() || "") &&
-        row.type.toLowerCase().includes(quickFilters.type.toLowerCase()) &&
-        row.branch.toLowerCase().includes(quickFilters.branch.toLowerCase())
+        row.type.toLowerCase().includes(quickFilters.type.toLowerCase()) 
+        // &&
+        // row.branch.toLowerCase().includes(quickFilters.branch.toLowerCase())
       );
     });
 

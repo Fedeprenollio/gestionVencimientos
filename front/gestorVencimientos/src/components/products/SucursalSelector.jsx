@@ -9,9 +9,25 @@ import {
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { BRANCHES } from "../../constants/branches";
+import axios from "axios";
 
 export default function SucursalSelector({ branch, onBranchChange }) {
   const [editMode, setEditMode] = useState(false);
+  const [branches, setBranches] = useState([]);
+//  await axios.get(
+//       `${import.meta.env.VITE_API_URL}/products?${params}`
+//     );
+  useEffect(() => {
+    axios.get( `${import.meta.env.VITE_API_URL}/branches`) // ajustá la URL a tu backend
+      .then((res) => {
+        setBranches(res.data);
+      })
+      .catch((error) => {
+        console.error("Error al cargar sucursales:", error);
+      });
+  }, []);
+
+console.log("branches",branches)
 
   // Inicializar sucursal desde localStorage si existe
   useEffect(() => {
@@ -27,6 +43,16 @@ export default function SucursalSelector({ branch, onBranchChange }) {
     localStorage.setItem("selected_branch", value);
     setEditMode(false); // cerrar edición al seleccionar
   };
+
+   // Aquí mezclamos la lista estática y la dinámica en un solo array para mostrar
+  // IMPORTANTE: adaptá los campos para que tengan la misma estructura { value, label }
+  const combinedBranches = [
+    ...BRANCHES,
+    ...branches.map(({ _id, name }) => ({
+      value: _id,
+      label: name,
+    })),
+  ];
 
   return (
     <Box sx={{ maxWidth: "70%", mx: "auto", p: 2 }}>
@@ -56,7 +82,7 @@ export default function SucursalSelector({ branch, onBranchChange }) {
           label="Sucursal"
           disabled={!editMode}
         >
-          {BRANCHES.map(({ value, label }) => (
+           {combinedBranches.map(({ value, label }) => (
             <MenuItem key={value} value={value}>
               {label}
             </MenuItem>

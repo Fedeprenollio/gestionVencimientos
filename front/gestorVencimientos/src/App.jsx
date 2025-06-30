@@ -22,6 +22,12 @@ import Brightness7Icon from "@mui/icons-material/Brightness7";
 import UserCreatePage from "./pages/user/UserCreatePage.jsx";
 import LoginPage from "./components/user/LoginPage.jsx";
 import StockAnalysisUploader from "./pages/StockAnalysisUploader.jsx";
+import BranchList from "./pages/Branch/BranchList.jsx";
+import BranchForm from "./pages/Branch/BranchForm.jsx";
+import ProductListForm from "./pages/ProductList/ProductListForm.jsx";
+import ProductListList from "./pages/ProductList/ProductListList.jsx";
+import AddProductsLocal from "./pages/ProductList/AddProductsLocal.jsx";
+import BarcodeSalesAnalyzer from "./pages/ProductList/BarcodeSalesAnalyzer.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -50,12 +56,11 @@ function App() {
   }, []);
 
   const handleLogin = (userData) => {
-  localStorage.setItem("currentUser", JSON.stringify(userData.user));
-  localStorage.setItem("token", userData.token); // ✅ guardar el token
-  setCurrentUser(userData.user);
-  setShowLogin(false);
-};
-
+    localStorage.setItem("currentUser", JSON.stringify(userData.user));
+    localStorage.setItem("token", userData.token); // ✅ guardar el token
+    setCurrentUser(userData.user);
+    setShowLogin(false);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("currentUser");
@@ -93,6 +98,15 @@ function App() {
             <Route path="/expiring" element={<LotList />} />
             <Route path="/stock-search" element={<SearchStockPage />} />
             <Route path="/user" element={<UserCreatePage />} />
+            <Route path="/branches" element={<BranchList />} />
+            <Route path="/branches/new" element={<BranchForm />} />
+            <Route path="/branches/:id" element={<BranchForm />} />
+            <Route path="/lists" element={<ProductListList />} />
+            <Route path="/lists/new" element={<ProductListForm />} />
+            <Route path="/lists/edit/:id" element={<ProductListForm />} />
+            <Route path="/lists/:listId/add-products" element={<AddProductsLocal />} />
+            <Route path="/lists/:listId/analyze-sales" element={<BarcodeSalesAnalyzer />} />
+
             <Route path="*" element={<Productos />} />
             <Route path="/analisis" element={<StockAnalysisUploader />} />
           </Routes>

@@ -151,228 +151,6 @@ export const addLotToProduct = async (req, res) => {
   }
 };
 
-// export const getExpiringProducts = async (req, res) => {
-//   const { from, months = 6, branch, type, createdFrom, createdTo } = req.query;
-
-//   // Convertir fechas a UTC partiendo de horario Argentina
-//   const fromDate = dayjs
-//     .tz(from || dayjs(), 'America/Argentina/Buenos_Aires')
-//     .startOf('month')
-//     .utc()
-//     .toDate();
-
-//   const untilDate = dayjs(fromDate).add(Number(months), 'month').toDate();
-
-//   // Rango de creación (createdAt)
-//   const createdCriteria = {};
-//   if (createdFrom) {
-//     createdCriteria.$gte = dayjs
-//       .tz(createdFrom, 'America/Argentina/Buenos_Aires')
-//       .startOf('day')
-//       .utc()
-//       .toDate();
-//   }
-//   if (createdTo) {
-//     createdCriteria.$lte = dayjs
-//       .tz(createdTo, 'America/Argentina/Buenos_Aires')
-//       .endOf('day')
-//       .utc()
-//       .toDate();
-//   }
-
-//   // Filtro general
-//   const match = { 'lots.expirationDate': { $gte: fromDate, $lt: untilDate } };
-//   if (branch) match['lots.branch'] = branch;
-//   if (type) match.type = type;
-
-//   try {
-//     const products = await Product.aggregate([
-//       { $match: match },
-//       {
-//         $project: {
-//           barcode: 1,
-//           name: 1,
-//           type: 1,
-//           lots: {
-//             $filter: {
-//               input: '$lots',
-//               as: 'lot',
-//               cond: {
-//                 $and: [
-//                   { $gte: ['$$lot.expirationDate', fromDate] },
-//                   { $lt: ['$$lot.expirationDate', untilDate] },
-//                   ...(branch ? [{ $eq: ['$$lot.branch', branch] }] : []),
-//                   ...(createdFrom || createdTo
-//                     ? [
-//                         {
-//                           $and: [
-//                             ...(createdCriteria.$gte
-//                               ? [{ $gte: ['$$lot.createdAt', createdCriteria.$gte] }]
-//                               : []),
-//                             ...(createdCriteria.$lte
-//                               ? [{ $lte: ['$$lot.createdAt', createdCriteria.$lte] }]
-//                               : []),
-//                           ],
-//                         },
-//                       ]
-//                     : []),
-//                 ],
-//               },
-//             },
-//           },
-//         },
-//       },
-//       { $sort: { name: 1 } },
-//     ]);
-//     res.json(products);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: 'Error al obtener productos' });
-//   }
-// };
-
-// export const getExpiringProducts = async (req, res) => {
-//   const {
-//     from,
-//     months,
-//     branch,
-//     type,
-//     createdFrom,
-//     createdTo,
-//     overstock, // puede ser "true", "false", "only"
-//   } = req.query;
-//   console.log("FECHAS", createdFrom, createdTo);
-//   // Obtener y procesar barcodes (separados por coma)
-//   const barcodes = req.query.barcodes
-//     ? req.query.barcodes.split(",").map((b) => b.trim())
-//     : null;
-
-//   const filtrosActivos = from || months || branch || createdFrom || createdTo;
-
-//   const includeOnlyOverstock = overstock === "only";
-//   const includeOverstock = overstock !== "false";
-//   const includeRegular = overstock !== "true" && overstock !== "only";
-
-//   try {
-//     // 1. Armar el query de productos
-//     // 1. Buscar productos (filtrando por tipo si es necesario)
-//     const productQuery = type ? { type } : {};
-//     if (barcodes && barcodes.length > 0) {
-//       productQuery.barcode = { $in: barcodes };
-//     }
-//     const products = await Product.find(productQuery).sort({ name: 1 });
-//     const productIds = products.map((p) => p._id);
-
-//     // 2. Armar filtros por separado
-//     const lotFilters = [];
-
-//     if (includeRegular) {
-//       const filterNoOverstock = {
-//         overstock: { $ne: true },
-//         productId: { $in: productIds },
-//       };
-
-//       // if (filtrosActivos) {
-//       //   const fromDate = dayjs
-//       //     .tz(from || dayjs(), "America/Argentina/Buenos_Aires")
-//       //     .startOf("month")
-//       //     .utc()
-//       //     .toDate();
-
-//       //   const untilDate = dayjs(fromDate).add(Number(months), "month").toDate();
-//       //   filterNoOverstock.expirationDate = { $gte: fromDate, $lt: untilDate };
-
-//       //   if (branch) filterNoOverstock.branch = branch;
-
-//       //   const createdCriteria = {};
-//       //   if (createdFrom) {
-//       //     createdCriteria.$gte = dayjs(createdFrom).startOf("day").toDate();
-//       //   }
-//       //   if (createdTo) {
-//       //     createdCriteria.$lte = dayjs(createdTo).endOf("day").toDate();
-//       //   }
-
-//       //   console.log("Filtro de fechas", createdCriteria);
-//       //   if (Object.keys(createdCriteria).length > 0) {
-//       //     filterNoOverstock.createdAt = createdCriteria;
-//       //   }
-//       // }
-//     if (filtrosActivos) {
-//  const fromDate = dayjs(from).startOf("day").toDate(); // 2025-06-26T00:00:00.000Z
-// const untilDate = dayjs(fromDate).add(Number(months), "month").toDate();
-
-//   filterNoOverstock.expirationDate = { $gte: fromDate, $lt: untilDate };
-
-//   if (branch) filterNoOverstock.branch = branch;
-
-//   const createdCriteria = {};
-
-//  if (createdFrom) {
-//   createdCriteria.$gte = dayjs(createdFrom).startOf("day").toDate(); // 2025-06-26T00:00:00.000Z
-// }
-// if (createdTo) {
-//   createdCriteria.$lte = dayjs(createdTo).endOf("day").toDate(); // 2025-06-26T23:59:59.999Z
-// }console.log("Filtro fechas", createdCriteria);
-
-//   if (Object.keys(createdCriteria).length > 0) {
-//     filterNoOverstock.createdAt = createdCriteria;
-//   }
-// }
-
-//       lotFilters.push(Lot.find(filterNoOverstock));
-//     }
-
-//     if (includeOverstock) {
-//       const filterOverstock = {
-//         overstock: true,
-//         productId: { $in: productIds },
-//       };
-//       if (branch) filterOverstock.branch = branch;
-//       lotFilters.push(Lot.find(filterOverstock));
-//     }
-
-//     // 3. Ejecutar las consultas en paralelo
-//     // const lotResults = await Promise.all(lotFilters);
-//     const lotResults = await Promise.all(
-//       lotFilters.length ? lotFilters : [Promise.resolve([])]
-//     );
-
-//     const allLots = lotResults.flat();
-
-//     // 4. Agrupar lotes por productoId
-//     const lotsGrouped = {};
-//     for (const lot of allLots) {
-//       const pid = lot.productId.toString();
-//       if (!lotsGrouped[pid]) lotsGrouped[pid] = [];
-//       lotsGrouped[pid].push(lot);
-//     }
-
-//     if (productIds.length === 0) {
-//       return res.json([]);
-//     }
-
-//     // 5. Armar la respuesta combinada
-//     const result = products.map((product) => ({
-//       _id: product._id,
-//       name: product.name,
-//       barcode: product.barcode,
-//       type: product.type,
-//       lots: (lotsGrouped[product._id.toString()] || []).map((lot) => ({
-//         _id: lot._id,
-//         expirationDate: lot.expirationDate,
-//         quantity: lot.quantity,
-//         branch: lot.branch,
-//         createdAt: lot.createdAt,
-//         overstock: lot.overstock === true,
-//       })),
-//     }));
-
-//     res.json(result);
-//   } catch (err) {
-//     console.error("Error al obtener productos:", err);
-//     res.status(500).json({ message: "Error al obtener productos" });
-//   }
-// };
 
 export const getExpiringProducts = async (req, res) => {
   const {
@@ -439,6 +217,7 @@ export const getExpiringProducts = async (req, res) => {
 
       lotFilters.push(
         Lot.find(filterNoOverstock).populate("createdBy", "username fullname")
+        .populate("branch", "name") 
       );
     }
 
@@ -457,6 +236,7 @@ export const getExpiringProducts = async (req, res) => {
 
       lotFilters.push(
         Lot.find(filterOverstock).populate("createdBy", "username fullname")
+        .populate("branch", "name") 
       );
     }
 
@@ -486,7 +266,13 @@ export const getExpiringProducts = async (req, res) => {
         _id: lot._id,
         expirationDate: lot.expirationDate,
         quantity: lot.quantity,
-        branch: lot.branch,
+        branch:
+          typeof lot.branch === "object"
+            ? lot.branch.name
+            : typeof lot.branch === "string"
+            ? lot.branch
+            : null,
+
         createdAt: lot.createdAt,
         overstock: lot.overstock === true,
         createdBy: lot.createdBy
