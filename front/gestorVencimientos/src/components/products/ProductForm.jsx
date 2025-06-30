@@ -330,6 +330,8 @@ export default function ProductForm() {
           scanning={scanning}
           setScanning={setScanning}
           barcodeInputRef={barcodeInputRef}
+                  isAddMode = {false}
+
         />
 
         {productExists && (

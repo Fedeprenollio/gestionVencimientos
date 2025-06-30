@@ -63,7 +63,7 @@ export default function Navbar({
       label: "Stock",
       submenu: [
         { label: "Buscar stock en sucursales", to: "/stock-search" },
-        { label: "Analizar stock", to: "/lists" }, // ✅ nuevo
+        { label: "Analizar movimientos", to: "/lists" }, // ✅ nuevo
       ],
     },
     {

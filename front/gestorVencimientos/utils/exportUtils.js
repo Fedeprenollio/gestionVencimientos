@@ -157,3 +157,32 @@ export function exportToExcelLots(lots) {
 
   saveAs(blob, "productos_por_vencer.xlsx");
 }
+
+
+// utils/exportUtils.js (o donde tengas las funciones de exportación)
+
+
+/**
+ * Exporta códigos de barra a un archivo .txt, con formato:
+ *  77878754687;
+ *  4546541123154;
+ *  ...
+ * 
+ * @param {Array<string>} codes - Array de códigos a exportar.
+ * @param {string} [filename="codigos_exportados.txt"] - Nombre del archivo opcional.
+ */
+export const exportToTXT = (codes = [], filename = "codigos_exportados.txt") => {
+  if (!Array.isArray(codes) || codes.length === 0) {
+    console.warn("No hay códigos para exportar");
+    return;
+  }
+
+  const cleaned = Array.from(new Set(
+    codes.map((c) => (typeof c === "string" ? c.trim() : String(c).trim())).filter(Boolean)
+  ));
+
+  const content = cleaned.map((c) => `${c};`).join("\n");
+
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  saveAs(blob, filename);
+};
