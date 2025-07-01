@@ -3,6 +3,8 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import Lot from "../models/Lot.js";
+import PriceHistory from "../models/PriceHistory.js";
+import ProductList from "../models/ProductList.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -151,7 +153,6 @@ export const addLotToProduct = async (req, res) => {
   }
 };
 
-
 export const getExpiringProducts = async (req, res) => {
   const {
     from,
@@ -216,8 +217,9 @@ export const getExpiringProducts = async (req, res) => {
       }
 
       lotFilters.push(
-        Lot.find(filterNoOverstock).populate("createdBy", "username fullname")
-        .populate("branch", "name") 
+        Lot.find(filterNoOverstock)
+          .populate("createdBy", "username fullname")
+          .populate("branch", "name")
       );
     }
 
@@ -235,8 +237,9 @@ export const getExpiringProducts = async (req, res) => {
       }
 
       lotFilters.push(
-        Lot.find(filterOverstock).populate("createdBy", "username fullname")
-        .populate("branch", "name") 
+        Lot.find(filterOverstock)
+          .populate("createdBy", "username fullname")
+          .populate("branch", "name")
       );
     }
 
@@ -375,7 +378,6 @@ export const updateProduct = async (req, res) => {
 
 // Podés usar este en un endpoint tipo POST + archivo
 
-
 // export const importProducts = async (req, res) => {
 //   try {
 //     const file = req.file;
@@ -411,7 +413,6 @@ export const updateProduct = async (req, res) => {
 //   }
 // };
 
-
 // controllers/productController.js
 export const importProducts = async (req, res) => {
   const products = req.body;
@@ -422,9 +423,131 @@ export const importProducts = async (req, res) => {
 
   try {
     const inserted = await Product.insertMany(products, { ordered: false });
-    res.status(201).json({ message: `Se importaron ${inserted.length} productos.` });
+    res
+      .status(201)
+      .json({ message: `Se importaron ${inserted.length} productos.` });
   } catch (err) {
     console.error("Error al importar productos:", err);
     return res.status(500).json({ message: "Error al importar productos." });
+  }
+};
+
+export const updateProductPrices = async (req, res) => {
+  try {
+    const { products } = req.body;
+
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ message: "Product list is empty or invalid" });
+    }
+
+    const updates = [];
+
+    for (const item of products) {
+      const { barcode, price } = item;
+      if (!barcode || typeof price !== "number") continue;
+
+      const product = await Product.findOne({ barcode });
+      if (!product) continue;
+
+      // Actualiza el precio actual
+      product.currentPrice = price;
+      await product.save();
+
+      // Guarda un nuevo historial separado
+      await PriceHistory.create({
+        productId: product._id,
+        price,
+        // operator: opcional, si tenés datos para esto
+      });
+
+      updates.push({ barcode, price });
+    }
+
+    return res.json({ message: "Prices updated", updates });
+  } catch (error) {
+    console.error("Error updating prices:", error);
+    res.status(500).json({ message: "Server error updating prices" });
+  }
+};
+
+
+export const updatePricesFromList = async (req, res) => {
+  try {
+    const { listId, products } = req.body;
+
+    if (!listId) return res.status(400).json({ message: "List ID required" });
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ message: "Products list is empty or invalid" });
+    }
+
+    // 1. Obtener la lista y los productos que tiene (solo los barcodes)
+    const list = await ProductList.findById(listId).populate('products', 'barcode');
+    if (!list) return res.status(404).json({ message: "List not found" });
+
+    const barcodesInList = new Set(list.products.map(p => p.barcode));
+
+    // 2. Filtrar productos recibidos para que estén en la lista
+    const filteredProducts = products.filter(p => barcodesInList.has(p.barcode));
+
+    // 3. Actualizar sólo esos productos
+    const updates = [];
+
+    for (const item of filteredProducts) {
+      const { barcode, price } = item;
+      if (!barcode || typeof price !== "number") continue;
+
+      const product = await Product.findOne({ barcode });
+      if (!product) continue;
+
+      product.currentPrice = price;
+      await product.save();
+
+      await PriceHistory.create({
+        productId: product._id,
+        price,
+      });
+
+      updates.push({ barcode, price });
+    }
+
+    return res.json({ message: "Prices updated for list products", updates });
+  } catch (error) {
+    console.error("Error updating prices:", error);
+    res.status(500).json({ message: "Server error updating prices" });
+  }
+};
+
+export const getPriceHistory = async (req, res) => {
+  try {
+    const { barcode } = req.params;
+    const product = await Product.findOne({ barcode });
+
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    res.json({
+      barcode: product.barcode,
+      name: product.name,
+      currentPrice: product.currentPrice,
+      priceHistory: product.priceHistory,
+    });
+  } catch (error) {
+    console.error("Error fetching price history:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getProductsWithoutPrice = async (req, res) => {
+  try {
+    const products = await Product.find({
+      $or: [{ currentPrice: { $exists: false } }, { currentPrice: 0 }],
+    })
+      .select("barcode name currentPrice")
+      .sort({ name: 1 }) // opcional: orden alfabético
+      .limit(100); // 👈 solo los primeros 100
+
+    res.json(products);
+  } catch (error) {
+    console.error("Error buscando productos sin precio:", error);
+    res.status(500).json({ message: "Error al obtener productos sin precio" });
   }
 };

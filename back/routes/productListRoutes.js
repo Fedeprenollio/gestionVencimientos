@@ -10,7 +10,10 @@ import {
   addQuickProducts,
   updateQuickProducts,
   clearQuickProducts,
+  comparePricesByDate,
+  uploadPricesForList,
 } from '../controllers/productListController.js';
+import { comparePricesByDateSeparateCollections } from '../controllers/historyPruceController.js';
 
 const productListRoutes = express.Router();
 
@@ -21,6 +24,10 @@ productListRoutes.put('/:listId/add/:productId', addProductToList);
 productListRoutes.put('/:listId/remove/:productId', removeProductFromList);
 productListRoutes.delete('/:listId', deleteProductList);
 // routes/productListRoutes.js
+productListRoutes.get("/:id/compare-prices", comparePricesByDateSeparateCollections);
+
+// productListRoutes.get("/:id/compare-prices", comparePricesByDate);
+productListRoutes.post("/:listId/upload-prices", uploadPricesForList);
 
 productListRoutes.get("/:listId/quick-products", getQuickProducts);
 productListRoutes.put("/:listId/quick-products", addQuickProducts);

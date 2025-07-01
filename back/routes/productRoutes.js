@@ -4,21 +4,27 @@ import {
   createProduct,
   deleteProduct,
   getExpiringProducts,
+  getPriceHistory,
   getProductByBarcode,
+  getProductsWithoutPrice,
   importProducts,
   searchProductsByName,
-  updateProduct,  
+  updateProduct,
+  updateProductPrices,  
 } from '../controllers/productController.js';
 import Product from '../models/Product.js';
 
 const productRoutes = express.Router();
 productRoutes.get('/', getExpiringProducts);
+productRoutes.get('/without-price', getProductsWithoutPrice);
 productRoutes.get('/search', searchProductsByName);
 productRoutes.get('/:barcode', getProductByBarcode);
 productRoutes.post('/', createProduct);
 productRoutes.delete("/:id", deleteProduct);
 productRoutes.put("/:id", updateProduct);
 productRoutes.post("/import", importProducts);
+productRoutes.post('/update-prices', updateProductPrices);
+productRoutes.get('/:barcode/history', getPriceHistory);
 productRoutes.post("/check-exist", async (req, res) => {
   const { barcodes } = req.body;
 

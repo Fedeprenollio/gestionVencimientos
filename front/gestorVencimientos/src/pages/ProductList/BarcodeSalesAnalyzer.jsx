@@ -24,6 +24,7 @@ export default function BarcodeSalesAnalyzer() {
   const [notSold, setNotSold] = useState([]);
   const [loading, setLoading] = useState(false);
   const [dbCodes, setDbCodes] = useState([]);
+  const [codeToNameMap, setCodeToNameMap] = useState({});
 
   const localStorageKey = `tempCodesForList_${listId}`;
   const tempCodes = JSON.parse(localStorage.getItem(localStorageKey) || "[]");
@@ -35,6 +36,15 @@ export default function BarcodeSalesAnalyzer() {
       const codesFromDB =
         list.products?.map((p) => p.barcode?.trim()).filter(Boolean) || [];
       setDbCodes(codesFromDB);
+
+      // Crear mapa de código => nombre
+      const map = {};
+      list.products?.forEach((p) => {
+        if (p.barcode) {
+          map[p.barcode.trim()] = p.name || "(sin nombre)";
+        }
+      });
+      setCodeToNameMap(map);
     }
     loadListCodes();
   }, [listId]);
@@ -100,10 +110,13 @@ export default function BarcodeSalesAnalyzer() {
       const noVendidos = combinedCodes
         .filter((cb) => !found[cb])
         .map((cb) => {
-          const row = json.find((r) => String(r.Codebar).trim() === cb);
+          const nombreDesdeExcel = json.find(
+            (r) => String(r.Codebar).trim() === cb
+          )?.Producto;
+          const nombreDesdeDB = codeToNameMap[cb];
           return {
             codebar: cb,
-            producto: row?.Producto || "(sin nombre)",
+            producto: nombreDesdeExcel || nombreDesdeDB || "(sin nombre)",
           };
         });
 

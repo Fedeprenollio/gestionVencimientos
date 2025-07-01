@@ -53,7 +53,8 @@ export default function Navbar({
       label: "Productos",
       submenu: [
         { label: "Administrar productos", to: "/" },
-        { label: "Importar productos", to: "/products/import" }, // 👈 agregado
+        { label: "Importar productos", to: "/products/import" },
+        { label: "Precios", to: "/products/prices" },
       ],
     },
     {

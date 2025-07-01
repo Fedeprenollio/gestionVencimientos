@@ -2,10 +2,10 @@ import api from "./axiosInstance";
 
 // Buscar productos por nombre (autocomplete)
 export const fetchProducts = async (query) => {
-  console.log("query",query)
+  console.log("query", query);
   if (!query.trim()) return [];
   const res = await api.get(`/products/search?name=${query}`);
-  console.log("APIIII RERS", res)
+  console.log("APIIII RERS", res);
   return res;
 };
 
@@ -33,7 +33,6 @@ export const fetchAllProducts = async () => {
   return res.data;
 };
 
-
 // Importar productos desde un archivo Excel
 export const importProductsFromExcel = async (file) => {
   const formData = new FormData();
@@ -46,4 +45,16 @@ export const importProductsFromExcel = async (file) => {
   });
 
   return res.data;
+};
+
+export const getProductsWithoutPrice = () => api.get("/products/without-price");
+
+export const uploadPriceExcel = (data) =>
+  api.post("/products/update-prices", { products: data });
+
+
+export const getListById = async (id) => {
+  const res = await api.get(`/product-lists/${id}`);
+  console.log("res.dat",res)
+  return res;
 };

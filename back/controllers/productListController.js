@@ -1,8 +1,8 @@
 // controllers/productListController.js
-import ProductList from '../models/ProductList.js';
-import Product from '../models/Product.js';
-import XLSX from 'xlsx';
-
+import ProductList from "../models/ProductList.js";
+import Product from "../models/Product.js";
+import XLSX from "xlsx";
+import PriceHistory from "../models/PriceHistory.js";
 
 export const createProductList = async (req, res) => {
   try {
@@ -16,19 +16,19 @@ export const createProductList = async (req, res) => {
 
 export const getProductListsByBranch = async (req, res) => {
   try {
-    const lists = await ProductList.find({ branch: req.params.branchId }).populate('products');
+    const lists = await ProductList.find({
+      branch: req.params.branchId,
+    }).populate("products");
     res.json(lists);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-
-
 export const removeProductFromList = async (req, res) => {
   try {
     const list = await ProductList.findById(req.params.listId);
-    if (!list) return res.status(404).json({ message: 'Lista no encontrada' });
+    if (!list) return res.status(404).json({ message: "Lista no encontrada" });
 
     list.products = list.products.filter(
       (id) => id.toString() !== req.params.productId
@@ -44,19 +44,19 @@ export const removeProductFromList = async (req, res) => {
 export const deleteProductList = async (req, res) => {
   try {
     const result = await ProductList.findByIdAndDelete(req.params.listId);
-    if (!result) return res.status(404).json({ message: 'Lista no encontrada' });
-    res.json({ message: 'Lista eliminada' });
+    if (!result)
+      return res.status(404).json({ message: "Lista no encontrada" });
+    res.json({ message: "Lista eliminada" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-
 // controllers/listController.js
 export const addProductToList = async (req, res) => {
-  const { listId,productId } = req.params; // lista
+  const { listId, productId } = req.params; // lista
   // const { productId } = req.body;
-  console.log("listId",listId)
+  console.log("listId", listId);
 
   const list = await ProductList.findById(listId);
   if (!list) return res.status(404).json({ message: "Lista no encontrada" });
@@ -69,15 +69,14 @@ export const addProductToList = async (req, res) => {
   res.json(list);
 };
 
-
 export const getProductListById = async (req, res) => {
+  console.log("get list", req.params.id);
   try {
     const list = await ProductList.findById(req.params.id)
-      .populate('branch', 'name') // si querés mostrar la sucursal
-      .populate('products'); // si querés incluir los productos
+      .populate("branch", "name") // si querés mostrar la sucursal
+      .populate("products"); // si querés incluir los productos
 
     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
-
     res.json(list);
   } catch (err) {
     console.error("Error al obtener la lista por ID:", err);
@@ -100,7 +99,9 @@ export const addQuickProducts = async (req, res) => {
     if (!list) return res.status(404).json({ error: "Lista no encontrada" });
 
     const existingBarcodes = new Set(list.quickProducts.map((p) => p.barcode));
-    const newItems = items.filter((item) => !existingBarcodes.has(item.barcode));
+    const newItems = items.filter(
+      (item) => !existingBarcodes.has(item.barcode)
+    );
 
     list.quickProducts.push(...newItems);
     await list.save();
@@ -155,7 +156,6 @@ export const updateQuickProducts = async (req, res) => {
   }
 };
 
-
 export const clearQuickProducts = async (req, res) => {
   try {
     const list = await ProductList.findById(req.params.id);
@@ -171,6 +171,111 @@ export const clearQuickProducts = async (req, res) => {
   }
 };
 
+export const comparePricesByDate = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { from, to } = req.query;
+    console.log("from, to", from, to);
 
+    if (!from || !to) {
+      return res
+        .status(400)
+        .json({ message: "Parámetros 'from' y 'to' son requeridos" });
+    }
 
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
 
+    const list = await ProductList.findById(id).populate("products");
+
+    if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+    const result = [];
+
+    for (const product of list.products) {
+      const history = product.priceHistory || [];
+
+      const fromPrices = history.filter(
+        (h) => new Date(h.date) >= fromDate && new Date(h.date) < toDate
+      );
+      const toPrices = history.filter((h) => new Date(h.date) >= toDate);
+
+      const oldestFrom = fromPrices[0];
+      const newestTo = toPrices[toPrices.length - 1];
+
+      if (oldestFrom && newestTo) {
+        const changed = oldestFrom.price !== newestTo.price;
+
+        result.push({
+          _id: product._id,
+          barcode: product.barcode,
+          name: product.name,
+          fromPrice: oldestFrom.price,
+          toPrice: newestTo.price,
+          changed,
+        });
+      }
+    }
+    console.log("result", result);
+    res.json({ listName: list.name, products: result });
+  } catch (error) {
+    console.error("Error comparando precios:", error);
+    res.status(500).json({ message: "Error del servidor" });
+  }
+};
+
+export const uploadPricesForList = async (req, res) => {
+  try {
+    const { listId } = req.params;
+    const { products } = req.body;
+
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ message: "Product list is empty or invalid" });
+    }
+
+    // Buscamos la lista y sus productos (asegurate que 'name' esté en el populate)
+    const list = await ProductList.findById(listId).populate("products", "barcode _id name");
+    if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+    // Creamos un Set para barcodes de la lista
+    const barcodesSet = new Set(list.products.map(p => p.barcode));
+
+    const updated = [];
+    const notUpdated = [];
+
+    for (const item of products) {
+      const { barcode, price } = item;
+      if (!barcode || typeof price !== "number") continue;
+
+      // Buscamos producto en la lista
+      const productInList = list.products.find(p => p.barcode === barcode);
+      if (productInList) {
+        // Actualizar precio actual
+        await Product.findByIdAndUpdate(productInList._id, { currentPrice: price });
+
+        // Guardar historial de precios
+        await PriceHistory.create({
+          productId: productInList._id,
+          price,
+        });
+
+        updated.push({
+          barcode,
+          price,
+          name: productInList.name,
+        });
+      } else {
+        notUpdated.push({ barcode, price });
+      }
+    }
+
+    return res.json({
+      message: `Precios actualizados para la lista ${list.name}`,
+      updated,
+      notUpdated,
+    });
+  } catch (error) {
+    console.error("Error updating prices for list:", error);
+    return res.status(500).json({ message: "Error del servidor actualizando precios" });
+  }
+};
