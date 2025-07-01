@@ -118,7 +118,7 @@ export default function ExpiringProductList() {
         row.barcode
           .toLowerCase()
           .includes(quickFilters.barcode?.toLowerCase() || "") &&
-        row.type.toLowerCase().includes(quickFilters.type.toLowerCase()) 
+        row.type?.toLowerCase().includes(quickFilters.type.toLowerCase()) 
         // &&
         // row.branch.toLowerCase().includes(quickFilters.branch.toLowerCase())
       );
