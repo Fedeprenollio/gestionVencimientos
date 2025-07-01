@@ -30,7 +30,10 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// app.use(express.json());
 app.use(morgan('dev')); // 👈 Middleware para mostrar logs en consola
 
 connectDB();
@@ -40,6 +43,8 @@ app.use('/lots', lotRoutes);
 app.use('/users', userRoutes);
 app.use('/branches', branchRoutes);
 app.use('/product-lists', productListRoutes);
+// app.use('/productImport', importRouter);
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Servidor en puerto ${PORT}`));

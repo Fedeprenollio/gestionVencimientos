@@ -1,6 +1,8 @@
 // controllers/productListController.js
 import ProductList from '../models/ProductList.js';
 import Product from '../models/Product.js';
+import XLSX from 'xlsx';
+
 
 export const createProductList = async (req, res) => {
   try {
@@ -168,3 +170,7 @@ export const clearQuickProducts = async (req, res) => {
     res.status(500).json({ message: "Error del servidor" });
   }
 };
+
+
+
+

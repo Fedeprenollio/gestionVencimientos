@@ -27,52 +27,48 @@ export default function ProductListForm() {
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({ resolver: yupResolver(schema) });
 
   const navigate = useNavigate();
   const { id } = useParams();
   const queryClient = useQueryClient();
-const [searchParams] = useSearchParams();
-const branchFromQuery = searchParams.get("branch");
-console.log("branchFromQuery",branchFromQuery)
+  const [searchParams] = useSearchParams();
+  const branchFromQuery = searchParams.get("branch");
   // Obtener sucursales
   const {
-  data: branches = [],
-  isLoading: loadingBranches,
-  error: errorBranches,
-} = useQuery({
-  queryKey: ["branches"],
-  queryFn: fetchBranches,
-});
-
+    data: branches = [],
+    isLoading: loadingBranches,
+    error: errorBranches,
+  } = useQuery({
+    queryKey: ["branches"],
+    queryFn: fetchBranches,
+  });
+  console.log("branches", branches);
 
   // Si está editando: obtener la lista
- const {
-  data: listData,
-  isLoading: loadingList,
-  error: errorList,
-} = useQuery({
-  queryKey: ["productList", id],
-  queryFn: () => fetchListById(id),
-  enabled: !!id,
-});
-
+  const {
+    data: listData,
+    isLoading: loadingList,
+    error: errorList,
+  } = useQuery({
+    queryKey: ["productList", id],
+    queryFn: () => fetchListById(id),
+    enabled: !!id,
+  });
 
   // Prellenar el form si estamos editando
-useEffect(() => {
-  if (id && listData) {
-    reset({
-      name: listData.name,
-      branch: listData.branch,
-    });
-  } else if (!id && branchFromQuery) {
-    reset({
-      branch: branchFromQuery,
-    });
-  }
-}, [id, listData, reset, branchFromQuery,branches]);
-
+  useEffect(() => {
+    if (id && listData) {
+      reset({
+        name: listData.name,
+        branch: listData.branch,
+      });
+    } else if (!id && branchFromQuery && branches.length > 0) {
+  setValue("branch", branchFromQuery);
+}
+  }, [id, listData, reset, branchFromQuery, branches, setValue]);
 
   // useEffect(() => {
   //   if (listData) {
@@ -85,8 +81,7 @@ useEffect(() => {
 
   // Mutación para crear/editar
   const mutation = useMutation({
-    mutationFn: (data) =>
-      id ? updateList(id, data) : createList(data),
+    mutationFn: (data) => (id ? updateList(id, data) : createList(data)),
     onSuccess: () => {
       queryClient.invalidateQueries(["productLists"]);
       navigate("/lists");
@@ -125,7 +120,7 @@ useEffect(() => {
               )}
             />
 
-            <Controller
+            <Controller 
               name="branch"
               control={control}
               render={({ field }) => (

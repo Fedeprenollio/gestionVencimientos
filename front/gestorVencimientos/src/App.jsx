@@ -28,6 +28,7 @@ import ProductListForm from "./pages/ProductList/ProductListForm.jsx";
 import ProductListList from "./pages/ProductList/ProductListList.jsx";
 import AddProductsLocal from "./pages/ProductList/AddProductsLocal.jsx";
 import BarcodeSalesAnalyzer from "./pages/ProductList/BarcodeSalesAnalyzer.jsx";
+import ImportProducts from "./pages/ImportProducts/ImportProducts.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -104,8 +105,17 @@ function App() {
             <Route path="/lists" element={<ProductListList />} />
             <Route path="/lists/new" element={<ProductListForm />} />
             <Route path="/lists/edit/:id" element={<ProductListForm />} />
-            <Route path="/lists/:listId/add-products" element={<AddProductsLocal />} />
-            <Route path="/lists/:listId/analyze-sales" element={<BarcodeSalesAnalyzer />} />
+            <Route
+              path="/lists/:listId/add-products"
+              element={<AddProductsLocal />}
+            />
+            <Route
+              path="/lists/:listId/analyze-sales"
+              element={<BarcodeSalesAnalyzer />}
+            />
+            <Route path="/products/import" element={<ImportProducts />} />
+
+            <Route path="/users/create" element={<UserCreatePage />} />
 
             <Route path="*" element={<Productos />} />
             <Route path="/analisis" element={<StockAnalysisUploader />} />

@@ -37,7 +37,8 @@ export default function Navbar({
   const [anchorElProd, setAnchorElProd] = useState(null);
   const [anchorElLote, setAnchorElLote] = useState(null);
   const [anchorElStock, setAnchorElStock] = useState(null);
-
+  const [anchorElUser, setAnchorElUser] = useState(null);
+  const openUser = Boolean(anchorElUser);
   // Drawer móvil
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -50,7 +51,10 @@ export default function Navbar({
   const menuItems = [
     {
       label: "Productos",
-      submenu: [{ label: "Administrar productos", to: "/" }],
+      submenu: [
+        { label: "Administrar productos", to: "/" },
+        { label: "Importar productos", to: "/products/import" }, // 👈 agregado
+      ],
     },
     {
       label: "Vencimientos",
@@ -63,12 +67,19 @@ export default function Navbar({
       label: "Stock",
       submenu: [
         { label: "Buscar stock en sucursales", to: "/stock-search" },
-        { label: "Analizar movimientos", to: "/lists" }, // ✅ nuevo
+        { label: "Listas", to: "/lists" }, // ✅ nuevo
       ],
     },
     {
       label: "Sucursales",
       submenu: [{ label: "Ver sucursales", to: "/branches" }],
+    },
+    {
+      label: "Usuarios",
+      submenu: [
+        { label: "Crear usuario", to: "/users/create" },
+        // { label: "Listar usuarios", to: "/users" }, // opcional
+      ],
     },
   ];
 
@@ -153,6 +164,28 @@ export default function Navbar({
                 <Button color="inherit" component={Link} to="/branches">
                   Sucursales
                 </Button>
+                <Button
+                  color="inherit"
+                  onClick={(e) => setAnchorElUser(e.currentTarget)}
+                >
+                  Usuarios
+                </Button>
+                <Menu
+                  anchorEl={anchorElUser}
+                  open={openUser}
+                  onClose={() => setAnchorElUser(null)}
+                >
+                  {menuItems[4].submenu.map(({ label, to }) => (
+                    <MenuItem
+                      component={Link}
+                      to={to}
+                      key={label}
+                      onClick={() => setAnchorElUser(null)}
+                    >
+                      {label}
+                    </MenuItem>
+                  ))}
+                </Menu>
               </>
             )}
           </Box>
