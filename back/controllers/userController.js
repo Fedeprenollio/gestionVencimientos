@@ -1,15 +1,16 @@
 import User from "../models/User.js";
 
 // Obtener todos los usuarios
+// controllers/userController.js
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("username _id");
+    const users = await User.find({}, "fullname username _id").sort("fullname");
     res.json(users);
-  } catch (error) {
-    console.error("Error al obtener usuarios:", error);
+  } catch (err) {
     res.status(500).json({ message: "Error al obtener usuarios" });
   }
 };
+
 
 // Crear un nuevo usuario
 // export const createUser = async (req, res) => {

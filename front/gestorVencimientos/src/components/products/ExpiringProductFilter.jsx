@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Grid,
@@ -11,6 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import dayjs from "dayjs";
+import axios from "axios";
 
 export default function ExpiringProductFilter({ onFilter }) {
   // const [from, setFrom] = useState("");
@@ -18,47 +19,67 @@ export default function ExpiringProductFilter({ onFilter }) {
   const [from, setFrom] = useState(getTodayDate());
   const [months, setMonths] = useState(6);
   const [branch, setBranch] = useState("");
-  const [type, setType] = useState("");
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
   const [overstock, setOverstock] = useState("all");
   const [barcodes, setBarcodes] = useState("");
+  const [branches, setBranches] = useState([]);
 
+  const [createdBy, setCreatedBy] = useState("");
+  const [users, setUsers] = useState([]);
 
-  // const applyFilter = () => {
-  //   onFilter({
-  //     from,
-  //     months,
-  //     branch,
-  //     type,
-  //     createdFrom,
-  //     createdTo,
-  //     overstock,
-  //     barcodes, // ✅
-  //   });
-  // };
+  // useEffect(() => {
+  //   const fetchUsers = async () => {
+  //     try {
+  //       const res = await axios.get(`${import.meta.env.VITE_API_URL}/users`);
+  //       setUsers(res.data);
+  //     } catch (error) {
+  //       console.error("Error al cargar usuarios:", error);
+  //     }
+  //   };
+  //   fetchUsers();
+  // }, []);
 
-const applyFilter = () => {
-  const filtros = {
-    from,
-    months,
-    branch,
-    type,
-    overstock,
-    barcodes,
+  useEffect(() => {
+    const fetchUsersAndBranches = async () => {
+      try {
+        const [usersRes, branchesRes] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_API_URL}/users`),
+          axios.get(`${import.meta.env.VITE_API_URL}/branches`),
+        ]);
+
+        setUsers(usersRes.data);
+        setBranches(branchesRes.data);
+      } catch (error) {
+        console.error("Error al cargar usuarios o sucursales:", error);
+      }
+    };
+
+    fetchUsersAndBranches();
+  }, []);
+
+  const applyFilter = () => {
+    const filtros = {
+      from,
+      months,
+      branch,
+      overstock,
+      barcodes,
+    };
+
+    if (createdFrom && dayjs(createdFrom).isValid()) {
+      filtros.createdFrom = dayjs(createdFrom).format("YYYY-MM-DD");
+    }
+
+    if (createdTo && dayjs(createdTo).isValid()) {
+      filtros.createdTo = dayjs(createdTo).format("YYYY-MM-DD");
+    }
+
+    if (createdBy) {
+      filtros.createdBy = createdBy;
+    }
+    onFilter(filtros);
   };
-
-  if (createdFrom && dayjs(createdFrom).isValid()) {
-    filtros.createdFrom = dayjs(createdFrom).format("YYYY-MM-DD");
-  }
-
-  if (createdTo && dayjs(createdTo).isValid()) {
-    filtros.createdTo = dayjs(createdTo).format("YYYY-MM-DD");
-  }
-console.log("Filtros aplicados:",   );
-
-  onFilter(filtros);
-};
 
   return (
     <Box
@@ -80,7 +101,6 @@ console.log("Filtros aplicados:",   );
           <TextField
             label="Desde (vencimiento)"
             type="date"
-            
             value={from}
             onChange={(e) => setFrom(e.target.value)}
             fullWidth
@@ -113,32 +133,43 @@ console.log("Filtros aplicados:",   );
               label="Sucursal"
               onChange={(e) => setBranch(e.target.value)}
             >
-              <MenuItem value="">Todas</MenuItem>
+              {/* <MenuItem value="">Todas</MenuItem>
               <MenuItem value="sucursal1">Sucursal 1</MenuItem>
               <MenuItem value="sucursal2">Sucursal 2</MenuItem>
               <MenuItem value="sucursal3">Sucursal 3</MenuItem>
-              <MenuItem value="sucursal9dejulio">9 de julio</MenuItem>
+              <MenuItem value="9dejulio">9 de julio</MenuItem> */}
+                <MenuItem value="">Todas</MenuItem>
+              {branches.map((b) => (
+                <MenuItem key={b._id} value={b._id}>
+                  {b.name}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
         </Grid>
 
-        {/* Tipo */}
+        {/* Usuario que creó el lote */}
+        {/* Usuario que creó el lote */}
         <Grid item xs={12} sm={6} md={4}>
           <FormControl fullWidth sx={{ minWidth: 240 }} variant="outlined">
-            <InputLabel id="type-label">Tipo</InputLabel>
+            <InputLabel id="createdBy-label">Creado por</InputLabel>
             <Select
-              labelId="type-label"
-              id="type"
-              value={type}
-              label="Tipo"
-              onChange={(e) => setType(e.target.value)}
+              labelId="createdBy-label"
+              id="createdBy"
+              value={createdBy}
+              label="Creado por"
+              onChange={(e) => setCreatedBy(e.target.value)}
             >
               <MenuItem value="">Todos</MenuItem>
-              <MenuItem value="medicamento">Medicamento</MenuItem>
-              <MenuItem value="perfumeria">Perfumería</MenuItem>
+              {users.map((user) => (
+                <MenuItem key={user._id} value={user._id}>
+                  {user.fullname || user.username}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
         </Grid>
+
         {/* Códigos de barra (lista separada por comas) */}
         <Grid item xs={12} sm={6} md={4}>
           <TextField

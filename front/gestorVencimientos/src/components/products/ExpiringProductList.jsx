@@ -40,7 +40,6 @@ export default function ExpiringProductList() {
   const [quickFilters, setQuickFilters] = useState({
     productName: "",
     barcode: "",
-    type: "",
     branch: "",
   });
   const { loading, withLoading } = useLoading();
@@ -52,7 +51,9 @@ export default function ExpiringProductList() {
     if (filterParams.from) params.append("from", filterParams.from);
     if (filterParams.months) params.append("months", filterParams.months);
     if (filterParams.branch) params.append("branch", filterParams.branch);
-    if (filterParams.type) params.append("type", filterParams.type);
+    // if (filterParams.type) params.append("type", filterParams.type);
+    if (filterParams.createdBy)
+      params.append("createdBy", filterParams.createdBy); //
     if (filterParams.createdFrom)
       params.append("createdFrom", filterParams.createdFrom);
     if (filterParams.createdTo)
@@ -97,8 +98,9 @@ export default function ExpiringProductList() {
         flat.push({
           productName: prod.name,
           barcode: prod.barcode,
-          type: prod.type,
-          branch: lot.branch,
+          createdBy: lot.createdBy?.username || "",
+          branch:
+            typeof lot.branch === "object" ? lot.branch?.name : lot.branch,
           quantity: lot.quantity,
           expirationDate: new Date(lot.expirationDate),
           createdAt: new Date(lot.createdAt),
@@ -108,7 +110,7 @@ export default function ExpiringProductList() {
         });
       });
     });
-    console.log("FLAT",flat)
+    console.log("FLAT", flat);
     // Filtros rápidos
     flat = flat.filter((row) => {
       return (
@@ -118,7 +120,13 @@ export default function ExpiringProductList() {
         row.barcode
           .toLowerCase()
           .includes(quickFilters.barcode?.toLowerCase() || "") &&
-        row.type?.toLowerCase().includes(quickFilters.type.toLowerCase()) 
+        row.createdBy
+          .toLowerCase()
+          .includes(quickFilters.createdBy?.toLowerCase() || "") &&
+        (row.branch || "")
+          .toLowerCase()
+          .includes((quickFilters.branch || "").toLowerCase())
+
         // &&
         // row.branch.toLowerCase().includes(quickFilters.branch.toLowerCase())
       );
@@ -198,10 +206,6 @@ export default function ExpiringProductList() {
     }
   };
 
-  const handleExportPDF = () => {
-    exportToPDF(products, sortBy);
-  };
-
   return (
     <Box>
       <ExpiringProductFilter onFilter={handleFilter} />
@@ -210,20 +214,21 @@ export default function ExpiringProductList() {
       </Box>
       {loading && <FullPageLoader />}
       <TableContainer
-      component={Paper}
+        component={Paper}
         sx={{
           width: "100%",
           overflowX: "auto", // habilita scroll horizontal
         }}
       >
-        <Table  sx={{ minWidth: 800 }}>
+        <Table sx={{ minWidth: 800 }}>
           <TableHead>
             <TableRow>
               {[
                 { id: "productName", label: "Producto" },
                 { id: "barcode", label: "Código de barras" },
 
-                { id: "type", label: "Tipo" },
+                { id: "createdBy", label: "Creado por" },
+
                 { id: "branch", label: "Sucursal" },
                 { id: "quantity", label: "Cantidad" },
                 { id: "expiration", label: "Vencimiento" },
@@ -273,12 +278,15 @@ export default function ExpiringProductList() {
 
               <TableCell>
                 <TextField
-                  value={quickFilters.type}
+                  value={quickFilters.createdBy}
                   onChange={(e) =>
-                    setQuickFilters((f) => ({ ...f, type: e.target.value }))
+                    setQuickFilters((f) => ({
+                      ...f,
+                      createdBy: e.target.value,
+                    }))
                   }
                   size="small"
-                  placeholder="Tipo"
+                  placeholder="Usuario"
                 />
               </TableCell>
               <TableCell>
@@ -301,7 +309,8 @@ export default function ExpiringProductList() {
                 <TableCell>{row.productName}</TableCell>
                 <TableCell>{row.barcode}</TableCell>
 
-                <TableCell>{row.type}</TableCell>
+                <TableCell>{row.createdBy}</TableCell>
+
                 <TableCell>{row.branch}</TableCell>
                 <TableCell>{row.quantity}</TableCell>
                 <TableCell>
