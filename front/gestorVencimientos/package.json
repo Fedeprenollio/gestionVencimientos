@@ -23,6 +23,7 @@
     "dayjs": "^1.11.13",
     "file-saver": "^2.0.5",
     "html5-qrcode": "^2.3.8",
+    "jsbarcode": "^3.12.1",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
     "quagga": "^0.12.1",
@@ -30,6 +31,7 @@
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.58.1",
     "react-router-dom": "^7.6.2",
+    "react-to-print": "^3.1.1",
     "react-zxing": "^2.1.0",
     "xlsx": "^0.18.5",
     "yup": "^1.6.1"

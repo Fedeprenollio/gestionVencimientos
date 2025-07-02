@@ -1,161 +1,35 @@
-// // src/pages/lists/AnalyzePriceChanges.jsx
-
-// import React, { useState } from "react";
-// import { useParams } from "react-router-dom";
-// import { useQuery } from "@tanstack/react-query";
-// import { exportToTXT } from "../../../utils/exportUtils";
-// import {
-//   Box,
-//   Typography,
-//   CircularProgress,
-//   Button,
-//   List,
-//   ListItem,
-//   ListItemText,
-//   Divider,
-// } from "@mui/material";
-// import { getListById } from "../../api/productApi";
-// import dayjs from "dayjs";
-
-// export default function AnalyzePriceChanges() {
-//   const { listId } = useParams();
-//   const [from, setFrom] = useState(dayjs().subtract(7, "day"));
-//   const [to, setTo] = useState(dayjs());
-
-//  const {
-//     data: compareData,
-//     isFetching,
-//     refetch,
-//     error: compareError,
-//   } = useQuery({
-//     queryKey: ["comparePrices", listId, from, to],
-//     queryFn: async () => {
-//       const res = await api.get(`/product-lists/${listId}/compare-prices`, {
-//         params: {
-//           from: from.format("YYYY-MM-DD"),
-//           to: to.format("YYYY-MM-DD"),
-//         },
-//       });
-//       return res.data;
-//     },
-//     enabled: false,
-//   });
-
-//   const {
-//     data: listData,
-//     isLoading: loadingList,
-//     error: listError,
-//   } = useQuery({
-//     queryKey: ["list", listId],
-//     queryFn: () => getListById(listId),
-//   });
-//   console.log("Renderizando AnalyzePriceChanges", error);
-
-//   if (isLoading) return <CircularProgress />;
-//   if (error)
-//     return <Typography color="error">Error al cargar la lista</Typography>;
-
-// //   const changed = [];
-// //   const unchanged = [];
-
-//   for (const product of list.products || []) {
-//     const history = product.priceHistory || [];
-//     if (history.length < 2) continue;
-
-//     const last = history[history.length - 1]?.price;
-//     const secondLast = history[history.length - 2]?.price;
-
-//     if (last !== secondLast) {
-//       changed.push({ ...product, last, secondLast });
-//     } else {
-//       unchanged.push({ ...product, last });
-//     }
-//   }
-
-//   const changed = data?.products?.filter((p) => p.changed) || [];
-//   const unchanged = data?.products?.filter((p) => !p.changed) || [];
-
-//   const exportChangedCodes = () => {
-//     const codes = changed.map((p) => p.barcode);
-//     exportToTXT(codes, `cambios_precios_${list.name.replace(/\s+/g, "_")}.txt`);
-//   };
-
-//   return (
-//     <Box p={3}>
-//       <Typography variant="h5" gutterBottom>
-//         Análisis de cambios de precios - {list.name}
-//       </Typography>
-
-
-      
-
-//       <Box mt={2}>
-//         <Typography variant="h6">Productos con cambio de precio:</Typography>
-//         {changed.length === 0 ? (
-//           <Typography>No hubo cambios recientes.</Typography>
-//         ) : (
-//           <>
-//             <List dense>
-//               {changed.map((p) => (
-//                 <ListItem key={p._id}>
-//                   <ListItemText
-//                     primary={`${p.barcode} - ${p.name || "Producto"}`}
-//                     secondary={`Precio anterior: ${p.secondLast} → Actual: ${p.last}`}
-//                   />
-//                 </ListItem>
-//               ))}
-//             </List>
-//             <Button
-//               variant="contained"
-//               color="primary"
-//               onClick={exportChangedCodes}
-//             >
-//               Exportar etiquetas de productos con cambio
-//             </Button>
-//           </>
-//         )}
-//       </Box>
-
-//       <Divider sx={{ my: 3 }} />
-
-//       <Box>
-//         <Typography variant="h6">Productos sin cambio de precio:</Typography>
-//         {unchanged.length === 0 ? (
-//           <Typography>No hay productos sin cambios.</Typography>
-//         ) : (
-//           <List dense>
-//             {unchanged.map((p) => (
-//               <ListItem key={p._id}>
-//                 <ListItemText
-//                   primary={`${p.barcode} - ${p.name || "Producto"}`}
-//                   secondary={`Precio actual: ${p.last}`}
-//                 />
-//               </ListItem>
-//             ))}
-//           </List>
-//         )}
-//       </Box>
-//     </Box>
-//   );
-// }
-
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Box, Typography, CircularProgress, Button,
-  List, ListItem, ListItemText, Divider
+  Box,
+  Typography,
+  CircularProgress,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 import { exportToTXT } from "../../../utils/exportUtils";
 import { getListById } from "../../api/productApi";
 import api from "../../api/axiosInstance";
 
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 export default function AnalyzePriceChanges() {
   const { listId } = useParams();
-  const [from, setFrom] = useState(dayjs().subtract(7, "day"));
-  const [to, setTo] = useState(dayjs());
+
+  // Inicializamos fechas en zona horaria Argentina
+  const [from, setFrom] = useState(
+    dayjs().tz("America/Argentina/Buenos_Aires").subtract(7, "day")
+  );
+  const [to, setTo] = useState(dayjs().tz("America/Argentina/Buenos_Aires"));
 
   const {
     data: compareData,
@@ -171,11 +45,11 @@ export default function AnalyzePriceChanges() {
           to: to.format("YYYY-MM-DD"),
         },
       });
-      return res;
+      return res; // Ojo que la respuesta está en res.data
     },
     enabled: false,
   });
-
+console.log("compareData:",compareData)
   const {
     data: listData,
     isLoading: loadingList,
@@ -186,17 +60,28 @@ export default function AnalyzePriceChanges() {
   });
 
   const handleCompare = () => refetch();
-console.log("RESSSSS",compareData)
-  const changed = compareData?.products?.filter((p) => p.changed) || [];
-  const unchanged = compareData?.products?.filter((p) => !p.changed) || [];
 
-  const exportChangedCodes = () => {
-    const codes = changed.map((p) => p.barcode);
-    exportToTXT(codes, `cambios_precios_${listData?.name?.replace(/\s+/g, "_")}.txt`);
+  // Separamos por categoría:
+  const increased =
+    compareData?.products?.filter(
+      (p) => p.changed && p.toPrice > p.fromPrice
+    ) || [];
+  const decreased =
+    compareData?.products?.filter(
+      (p) => p.changed && p.toPrice < p.fromPrice
+    ) || [];
+  const unchanged = compareData?.products?.filter((p) => !p.changed) || [];
+  const firstPrice = compareData?.products?.filter((p) => p.firstPrice) || []; // Nueva categoría
+
+  // Funciones para exportar códigos
+  const exportCodes = (products, filename) => {
+    const codes = products.map((p) => p.barcode);
+    exportToTXT(codes, filename);
   };
 
   if (loadingList) return <CircularProgress />;
-  if (listError) return <Typography color="error">Error al cargar la lista</Typography>;
+  if (listError)
+    return <Typography color="error">Error al cargar la lista</Typography>;
 
   return (
     <Box p={3}>
@@ -205,70 +90,180 @@ console.log("RESSSSS",compareData)
       </Typography>
 
       <Box display="flex" gap={2} mb={2}>
-        <DatePicker label="Desde" value={from} onChange={setFrom} />
-        <DatePicker label="Hasta" value={to} onChange={setTo} />
+        <DatePicker
+          label="Desde"
+          value={from}
+          onChange={(newVal) =>
+            newVal && setFrom(newVal.tz("America/Argentina/Buenos_Aires"))
+          }
+        />
+        <DatePicker
+          label="Hasta"
+          value={to}
+          onChange={(newVal) =>
+            newVal && setTo(newVal.tz("America/Argentina/Buenos_Aires"))
+          }
+        />
         <Button variant="contained" onClick={handleCompare}>
           Comparar
         </Button>
       </Box>
-{compareError && (
-  <>
-    <Typography color="error">Error al comparar precios</Typography>
-    <pre style={{ color: "red" }}>{JSON.stringify(compareError, null, 2)}</pre>
-  </>
-)}
+
+      {compareError && (
+        <>
+          <Typography color="error">Error al comparar precios</Typography>
+          <pre style={{ color: "red" }}>
+            {JSON.stringify(compareError, null, 2)}
+          </pre>
+        </>
+      )}
 
       {isFetching ? (
         <CircularProgress />
-      ) : compareError ? (
-        <Typography color="error">Error al comparar precios</Typography>
       ) : compareData ? (
         <>
           <Typography variant="subtitle1" gutterBottom>
-            Cambios: {changed.length} | Sin cambios: {unchanged.length}
+            Aumentaron: {increased.length} | Bajaron: {decreased.length} | Sin
+            cambios: {unchanged.length} | Primer precio: {firstPrice.length}
           </Typography>
 
-          <Typography variant="h6">Productos con cambio:</Typography>
-          {changed.length === 0 ? (
-            <Typography>No hubo cambios de precio.</Typography>
+        
+          <Divider sx={{ my: 3 }} />
+          {/* Primer precio */}
+          <Typography variant="h6" color="info.main">
+            Productos con primer precio:
+          </Typography>
+          {firstPrice.length === 0 ? (
+            <Typography>No hay productos con primer precio.</Typography>
           ) : (
             <>
               <List dense>
-                {changed.map((p) => (
+                {firstPrice.map((p) => (
                   <ListItem key={p._id}>
                     <ListItemText
                       primary={`${p.barcode} - ${p.name}`}
-                      secondary={`De: ${p.fromPrice} → A: ${p.toPrice}`}
+                      secondary={`Precio: $${p.toPrice || p.fromPrice}`}
                     />
                   </ListItem>
                 ))}
               </List>
-              <Button variant="contained" color="success" onClick={exportChangedCodes}>
-                Exportar etiquetas
+              <Button
+                variant="outlined"
+                color="info"
+                onClick={() =>
+                  exportCodes(
+                    firstPrice,
+                    `primer_precio_${listData?.name?.replace(/\s+/g, "_")}.txt`
+                  )
+                }
+              >
+                Exportar primeros precios
+              </Button>
+            </>
+          )}
+
+          {/* Aumentos */}
+          <Typography variant="h6" color="success.main">
+            Productos que aumentaron:
+          </Typography>
+          {increased.length === 0 ? (
+            <Typography>No hubo aumentos.</Typography>
+          ) : (
+            <>
+              <List dense>
+                {increased.map((p) => (
+                  <ListItem key={p._id}>
+                    <ListItemText
+                      primary={`${p.barcode} - ${p.name}`}
+                      secondary={`De: $${p.fromPrice} → A: $${p.toPrice}`}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+              <Button
+                variant="outlined"
+                onClick={() =>
+                  exportCodes(
+                    increased,
+                    `aumentos_${listData?.name?.replace(/\s+/g, "_")}.txt`
+                  )
+                }
+              >
+                Exportar aumentos
               </Button>
             </>
           )}
 
           <Divider sx={{ my: 3 }} />
 
-          <Typography variant="h6">Productos sin cambio:</Typography>
+          {/* Bajas */}
+          <Typography variant="h6" color="error.main">
+            Productos que bajaron:
+          </Typography>
+          {decreased.length === 0 ? (
+            <Typography>No hubo bajas de precio.</Typography>
+          ) : (
+            <>
+              <List dense>
+                {decreased.map((p) => (
+                  <ListItem key={p._id}>
+                    <ListItemText
+                      primary={`${p.barcode} - ${p.name}`}
+                      secondary={`De: $${p.fromPrice} → A: $${p.toPrice}`}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() =>
+                  exportCodes(
+                    decreased,
+                    `bajas_${listData?.name?.replace(/\s+/g, "_")}.txt`
+                  )
+                }
+              >
+                Exportar bajas
+              </Button>
+            </>
+          )}
+
+          <Divider sx={{ my: 3 }} />
+
+          {/* Sin cambios */}
+          <Typography variant="h6">Productos sin cambios:</Typography>
           {unchanged.length === 0 ? (
-            <Typography>No hay productos sin cambios.</Typography>
+            <Typography>No hubo productos sin cambios.</Typography>
           ) : (
             <List dense>
               {unchanged.map((p) => (
                 <ListItem key={p._id}>
                   <ListItemText
                     primary={`${p.barcode} - ${p.name}`}
-                    secondary={`Precio: ${p.toPrice}`}
+                    secondary={`Precio estable: $${p.toPrice}`}
                   />
                 </ListItem>
               ))}
             </List>
           )}
+
+          <Divider sx={{ my: 3 }} />
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() =>
+              exportCodes(
+                [...increased, ...decreased],
+                `cambios_precios_${listData?.name?.replace(/\s+/g, "_")}.txt`
+              )
+            }
+          >
+            Exportar todos los códigos con cambios
+          </Button>
         </>
       ) : null}
     </Box>
   );
 }
-

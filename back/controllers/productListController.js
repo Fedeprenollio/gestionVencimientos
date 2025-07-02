@@ -3,6 +3,11 @@ import ProductList from "../models/ProductList.js";
 import Product from "../models/Product.js";
 import XLSX from "xlsx";
 import PriceHistory from "../models/PriceHistory.js";
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc.js';
+import timezone from 'dayjs/plugin/timezone.js';
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export const createProductList = async (req, res) => {
   try {
@@ -175,18 +180,21 @@ export const comparePricesByDate = async (req, res) => {
   try {
     const { id } = req.params;
     const { from, to } = req.query;
-    console.log("from, to", from, to);
 
     if (!from || !to) {
-      return res
-        .status(400)
-        .json({ message: "Parámetros 'from' y 'to' son requeridos" });
+      return res.status(400).json({ message: "Parámetros 'from' y 'to' son requeridos" });
     }
 
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
+    const fromStart = dayjs.tz(from, "America/Argentina/Buenos_Aires").startOf("day").utc().toDate();
+    const toEnd = dayjs.tz(to, "America/Argentina/Buenos_Aires").endOf("day").utc().toDate();
 
-    const list = await ProductList.findById(id).populate("products");
+    const list = await ProductList.findById(id).populate({
+      path: "products",
+      populate: {
+        path: "priceHistory",
+        model: "PriceHistory",
+      },
+    });
 
     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
 
@@ -195,28 +203,28 @@ export const comparePricesByDate = async (req, res) => {
     for (const product of list.products) {
       const history = product.priceHistory || [];
 
-      const fromPrices = history.filter(
-        (h) => new Date(h.date) >= fromDate && new Date(h.date) < toDate
-      );
-      const toPrices = history.filter((h) => new Date(h.date) >= toDate);
+      const beforeFrom = history.filter((h) => h.date < fromStart);
+      const inRange = history.filter((h) => h.date >= fromStart && h.date <= toEnd);
 
-      const oldestFrom = fromPrices[0];
-      const newestTo = toPrices[toPrices.length - 1];
+      if (inRange.length === 0) continue;
 
-      if (oldestFrom && newestTo) {
-        const changed = oldestFrom.price !== newestTo.price;
+      const sorted = inRange.sort((a, b) => a.date - b.date);
+      const first = sorted[0];
+      const last = sorted[sorted.length - 1];
 
-        result.push({
-          _id: product._id,
-          barcode: product.barcode,
-          name: product.name,
-          fromPrice: oldestFrom.price,
-          toPrice: newestTo.price,
-          changed,
-        });
-      }
+      const isFirstPriceEver = beforeFrom.length === 0;
+console.log("isFirstPriceEver",isFirstPriceEver)
+      result.push({
+        _id: product._id,
+        barcode: product.barcode,
+        name: product.name,
+        fromPrice: first.price,
+        toPrice: last.price,
+        changed: first.price !== last.price,
+        firstPrice: isFirstPriceEver, // 🟢 clave para el frontend
+      });
     }
-    console.log("result", result);
+
     res.json({ listName: list.name, products: result });
   } catch (error) {
     console.error("Error comparando precios:", error);
@@ -224,58 +232,692 @@ export const comparePricesByDate = async (req, res) => {
   }
 };
 
+
+// export const comparePricesByDate = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { from, to } = req.query;
+
+//     if (!from || !to) {
+//       return res.status(400).json({ message: "Parámetros 'from' y 'to' son requeridos" });
+//     }
+
+//     // Convertimos fechas a zona de Argentina y luego a UTC para consulta correcta en Mongo
+//     const fromStart = dayjs.tz(from, "America/Argentina/Buenos_Aires").startOf("day").utc().toDate();
+//     const toEnd = dayjs.tz(to, "America/Argentina/Buenos_Aires").endOf("day").utc().toDate();
+
+//     const list = await ProductList.findById(id).populate({
+//       path: "products",
+//       populate: {
+//         path: "priceHistory",
+//         model: "PriceHistory"
+//       }
+//     });
+
+//     if (!list) {
+//       return res.status(404).json({ message: "Lista no encontrada" });
+//     }
+
+//     const result = [];
+
+//     for (const product of list.products) {
+//       const history = product.priceHistory || [];
+
+//       // Filtramos sólo las entradas de precio dentro del rango de fechas
+//       const filteredHistory = history.filter(
+//         (h) => h.date >= fromStart && h.date <= toEnd
+//       );
+
+//       if (filteredHistory.length === 0) continue; // no hay datos para este producto en rango
+
+//       // Ordenamos por fecha ascendente para comparar correctamente
+//       const sorted = filteredHistory.sort((a, b) => a.date - b.date);
+
+//       if (sorted.length === 1) {
+//         // Sólo un precio en el rango = primer precio detectado
+//         const only = sorted[0];
+//         result.push({
+//           _id: product._id,
+//           barcode: product.barcode,
+//           name: product.name,
+//           toPrice: only.price,
+//           firstPrice: true,
+//           changed: false,
+//         });
+//       } else {
+//         // Dos o más precios: comparamos primero y último
+//         const first = sorted[0];
+//         const last = sorted[sorted.length - 1];
+//         result.push({
+//           _id: product._id,
+//           barcode: product.barcode,
+//           name: product.name,
+//           fromPrice: first.price,
+//           toPrice: last.price,
+//           changed: first.price !== last.price,
+//         });
+//       }
+//     }
+
+//     return res.json({ listName: list.name, products: result });
+//   } catch (error) {
+//     console.error("Error comparando precios:", error);
+//     return res.status(500).json({ message: "Error del servidor" });
+//   }
+// };
+
+
+
+
+//  export const uploadPricesForList = async (req, res) => {
+//   try {
+//     const { listId } = req.params;
+//     const { products } = req.body;
+
+//     if (!Array.isArray(products) || products.length === 0) {
+//       return res.status(400).json({ message: "Lista de productos vacía o inválida" });
+//     }
+
+//     const list = await ProductList.findById(listId).populate(
+//       "products",
+//       "barcode _id name currentPrice"
+//     );
+//     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+//     const listBarcodesSet = new Set(list.products.map((p) => p.barcode));
+//     const incomingBarcodesSet = new Set(products.map((p) => p.barcode));
+
+//     const priceIncreased = [];
+//     const priceDecreased = [];
+//     const priceUnchanged = [];
+//     const firstTimeSet = [];
+//     const notInList = [];
+
+//     const nowArgentina = dayjs().tz("America/Argentina/Buenos_Aires").toDate();
+
+//     for (const { barcode, price } of products) {
+//       if (!barcode || typeof price !== "number") continue;
+
+//       if (!listBarcodesSet.has(barcode)) {
+//         notInList.push({ barcode, price });
+//         continue;
+//       }
+
+//       const product = list.products.find((p) => p.barcode === barcode);
+//       const hadNoPrice =
+//         product.currentPrice === undefined ||
+//         product.currentPrice === null ||
+//         product.currentPrice === 0;
+
+//       const oldPrice = product.currentPrice ?? 0;
+
+//       if (hadNoPrice) {
+//         // Actualizamos precio y creamos historial si nunca tuvo precio
+//         await Product.findByIdAndUpdate(product._id, { currentPrice: price });
+
+//         const history = await PriceHistory.create({
+//           productId: product._id,
+//           price,
+//           date: nowArgentina,
+//         });
+
+//         await Product.findByIdAndUpdate(product._id, {
+//           $push: { priceHistory: history._id },
+//         });
+
+//         firstTimeSet.push({
+//           barcode,
+//           name: product.name,
+//           newPrice: price,
+//         });
+//       } else if (price === oldPrice) {
+//         // Precio sin cambios: no hacemos nada
+//         priceUnchanged.push({
+//           barcode,
+//           name: product.name,
+//           price,
+//         });
+//       } else {
+//         // Precio cambió: actualizamos y guardamos historial
+//         await Product.findByIdAndUpdate(product._id, { currentPrice: price });
+
+//         const history = await PriceHistory.create({
+//           productId: product._id,
+//           price,
+//           date: nowArgentina,
+//         });
+
+//         await Product.findByIdAndUpdate(product._id, {
+//           $push: { priceHistory: history._id },
+//         });
+
+//         const priceChange = {
+//           barcode,
+//           name: product.name,
+//           oldPrice,
+//           newPrice: price,
+//         };
+
+//         if (price > oldPrice) {
+//           priceIncreased.push(priceChange);
+//         } else {
+//           priceDecreased.push(priceChange);
+//         }
+//       }
+//     }
+
+//     const missingInExcel = list.products
+//       .filter((p) => !incomingBarcodesSet.has(p.barcode))
+//       .map((p) => ({
+//         barcode: p.barcode,
+//         name: p.name,
+//         currentPrice: p.currentPrice || 0,
+//       }));
+
+//     res.json({
+//       message: `Actualización de precios para la lista "${list.name}"`,
+//       priceIncreased,
+//       priceDecreased,
+//       priceUnchanged,
+//       firstTimeSet,
+//       missingInExcel,
+//       notInList,
+//     });
+//   } catch (error) {
+//     console.error("Error al subir precios:", error);
+//     res.status(500).json({ message: "Error del servidor actualizando precios" });
+//   }
+// };
+
+
+// export const comparePricesByDate = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { from, to } = req.query;
+//     console.log("from, to", from, to);
+
+//     if (!from || !to) {
+//       return res
+//         .status(400)
+//         .json({ message: "Parámetros 'from' y 'to' son requeridos" });
+//     }
+
+//     const fromDate = new Date(from);
+//     const toDate = new Date(to);
+
+//     const list = await ProductList.findById(id).populate("products");
+
+//     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+//     const result = [];
+
+//     for (const product of list.products) {
+//       const history = product.priceHistory || [];
+
+//       const fromPrices = history.filter(
+//         (h) => new Date(h.date) >= fromDate && new Date(h.date) < toDate
+//       );
+//       const toPrices = history.filter((h) => new Date(h.date) >= toDate);
+
+//       const oldestFrom = fromPrices[0];
+//       const newestTo = toPrices[toPrices.length - 1];
+
+//       if (oldestFrom && newestTo) {
+//         const changed = oldestFrom.price !== newestTo.price;
+
+//         result.push({
+//           _id: product._id,
+//           barcode: product.barcode,
+//           name: product.name,
+//           fromPrice: oldestFrom.price,
+//           toPrice: newestTo.price,
+//           changed,
+//         });
+//       }
+//     }
+//     console.log("result", result);
+//     res.json({ listName: list.name, products: result });
+//   } catch (error) {
+//     console.error("Error comparando precios:", error);
+//     res.status(500).json({ message: "Error del servidor" });
+//   }
+// };
+
+// export const uploadPricesForList = async (req, res) => {
+//   try {
+//     const { listId } = req.params;
+//     const { products } = req.body;
+
+//     if (!Array.isArray(products) || products.length === 0) {
+//       return res
+//         .status(400)
+//         .json({ message: "Lista de productos vacía o inválida" });
+//     }
+
+//     const list = await ProductList.findById(listId).populate(
+//       "products",
+//       "barcode _id name currentPrice"
+//     );
+//     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+//     const listBarcodesSet = new Set(list.products.map((p) => p.barcode));
+//     const incomingBarcodesSet = new Set(products.map((p) => p.barcode));
+
+//     const priceIncreased = [];
+//     const priceDecreased = [];
+//     const priceUnchanged = [];
+//     const notInList = [];
+
+//     for (const { barcode, price } of products) {
+//       if (!barcode || typeof price !== "number") continue;
+
+//       if (!listBarcodesSet.has(barcode)) {
+//         notInList.push({ barcode, price });
+//         continue;
+//       }
+
+//       const product = list.products.find((p) => p.barcode === barcode);
+//       const oldPrice = product.currentPrice || 0;
+
+//       if (price === oldPrice) {
+//         priceUnchanged.push({ barcode, name: product.name, price });
+//       } else if (price > oldPrice) {
+//         priceIncreased.push({
+//           barcode,
+//           name: product.name,
+//           oldPrice,
+//           newPrice: price,
+//         });
+//       } else {
+//         priceDecreased.push({
+//           barcode,
+//           name: product.name,
+//           oldPrice,
+//           newPrice: price,
+//         });
+//       }
+
+//       // Actualizar
+//       await Product.findByIdAndUpdate(product._id, { currentPrice: price });
+//       await PriceHistory.create({ productId: product._id, price });
+//     }
+
+//     const missingInExcel = list.products
+//       .filter((p) => !incomingBarcodesSet.has(p.barcode))
+//       .map((p) => ({
+//         barcode: p.barcode,
+//         name: p.name,
+//         currentPrice: p.currentPrice || 0,
+//       }));
+
+//     res.json({
+//       message: `Actualización de precios para la lista "${list.name}"`,
+//       priceIncreased,
+//       priceDecreased,
+//       priceUnchanged,
+//       missingInExcel,
+//       notInList,
+//     });
+//   } catch (error) {
+//     console.error("Error al subir precios:", error);
+//     res
+//       .status(500)
+//       .json({ message: "Error del servidor actualizando precios" });
+//   }
+// };
+
+// export const uploadPricesForList = async (req, res) => {
+//   try {
+//     const { listId } = req.params;
+//     const { products } = req.body;
+
+//     if (!Array.isArray(products) || products.length === 0) {
+//       return res.status(400).json({ message: "Lista de productos vacía o inválida" });
+//     }
+
+//     const list = await ProductList.findById(listId).populate("products", "barcode _id name currentPrice");
+//     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+//     const barcodesSet = new Set(list.products.map((p) => p.barcode));
+//     const incomingBarcodes = new Set(products.map((p) => p.barcode));
+
+//     const updated = [];
+//     const unchanged = [];
+//     const changed = [];
+
+//     for (const item of products) {
+//       const { barcode, price } = item;
+//       if (!barcode || typeof price !== "number") continue;
+//       if (!barcodesSet.has(barcode)) continue;
+
+//       const product = list.products.find((p) => p.barcode === barcode);
+//       if (!product) continue;
+
+//       const oldPrice = product.currentPrice || 0;
+
+//       if (price === oldPrice) {
+//         unchanged.push({ barcode, name: product.name, price });
+//       } else {
+//         changed.push({ barcode, name: product.name, oldPrice, newPrice: price });
+
+//         // Update DB
+//         await Product.findByIdAndUpdate(product._id, { currentPrice: price });
+//         await PriceHistory.create({ productId: product._id, price });
+//         updated.push({ barcode, name: product.name, price });
+//       }
+//     }
+
+//     // Productos que están en la lista pero no vinieron en el Excel
+//     const missingInExcel = list.products
+//       .filter((p) => !incomingBarcodes.has(p.barcode))
+//       .map((p) => ({
+//         barcode: p.barcode,
+//         name: p.name,
+//         currentPrice: p.currentPrice || 0,
+//       }));
+
+//     res.json({
+//       message: `Precios actualizados para la lista ${list.name}`,
+//       updated,
+//       unchanged,
+//       changed,
+//       missingInExcel,
+//     });
+//   } catch (error) {
+//     console.error("Error updating prices for list:", error);
+//     res.status(500).json({ message: "Error del servidor actualizando precios" });
+//   }
+// };
+
+// export const uploadPricesForList = async (req, res) => {
+
+//   try {
+//     const { listId } = req.params;
+//     const { products } = req.body;
+
+//     if (!Array.isArray(products) || products.length === 0) {
+//       return res.status(400).json({ message: "Product list is empty or invalid" });
+//     }
+
+//     // Buscamos la lista y sus productos (asegurate que 'name' esté en el populate)
+//     const list = await ProductList.findById(listId).populate("products", "barcode _id name");
+//     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+//     // Creamos un Set para barcodes de la lista
+//     const barcodesSet = new Set(list.products.map(p => p.barcode));
+
+//     const updated = [];
+//     const notUpdated = [];
+
+//     for (const item of products) {
+//       const { barcode, price } = item;
+//       if (!barcode || typeof price !== "number") continue;
+
+//       // Buscamos producto en la lista
+//       const productInList = list.products.find(p => p.barcode === barcode);
+//       if (productInList) {
+//         // Actualizar precio actual
+//         await Product.findByIdAndUpdate(productInList._id, { currentPrice: price });
+
+//         // Guardar historial de precios
+//         await PriceHistory.create({
+//           productId: productInList._id,
+//           price,
+//         });
+
+//         updated.push({
+//           barcode,
+//           price,
+//           name: productInList.name,
+//         });
+//       } else {
+//         notUpdated.push({ barcode, price });
+//       }
+//     }
+
+//     return res.json({
+//       message: `Precios actualizados para la lista ${list.name}`,
+//       updated,
+//       notUpdated,
+//     });
+//   } catch (error) {
+//     console.error("Error updating prices for list:", error);
+//     return res.status(500).json({ message: "Error del servidor actualizando precios" });
+//   }
+// };
+
+
+// export const uploadPricesForList = async (req, res) => {
+//   try {
+//     const { listId } = req.params;
+//     const { products } = req.body;
+
+//     if (!Array.isArray(products) || products.length === 0) {
+//       return res
+//         .status(400)
+//         .json({ message: "Lista de productos vacía o inválida" });
+//     }
+
+//     const list = await ProductList.findById(listId).populate(
+//       "products",
+//       "barcode _id name currentPrice"
+//     );
+//     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+//     const listBarcodesSet = new Set(list.products.map((p) => p.barcode));
+//     const incomingBarcodesSet = new Set(products.map((p) => p.barcode));
+
+//     const priceIncreased = [];
+//     const priceDecreased = [];
+//     const priceUnchanged = [];
+//     const notInList = [];
+
+//     for (const { barcode, price } of products) {
+//       if (!barcode || typeof price !== "number") continue;
+
+//       if (!listBarcodesSet.has(barcode)) {
+//         notInList.push({ barcode, price });
+//         continue;
+//       }
+
+//       const product = list.products.find((p) => p.barcode === barcode);
+//       const oldPrice = product.currentPrice || 0;
+
+//       if (price === oldPrice) {
+//         priceUnchanged.push({ barcode, name: product.name, price });
+//         continue; // No actualizamos ni guardamos historial
+//       }
+
+//       // Actualizar si cambió
+//       await Product.findByIdAndUpdate(product._id, { currentPrice: price });
+//       await PriceHistory.create({ productId: product._id, price });
+
+//       if (price > oldPrice) {
+//         priceIncreased.push({
+//           barcode,
+//           name: product.name,
+//           oldPrice,
+//           newPrice: price,
+//         });
+//       } else {
+//         priceDecreased.push({
+//           barcode,
+//           name: product.name,
+//           oldPrice,
+//           newPrice: price,
+//         });
+//       }
+//     }
+
+//     const missingInExcel = list.products
+//       .filter((p) => !incomingBarcodesSet.has(p.barcode))
+//       .map((p) => ({
+//         barcode: p.barcode,
+//         name: p.name,
+//         currentPrice: p.currentPrice || 0,
+//       }));
+
+//     res.json({
+//       message: `Actualización de precios para la lista "${list.name}"`,
+//       priceIncreased,
+//       priceDecreased,
+//       priceUnchanged,
+//       missingInExcel,
+//       notInList,
+//     });
+//   } catch (error) {
+//     console.error("Error al subir precios:", error);
+//     res
+//       .status(500)
+//       .json({ message: "Error del servidor actualizando precios" });
+//   }
+// };
+
+
+
 export const uploadPricesForList = async (req, res) => {
   try {
     const { listId } = req.params;
     const { products } = req.body;
 
     if (!Array.isArray(products) || products.length === 0) {
-      return res.status(400).json({ message: "Product list is empty or invalid" });
+      return res
+        .status(400)
+        .json({ message: "Lista de productos vacía o inválida" });
     }
 
-    // Buscamos la lista y sus productos (asegurate que 'name' esté en el populate)
-    const list = await ProductList.findById(listId).populate("products", "barcode _id name");
+    const list = await ProductList.findById(listId).populate(
+      "products",
+      "barcode _id name currentPrice priceHistory"
+    );
     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
 
-    // Creamos un Set para barcodes de la lista
-    const barcodesSet = new Set(list.products.map(p => p.barcode));
+    const listBarcodesSet = new Set(list.products.map((p) => p.barcode));
+    const incomingBarcodesSet = new Set(products.map((p) => p.barcode));
 
-    const updated = [];
-    const notUpdated = [];
+    const priceIncreased = [];
+    const priceDecreased = [];
+    const priceUnchanged = [];
+    const firstTimeSet = [];
+    const notInList = [];
 
-    for (const item of products) {
-      const { barcode, price } = item;
+    const nowArgentina = dayjs()
+      .tz("America/Argentina/Buenos_Aires")
+      .toDate();
+
+    for (const { barcode, price } of products) {
       if (!barcode || typeof price !== "number") continue;
 
-      // Buscamos producto en la lista
-      const productInList = list.products.find(p => p.barcode === barcode);
-      if (productInList) {
-        // Actualizar precio actual
-        await Product.findByIdAndUpdate(productInList._id, { currentPrice: price });
+      if (!listBarcodesSet.has(barcode)) {
+        notInList.push({ barcode, price });
+        continue;
+      }
 
-        // Guardar historial de precios
-        await PriceHistory.create({
-          productId: productInList._id,
+      const product = list.products.find((p) => p.barcode === barcode);
+      const oldPrice = product.currentPrice ?? 0;
+
+      if (
+        product.currentPrice === undefined ||
+        product.currentPrice === null ||
+        product.currentPrice === 0
+      ) {
+        // Primer precio real
+        await Product.findByIdAndUpdate(product._id, { currentPrice: price });
+
+        const history = await PriceHistory.create({
+          productId: product._id,
           price,
+          date: nowArgentina,
         });
 
-        updated.push({
+        await Product.findByIdAndUpdate(product._id, {
+          $push: { priceHistory: history._id },
+        });
+
+        firstTimeSet.push({
           barcode,
-          price,
-          name: productInList.name,
+          name: product.name,
+          newPrice: price,
         });
+      } else if (price === oldPrice) {
+        // Precio no cambió → pero puede no tener historial
+        const fullProduct = await Product.findById(product._id);
+        const hasHistory =
+          fullProduct.priceHistory && fullProduct.priceHistory.length > 0;
+
+        if (!hasHistory) {
+          const history = await PriceHistory.create({
+            productId: product._id,
+            price,
+            date: nowArgentina,
+          });
+
+          await Product.findByIdAndUpdate(product._id, {
+            $push: { priceHistory: history._id },
+          });
+
+          firstTimeSet.push({
+            barcode,
+            name: product.name,
+            newPrice: price,
+          });
+        } else {
+          priceUnchanged.push({
+            barcode,
+            name: product.name,
+            price,
+          });
+        }
       } else {
-        notUpdated.push({ barcode, price });
+        // Precio cambió
+        await Product.findByIdAndUpdate(product._id, { currentPrice: price });
+
+        const history = await PriceHistory.create({
+          productId: product._id,
+          price,
+          date: nowArgentina,
+        });
+
+        await Product.findByIdAndUpdate(product._id, {
+          $push: { priceHistory: history._id },
+        });
+
+        const priceChange = {
+          barcode,
+          name: product.name,
+          oldPrice,
+          newPrice: price,
+        };
+
+        if (price > oldPrice) {
+          priceIncreased.push(priceChange);
+        } else {
+          priceDecreased.push(priceChange);
+        }
       }
     }
 
-    return res.json({
-      message: `Precios actualizados para la lista ${list.name}`,
-      updated,
-      notUpdated,
+    const missingInExcel = list.products
+      .filter((p) => !incomingBarcodesSet.has(p.barcode))
+      .map((p) => ({
+        barcode: p.barcode,
+        name: p.name,
+        currentPrice: p.currentPrice || 0,
+      }));
+
+    res.json({
+      message: `Actualización de precios para la lista "${list.name}"`,
+      priceIncreased,
+      priceDecreased,
+      priceUnchanged,
+      firstTimeSet,
+      missingInExcel,
+      notInList,
     });
   } catch (error) {
-    console.error("Error updating prices for list:", error);
-    return res.status(500).json({ message: "Error del servidor actualizando precios" });
+    console.error("Error al subir precios:", error);
+    res
+      .status(500)
+      .json({ message: "Error del servidor actualizando precios" });
   }
 };

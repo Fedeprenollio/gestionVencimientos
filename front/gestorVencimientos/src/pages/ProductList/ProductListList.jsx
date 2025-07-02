@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { exportToTXT } from "../../../utils/exportUtils";
+import ProductLabelManager from "../price/ProductLabelManager";
 
 export default function BranchListSelector() {
   const [selectedBranch, setSelectedBranch] = useState("");
@@ -159,6 +160,8 @@ export default function BranchListSelector() {
           ))}
         </List>
       )}
+
+      <ProductLabelManager/>
     </Box>
   );
 }
