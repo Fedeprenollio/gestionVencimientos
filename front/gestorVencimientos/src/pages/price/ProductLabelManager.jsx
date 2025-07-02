@@ -2,14 +2,7 @@ import React, { useState, useEffect } from "react";
 import { jsPDF } from "jspdf";
 import JsBarcode from "jsbarcode";
 import dayjs from "dayjs";
-import {
-  Box,
-  Button,
-  TextField,
-  Typography,
-  Paper,
-  Grid,
-} from "@mui/material";
+import { Box, Button, TextField, Typography, Paper, Grid } from "@mui/material";
 import axios from "axios";
 
 const generateBarcodeImage = (text) => {
@@ -41,7 +34,9 @@ const ProductLabelManager = () => {
     if (!barcodeInput.trim()) return;
 
     try {
-      const response = await axios.get(import.meta.env.VITE_API_URL + `/products/${barcodeInput.trim()}`);
+      const response = await axios.get(
+        import.meta.env.VITE_API_URL + `/products/${barcodeInput.trim()}`
+      );
       const data = response.data;
 
       const already = products.find((p) => p._id === data._id);
@@ -72,10 +67,14 @@ const ProductLabelManager = () => {
       updated[index][field] = value;
 
       // Recalcular precio final según base
-      const basePrice =
-        updated[index].currentPrice && updated[index].currentPrice > 0
-          ? updated[index].currentPrice
-          : updated[index].manualPrice || 0;
+    const basePrice =
+  updated[index].manualPreviousPrice && updated[index].manualPreviousPrice > 0
+    ? updated[index].manualPreviousPrice
+    : updated[index].manualPrice && updated[index].manualPrice > 0
+    ? updated[index].manualPrice
+    : updated[index].currentPrice || 0;
+
+
       const discount = updated[index].discount || 0;
       updated[index].discountedPrice = Number(
         (basePrice * (1 - discount / 100)).toFixed(2)
@@ -85,111 +84,114 @@ const ProductLabelManager = () => {
     });
   };
 
-const generatePDF = () => {
-  const doc = new jsPDF({
-    unit: "mm",
-    format: "a4",
-  });
+  const generatePDF = () => {
+    const doc = new jsPDF({
+      unit: "mm",
+      format: "a4",
+    });
 
-  const etiquetaAncho = 50;
-  const etiquetaAlto = 30;
-  const etiquetasPorFila = 3;
-  const etiquetasPorColumna = 8;
-  const margenX = 10;
-  const margenY = 10;
-  const espacioX = 5;
-  const espacioY = 5;
+    const etiquetaAncho = 50;
+    const etiquetaAlto = 30;
+    const etiquetasPorFila = 3;
+    const etiquetasPorColumna = 8;
+    const margenX = 10;
+    const margenY = 10;
+    const espacioX = 5;
+    const espacioY = 5;
 
-  products.forEach((p, i) => {
-    const col = i % etiquetasPorFila;
-    const fila = Math.floor(i / etiquetasPorFila) % etiquetasPorColumna;
-    if (i > 0 && i % (etiquetasPorFila * etiquetasPorColumna) === 0) {
-      doc.addPage();
-    }
+    products.forEach((p, i) => {
+      const col = i % etiquetasPorFila;
+      const fila = Math.floor(i / etiquetasPorFila) % etiquetasPorColumna;
+      if (i > 0 && i % (etiquetasPorFila * etiquetasPorColumna) === 0) {
+        doc.addPage();
+      }
 
-    const x = margenX + col * (etiquetaAncho + espacioX);
-    const y = margenY + fila * (etiquetaAlto + espacioY);
-    const fecha = dayjs().format("DD.MM.YYYY");
+      const x = margenX + col * (etiquetaAncho + espacioX);
+      const y = margenY + fila * (etiquetaAlto + espacioY);
+      const fecha = dayjs().format("DD.MM.YYYY");
 
-    // Nombre truncado
-    const maxNameLength = 22;
-    let name = (p.name || "Producto sin nombre");
-    if (name.length > maxNameLength) {
-      name = name.slice(0, maxNameLength - 3) + "...";
-    }
+      // Nombre truncado
+      const maxNameLength = 22;
+      let name = p.name || "Producto sin nombre";
+      if (name.length > maxNameLength) {
+        name = name.slice(0, maxNameLength - 3) + "...";
+      }
 
-    const currentPrice = p.currentPrice ?? p.manualPrice ?? 0;
-    const discountedPrice = p.discountedPrice ?? currentPrice;
-    const integerPrice = Math.floor(discountedPrice);
-    const digitCount = integerPrice.toString().length;
+      const currentPrice = p.currentPrice ?? p.manualPrice ?? 0;
+      const discountedPrice = p.discountedPrice ?? currentPrice;
+      const integerPrice = Math.floor(discountedPrice);
+      const digitCount = integerPrice.toString().length;
 
-    // Posición horizontal dinámica según cantidad de dígitos
-    let precioXOffset;
-    if (digitCount <= 3) {
-      precioXOffset = 26;
-    } else if (digitCount === 4) {
-      precioXOffset = 28;
-    } else if (digitCount === 5) {
-      precioXOffset = 30;
-    } else {
-      precioXOffset = 32;
-    }
+      // Posición horizontal dinámica según cantidad de dígitos
+      let precioXOffset;
+      if (digitCount <= 3) {
+        precioXOffset = 26;
+      } else if (digitCount === 4) {
+        precioXOffset = 28;
+      } else if (digitCount === 5) {
+        precioXOffset = 30;
+      } else {
+        precioXOffset = 32;
+      }
 
-    // Borde
-    doc.setDrawColor(150);
-    doc.rect(x, y, etiquetaAncho, etiquetaAlto);
+      // Borde
+      doc.setDrawColor(150);
+      doc.rect(x, y, etiquetaAncho, etiquetaAlto);
 
-    // Fecha
-    doc.setFontSize(6);
-    doc.text(fecha, x + etiquetaAncho - 20, y + 5);
+      // Fecha
+      doc.setFontSize(6);
+      doc.text(fecha, x + etiquetaAncho - 20, y + 5);
 
-    // Nombre
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text(name, x + 2, y + 10);
+      // Nombre
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text(name, x + 2, y + 10);
 
-    // % OFF
-    doc.setFontSize(8);
-    doc.setTextColor(255, 0, 0);
-    doc.text(`${p.discount}% OFF`, x + 2, y + 15);
+      // % OFF
+      doc.setFontSize(8);
+      doc.setTextColor(255, 0, 0);
+      doc.text(`${p.discount}% OFF`, x + 2, y + 15);
 
-    // Precio anterior
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    const prevPriceText = `$${currentPrice.toFixed(2)}`;
-    doc.text(prevPriceText, x + 2, y + 20);
-    const prevWidth = doc.getTextWidth(prevPriceText);
-    doc.setLineWidth(0.5);
-    doc.line(x + 2, y + 19.5, x + 2 + prevWidth, y + 19.5);
+      // Precio anterior
+      const prevPrice = p.manualPreviousPrice ?? p.currentPrice ?? 0;
 
-    // Precio nuevo (posición ajustada dinámicamente)
-    doc.setFontSize(28);
-    doc.setTextColor(0);
-    doc.text(`${integerPrice}`, x + etiquetaAncho - precioXOffset, y + 23.1);
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      // const prevPriceText = `$${currentPrice.toFixed(2)}`;
+      const prevPriceText = `$${prevPrice.toFixed(2)}`;
+     
 
-    // Código de barras y texto
-    if (p.barcode) {
-      const barcodeImg = generateBarcodeImage(p.barcode);
-      const barcodeHeight = 4;
-      const barcodeY = y + 23.5;
+      doc.text(prevPriceText, x + 2, y + 20);
+      const prevWidth = doc.getTextWidth(prevPriceText);
+      doc.setLineWidth(0.5);
+      doc.line(x + 2, y + 19.5, x + 2 + prevWidth, y + 19.5);
 
-      doc.addImage(barcodeImg, "PNG", x + 5, barcodeY, 40, barcodeHeight);
-
-      // Texto del código
-      doc.setFontSize(7);
+      // Precio nuevo (posición ajustada dinámicamente)
+      doc.setFontSize(28);
       doc.setTextColor(0);
-      const barcodeTextWidth = doc.getTextWidth(p.barcode);
-      const barcodeTextX = x + 5 + (40 - barcodeTextWidth) / 2;
-      doc.text(p.barcode, barcodeTextX, barcodeY + barcodeHeight + 1.5);
-    }
+      doc.text(`${integerPrice}`, x + etiquetaAncho - precioXOffset, y + 23.1);
 
-    doc.setTextColor(0);
-  });
+      // Código de barras y texto
+      if (p.barcode) {
+        const barcodeImg = generateBarcodeImage(p.barcode);
+        const barcodeHeight = 4;
+        const barcodeY = y + 23.5;
 
-  doc.save("etiquetas.pdf");
-};
+        doc.addImage(barcodeImg, "PNG", x + 5, barcodeY, 40, barcodeHeight);
 
+        // Texto del código
+        doc.setFontSize(7);
+        doc.setTextColor(0);
+        const barcodeTextWidth = doc.getTextWidth(p.barcode);
+        const barcodeTextX = x + 5 + (40 - barcodeTextWidth) / 2;
+        doc.text(p.barcode, barcodeTextX, barcodeY + barcodeHeight + 1.5);
+      }
 
+      doc.setTextColor(0);
+    });
+
+    doc.save("etiquetas.pdf");
+  };
 
   return (
     <Box sx={{ p: 2 }}>
@@ -240,6 +242,19 @@ const generatePDF = () => {
                 value={p.discount}
                 onChange={(e) =>
                   updateProductField(i, "discount", Number(e.target.value))
+                }
+                sx={{ mb: 1 }}
+              />
+              <TextField
+                label="Precio anterior (opcional)"
+                type="number"
+                value={p.manualPreviousPrice ?? ""}
+                onChange={(e) =>
+                  updateProductField(
+                    i,
+                    "manualPreviousPrice",
+                    Number(e.target.value)
+                  )
                 }
                 sx={{ mb: 1 }}
               />
