@@ -182,6 +182,7 @@ import * as XLSX from "xlsx";
 import { useParams } from "react-router-dom";
 import api from "../../api/axiosInstance";
 import { exportToTXT } from "../../../utils/exportUtils";
+import UploadPricesResultByList from "./UploadPricesResultByList";
 
 export default function UploadPrices() {
   const { listId } = useParams();
@@ -238,45 +239,7 @@ export default function UploadPrices() {
     }
   };
 
-  // const Section = ({
-  //   title,
-  //   items,
-  //   icon,
-  //   color,
-  //   priceKey = "price",
-  //   showOldNew = false,
-  // }) => {
-  //   if (!items || items.length === 0) return null;
-
-  //   return (
-  //     <Box mb={2}>
-  //       <Box display="flex" alignItems="center" justifyContent="space-between">
-  //         <Typography variant="h6" color={color}>
-  //           {title} ({items.length})
-  //         </Typography>
-  //         <IconButton onClick={() => toggleSection(title)}>
-  //           {openSections[title] ? <ExpandLess /> : <ExpandMore />}
-  //         </IconButton>
-  //       </Box>
-  //       <Collapse in={openSections[title]}>
-  //         <ul style={{ marginLeft: "1rem" }}>
-  //           {items.map((p) => (
-  //             <li key={p.barcode}>
-  //               {icon} {p.name || "Sin nombre"} ({p.barcode}):{" "}
-  //               {showOldNew ? (
-  //                 <>
-  //                   ${p.oldPrice?.toFixed(2)} → <b>${p.newPrice?.toFixed(2)}</b>
-  //                 </>
-  //               ) : (
-  //                 `$${p[priceKey]?.toFixed(2)}`
-  //               )}
-  //             </li>
-  //           ))}
-  //         </ul>
-  //       </Collapse>
-  //     </Box>
-  //   );
-  // };
+ 
 
   const Section = ({
   title,
@@ -293,7 +256,7 @@ export default function UploadPrices() {
     const filename = `${title.replace(/\s+/g, "_").toLowerCase()}.txt`;
     exportToTXT(codes, filename);
   };
-
+  console.log("FATA", data)
   return (
     <Box mb={2}>
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -418,6 +381,8 @@ export default function UploadPrices() {
           /> */}
         </>
       )}
+
+       {/* {data && <UploadPricesResultByList data={data} />} */}
     </Box>
   );
 }

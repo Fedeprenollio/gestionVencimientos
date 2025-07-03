@@ -12,8 +12,11 @@ import {
   clearQuickProducts,
   comparePricesByDate,
   uploadPricesForList,
+  uploadPricesForMultipleLists,
+  getProductsToRetag,
 } from '../controllers/productListController.js';
 import { comparePricesByDateSeparateCollections } from '../controllers/historyPruceController.js';
+import ProductList from '../models/ProductList.js';
 
 const productListRoutes = express.Router();
 
@@ -28,7 +31,41 @@ productListRoutes.get("/:id/compare-prices", comparePricesByDateSeparateCollecti
 
 // productListRoutes.get("/:id/compare-prices", comparePricesByDate);
 productListRoutes.post("/:listId/upload-prices", uploadPricesForList);
+productListRoutes.post("/upload-prices-multiple", uploadPricesForMultipleLists);
 
+// routes/productLists.js (o similar)
+productListRoutes.post("/:id/update-last-tag-date", async (req, res) => {
+  const { id } = req.params;
+  const { barcodes } = req.body;
+
+  if (!Array.isArray(barcodes) || barcodes.length === 0) {
+    return res.status(400).json({ message: "Se requieren códigos de barra." });
+  }
+
+  try {
+    const list = await ProductList.findById(id).populate("products.product");
+    if (!list) {
+      return res.status(404).json({ message: "Lista no encontrada." });
+    }
+
+    const now = new Date();
+
+    for (let i = 0; i < list.products.length; i++) {
+      const item = list.products[i];
+      if (barcodes.includes(item.product?.barcode)) {
+        list.products[i].lastTagDate = now;
+      }
+    }
+
+    await list.save();
+
+    res.json({ message: "✅ Etiquetas marcadas correctamente", updated: barcodes.length });
+  } catch (err) {
+    console.error("Error al actualizar fechas de etiquetas:", err);
+    res.status(500).json({ message: "❌ Error del servidor" });
+  }
+});
+productListRoutes.get('/:listId/products-to-retag', getProductsToRetag);
 productListRoutes.get("/:listId/quick-products", getQuickProducts);
 productListRoutes.put("/:listId/quick-products", addQuickProducts);
 productListRoutes.put("/:id/quick-products", updateQuickProducts);

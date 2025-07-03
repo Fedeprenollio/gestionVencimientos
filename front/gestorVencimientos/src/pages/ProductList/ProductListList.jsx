@@ -15,10 +15,22 @@ import {
 import { useNavigate } from "react-router-dom";
 import { exportToTXT } from "../../../utils/exportUtils";
 import ProductLabelManager from "../price/ProductLabelManager";
+import { Checkbox, FormControlLabel } from "@mui/material"; // Agregá esto
+import { useEffect } from "react";
 
 export default function BranchListSelector() {
   const [selectedBranch, setSelectedBranch] = useState("");
+  const [selectedLists, setSelectedLists] = useState([]);
   const navigate = useNavigate();
+
+ 
+  const toggleListSelection = (listId) => {
+    setSelectedLists((prev) =>
+      prev.includes(listId)
+        ? prev.filter((id) => id !== listId)
+        : [...prev, listId]
+    );
+  };
 
   const {
     data: branches = [],
@@ -38,6 +50,12 @@ export default function BranchListSelector() {
     queryFn: () => getProductListsByBranch(selectedBranch),
     enabled: !!selectedBranch,
   });
+
+   useEffect(() => {
+    if (lists && lists.length > 0) {
+      setSelectedLists(lists.map((l) => l._id)); // seleccionadas todas por defecto
+    }
+  }, [lists]);
 
   const handleExport = (list) => {
     const codes =
@@ -109,6 +127,17 @@ export default function BranchListSelector() {
                 justifyContent="space-between"
                 flexWrap="wrap"
               >
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={selectedLists.includes(list._id)}
+                      onChange={() => toggleListSelection(list._id)}
+                    />
+                  }
+                  label=""
+                  sx={{ mr: 2 }}
+                />
+
                 <Typography
                   variant="subtitle1"
                   sx={{ fontWeight: "bold", mb: { xs: 1, sm: 0 } }}
@@ -154,14 +183,34 @@ export default function BranchListSelector() {
                   >
                     Subir precios Excel
                   </Button>
+                    <Button
+                              size="small"
+                              variant="contained"
+                              color="secondary"
+                              onClick={() => navigate(`/lists/${list._id}/products-to-retag`)}
+                            >
+                              Ver productos para reetiquetar
+                            </Button>
                 </Box>
               </Box>
             </Paper>
           ))}
         </List>
       )}
+      <Button
+        variant="contained"
+        color="success"
+        disabled={selectedLists.length === 0}
+        onClick={() =>
+          navigate("/lists/upload-prices-multiple", {
+            state: { selectedListIds: selectedLists },
+          })
+        }
+      >
+        Actualizar precios de listas seleccionadas
+      </Button>
 
-      <ProductLabelManager/>
+      <ProductLabelManager />
     </Box>
   );
 }

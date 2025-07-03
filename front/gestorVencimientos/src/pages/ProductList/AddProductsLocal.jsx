@@ -37,11 +37,18 @@ export default function AddProductsLocal() {
   const [nameResults, setNameResults] = useState([]);
   const [productExists, setProductExists] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [productInfo, setProductInfo] = useState({ name: "", type: "medicamento" });
+  const [productInfo, setProductInfo] = useState({
+    name: "",
+    type: "medicamento",
+  });
   const [bulkAddInput, setBulkAddInput] = useState("");
   const [bulkRemoveInput, setBulkRemoveInput] = useState("");
   const [loadingBulk, setLoadingBulk] = useState(false);
-  const [feedback, setFeedback] = useState({ open: false, message: "", severity: "success" });
+  const [feedback, setFeedback] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const queryClient = useQueryClient();
 
@@ -91,7 +98,8 @@ export default function AddProductsLocal() {
   };
 
   const handleRemoveFromList = async (productId) => {
-     if (!window.confirm("¿Estás seguro que querés eliminar estos productos?")) return;
+    if (!window.confirm("¿Estás seguro que querés eliminar estos productos?"))
+      return;
     try {
       await removeProductFromList(listId, productId);
       showFeedback("Producto eliminado correctamente", "success");
@@ -112,7 +120,9 @@ export default function AddProductsLocal() {
   const handleBulkAdd = async () => {
     setLoadingBulk(true);
     const codes = parseBarcodes(bulkAddInput);
-    const existingCodes = new Set(list.products.map((p) => p.barcode?.trim()).filter(Boolean));
+    const existingCodes = new Set(
+  list.products.map((p) => p.product?.barcode?.trim()).filter(Boolean)
+);
 
     try {
       for (const code of codes) {
@@ -134,13 +144,17 @@ export default function AddProductsLocal() {
   };
 
   const handleBulkRemove = async () => {
-    if (!window.confirm("¿Estás seguro que querés eliminar estos productos?")) return;
+    if (!window.confirm("¿Estás seguro que querés eliminar estos productos?"))
+      return;
     setLoadingBulk(true);
     const codesToRemove = parseBarcodes(bulkRemoveInput);
     const codeToProductMap = {};
-    list.products.forEach((p) => {
-      if (p.barcode) codeToProductMap[p.barcode.trim()] = p._id;
-    });
+  list.products.forEach((p) => {
+  if (p.product?.barcode) {
+    codeToProductMap[p.product.barcode.trim()] = p.product._id;
+  }
+});
+
 
     try {
       for (const code of codesToRemove) {
@@ -164,7 +178,9 @@ export default function AddProductsLocal() {
 
   return (
     <Box p={3}>
-      <Typography variant="h6">Agregar productos a la lista: {list.name}</Typography>
+      <Typography variant="h6">
+        Agregar productos a la lista: {list.name}
+      </Typography>
 
       <BarcodeSearchSection
         barcode={barcode}
@@ -199,7 +215,11 @@ export default function AddProductsLocal() {
           value={bulkAddInput}
           onChange={(e) => setBulkAddInput(e.target.value)}
         />
-        <Button variant="contained" onClick={handleBulkAdd} disabled={loadingBulk}>
+        <Button
+          variant="contained"
+          onClick={handleBulkAdd}
+          disabled={loadingBulk}
+        >
           Agregar a lista
         </Button>
       </Box>
@@ -214,7 +234,12 @@ export default function AddProductsLocal() {
           value={bulkRemoveInput}
           onChange={(e) => setBulkRemoveInput(e.target.value)}
         />
-        <Button variant="outlined" color="error" onClick={handleBulkRemove} disabled={loadingBulk}>
+        <Button
+          variant="outlined"
+          color="error"
+          onClick={handleBulkRemove}
+          disabled={loadingBulk}
+        >
           Eliminar de lista
         </Button>
       </Box>
@@ -230,12 +255,16 @@ export default function AddProductsLocal() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {list.products?.map((p) => (
-              <TableRow key={p._id}>
-                <TableCell>{p.name}</TableCell>
-                <TableCell>{p.barcode}</TableCell>
+            {list.products?.map((entry) => (
+              <TableRow key={entry.product?._id}>
+                <TableCell>{entry.product?.name}</TableCell>
+                <TableCell>{entry.product?.barcode}</TableCell>
                 <TableCell align="right">
-                  <Button size="small" color="error" onClick={() => handleRemoveFromList(p._id)}>
+                  <Button
+                    size="small"
+                    color="error"
+                    onClick={() => handleRemoveFromList(entry.product._id)}
+                  >
                     Eliminar
                   </Button>
                 </TableCell>

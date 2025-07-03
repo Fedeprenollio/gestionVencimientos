@@ -34,6 +34,8 @@ import AnalyzePriceChanges from "./pages/price/AnalyzePriceChanges.jsx";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import UploadPrices from "./pages/price/UploadPrices.jsx";
+import UploadPricesMultiple from "./pages/ProductList/UploadPricesMultiple.jsx";
+import ProductsToRetag from "./pages/ProductList/ProductsToRetag.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -131,9 +133,14 @@ function App() {
                 path="/lists/:listId/upload-prices"
                 element={<UploadPrices />}
               />
+              <Route
+                path="/lists/upload-prices-multiple"
+                element={<UploadPricesMultiple />}
+              />
 
               <Route path="*" element={<Productos />} />
               <Route path="/analisis" element={<StockAnalysisUploader />} />
+               <Route path="/lists/:listId/products-to-retag" element={<ProductsToRetag />} />
             </Routes>
           </Box>
           {/* Footer */}
