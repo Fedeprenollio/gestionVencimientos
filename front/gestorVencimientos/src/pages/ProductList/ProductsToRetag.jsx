@@ -23,7 +23,8 @@ export default function ProductsToRetag() {
     setError(null);
     try {
       const res = await api.get(`/product-lists/${listId}/products-to-retag`);
-      setProducts(res.data.productsToRetag || []);
+      console.log("RESSS", res)
+      setProducts(res.productsToRetag || []);
     } catch (err) {
       setError("Error al obtener productos a reetiquetar");
       console.error(err);

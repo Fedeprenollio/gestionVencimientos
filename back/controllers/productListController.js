@@ -1075,9 +1075,9 @@ export const uploadPricesForMultipleLists = async (req, res) => {
 
 export const getProductsToRetag = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { listId } = req.params;
 
-    const list = await ProductList.findById(id).populate("products.product");
+    const list = await ProductList.findById(listId).populate("products.product");
     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
 
     const result = [];
@@ -1087,8 +1087,10 @@ export const getProductsToRetag = async (req, res) => {
       if (!product) continue;
 
       const lastTagDate = item.lastTagDate ?? new Date(0); // si nunca fue etiquetado
-      const lastPriceChange = await PriceHistory.findOne({ productId: product._id })
-        .sort({ date: -1 });
+
+      const lastPriceChange = await PriceHistory.findOne({ productId: product._id }).sort({
+        date: -1,
+      });
 
       if (lastPriceChange && lastTagDate < lastPriceChange.date) {
         result.push({
