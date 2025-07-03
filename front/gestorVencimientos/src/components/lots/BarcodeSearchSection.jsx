@@ -84,11 +84,11 @@ console.log("isAddMode",isAddMode)
             </Button>
           </Grid>
 
-          {/* <Grid item>
+          <Grid item>
             <Button variant="outlined" onClick={() => setScanning(true)}>
               Escanear
             </Button>
-          </Grid> */}
+          </Grid>
         </Grid>
       </form>
 
