@@ -56,11 +56,17 @@ export default function BranchListSelector() {
     }
   }, [lists]);
 
-  const handleExport = (list) => {
-    const codes =
-      list.products?.map((p) => p.barcode?.trim()).filter(Boolean) || [];
-    exportToTXT(codes, `etiquetas_${list.name.replace(/\s+/g, "_")}.txt`);
-  };
+const handleExport = (list) => {
+  console.log("LA LISTA", list);
+  console.log("LA list.products", list.products);
+  
+  const codes =
+    list.products
+      ?.map((p) => p.product?.barcode?.trim())
+      .filter(Boolean) || [];
+
+  exportToTXT(codes, `etiquetas_${list.name.replace(/\s+/g, "_")}.txt`);
+};
 
   return (
     <Box p={3}>
