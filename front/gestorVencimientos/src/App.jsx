@@ -36,6 +36,8 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import UploadPrices from "./pages/price/UploadPrices.jsx";
 import UploadPricesMultiple from "./pages/ProductList/UploadPricesMultiple.jsx";
 import ProductsToRetag from "./pages/ProductList/ProductsToRetag.jsx";
+import UploadLogs from "./pages/price/UploadLogs.jsx";
+import QuickStockCount from "./pages/quickStockCount/QuickStockCount.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -137,10 +139,21 @@ function App() {
                 path="/lists/upload-prices-multiple"
                 element={<UploadPricesMultiple />}
               />
+              <Route
+                path="/listas/:listId/historial-cargas"
+                element={<UploadLogs />}
+              />
 
+              <Route
+                path="/lists/stock-control"
+                element={<QuickStockCount />}
+              />
               <Route path="*" element={<Productos />} />
               <Route path="/analisis" element={<StockAnalysisUploader />} />
-               <Route path="/lists/:listId/products-to-retag" element={<ProductsToRetag />} />
+              <Route
+                path="/lists/:listId/products-to-retag"
+                element={<ProductsToRetag />}
+              />
             </Routes>
           </Box>
           {/* Footer */}

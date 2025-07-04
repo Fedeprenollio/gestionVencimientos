@@ -58,3 +58,14 @@ export const getListById = async (id) => {
   console.log("res.dat",res)
   return res;
 };
+
+
+// src/api/productApi.js o donde tengas tus funciones de API
+
+
+export const fetchUploadLogs = async (listId,page) => {
+  // const res = await api.get(`/product-lists/${listId}/upload-logs`);
+   const res = await api.get(`/product-lists/${listId}/upload-logs?page=${page}`);
+  console.log("res",res.data)
+  return res;
+};

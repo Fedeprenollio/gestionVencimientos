@@ -59,7 +59,7 @@ export default function ProductPrices() {
      const formatted = parsed
   .map((row) => ({
     barcode: String(row.Codebar).trim(),
-    price: parseFloat(String(row.Unitario).replace(",", ".")),
+    price: parseFloat(String(row.Precio).replace(",", ".")),
   }))
   .filter((p) => p.barcode && !isNaN(p.price));
 

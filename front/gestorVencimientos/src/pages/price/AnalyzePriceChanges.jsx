@@ -18,6 +18,7 @@ import timezone from "dayjs/plugin/timezone";
 import { exportToTXT } from "../../../utils/exportUtils";
 import { getListById } from "../../api/productApi";
 import api from "../../api/axiosInstance";
+import PriceComparisonByDate from "./PriceComparisonByDate";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -84,186 +85,191 @@ console.log("compareData:",compareData)
     return <Typography color="error">Error al cargar la lista</Typography>;
 
   return (
-    <Box p={3}>
-      <Typography variant="h5" gutterBottom>
-        Análisis de cambios de precios - {listData?.name}
-      </Typography>
 
-      <Box display="flex" gap={2} mb={2}>
-        <DatePicker
-          label="Desde"
-          value={from}
-          onChange={(newVal) =>
-            newVal && setFrom(newVal.tz("America/Argentina/Buenos_Aires"))
-          }
-        />
-        <DatePicker
-          label="Hasta"
-          value={to}
-          onChange={(newVal) =>
-            newVal && setTo(newVal.tz("America/Argentina/Buenos_Aires"))
-          }
-        />
-        <Button variant="contained" onClick={handleCompare}>
-          Comparar
-        </Button>
-      </Box>
+   <>
+   
+   <PriceComparisonByDate listId={listId}/>
+   </>
+    // <Box p={3}>
+    //   <Typography variant="h5" gutterBottom>
+    //     Análisis de cambios de precios - {listData?.name}
+    //   </Typography>
 
-      {compareError && (
-        <>
-          <Typography color="error">Error al comparar precios</Typography>
-          <pre style={{ color: "red" }}>
-            {JSON.stringify(compareError, null, 2)}
-          </pre>
-        </>
-      )}
+    //   <Box display="flex" gap={2} mb={2}>
+    //     <DatePicker
+    //       label="Desde"
+    //       value={from}
+    //       onChange={(newVal) =>
+    //         newVal && setFrom(newVal.tz("America/Argentina/Buenos_Aires"))
+    //       }
+    //     />
+    //     <DatePicker
+    //       label="Hasta"
+    //       value={to}
+    //       onChange={(newVal) =>
+    //         newVal && setTo(newVal.tz("America/Argentina/Buenos_Aires"))
+    //       }
+    //     />
+    //     <Button variant="contained" onClick={handleCompare}>
+    //       Comparar
+    //     </Button>
+    //   </Box>
 
-      {isFetching ? (
-        <CircularProgress />
-      ) : compareData ? (
-        <>
-          <Typography variant="subtitle1" gutterBottom>
-            Aumentaron: {increased.length} | Bajaron: {decreased.length} | Sin
-            cambios: {unchanged.length} | Primer precio: {firstPrice.length}
-          </Typography>
+    //   {compareError && (
+    //     <>
+    //       <Typography color="error">Error al comparar precios</Typography>
+    //       <pre style={{ color: "red" }}>
+    //         {JSON.stringify(compareError, null, 2)}
+    //       </pre>
+    //     </>
+    //   )}
+
+    //   {isFetching ? (
+    //     <CircularProgress />
+    //   ) : compareData ? (
+    //     <>
+    //       <Typography variant="subtitle1" gutterBottom>
+    //         Aumentaron: {increased.length} | Bajaron: {decreased.length} | Sin
+    //         cambios: {unchanged.length} | Primer precio: {firstPrice.length}
+    //       </Typography>
 
         
-          <Divider sx={{ my: 3 }} />
-          {/* Primer precio */}
-          <Typography variant="h6" color="info.main">
-            Productos con primer precio:
-          </Typography>
-          {firstPrice.length === 0 ? (
-            <Typography>No hay productos con primer precio.</Typography>
-          ) : (
-            <>
-              <List dense>
-                {firstPrice.map((p) => (
-                  <ListItem key={p._id}>
-                    <ListItemText
-                      primary={`${p.barcode} - ${p.name}`}
-                      secondary={`Precio: $${p.toPrice || p.fromPrice}`}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-              <Button
-                variant="outlined"
-                color="info"
-                onClick={() =>
-                  exportCodes(
-                    firstPrice,
-                    `primer_precio_${listData?.name?.replace(/\s+/g, "_")}.txt`
-                  )
-                }
-              >
-                Exportar primeros precios
-              </Button>
-            </>
-          )}
+    //       <Divider sx={{ my: 3 }} />
+    //       {/* Primer precio */}
+    //       <Typography variant="h6" color="info.main">
+    //         Productos con primer precio:
+    //       </Typography>
+    //       {firstPrice.length === 0 ? (
+    //         <Typography>No hay productos con primer precio.</Typography>
+    //       ) : (
+    //         <>
+    //           <List dense>
+    //             {firstPrice.map((p) => (
+    //               <ListItem key={p._id}>
+    //                 <ListItemText
+    //                   primary={`${p.barcode} - ${p.name}`}
+    //                   secondary={`Precio: $${p.toPrice || p.fromPrice}`}
+    //                 />
+    //               </ListItem>
+    //             ))}
+    //           </List>
+    //           <Button
+    //             variant="outlined"
+    //             color="info"
+    //             onClick={() =>
+    //               exportCodes(
+    //                 firstPrice,
+    //                 `primer_precio_${listData?.name?.replace(/\s+/g, "_")}.txt`
+    //               )
+    //             }
+    //           >
+    //             Exportar primeros precios
+    //           </Button>
+    //         </>
+    //       )}
 
-          {/* Aumentos */}
-          <Typography variant="h6" color="success.main">
-            Productos que aumentaron:
-          </Typography>
-          {increased.length === 0 ? (
-            <Typography>No hubo aumentos.</Typography>
-          ) : (
-            <>
-              <List dense>
-                {increased.map((p) => (
-                  <ListItem key={p._id}>
-                    <ListItemText
-                      primary={`${p.barcode} - ${p.name}`}
-                      secondary={`De: $${p.fromPrice} → A: $${p.toPrice}`}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-              <Button
-                variant="outlined"
-                onClick={() =>
-                  exportCodes(
-                    increased,
-                    `aumentos_${listData?.name?.replace(/\s+/g, "_")}.txt`
-                  )
-                }
-              >
-                Exportar aumentos
-              </Button>
-            </>
-          )}
+    //       {/* Aumentos */}
+    //       <Typography variant="h6" color="success.main">
+    //         Productos que aumentaron:
+    //       </Typography>
+    //       {increased.length === 0 ? (
+    //         <Typography>No hubo aumentos.</Typography>
+    //       ) : (
+    //         <>
+    //           <List dense>
+    //             {increased.map((p) => (
+    //               <ListItem key={p._id}>
+    //                 <ListItemText
+    //                   primary={`${p.barcode} - ${p.name}`}
+    //                   secondary={`De: $${p.fromPrice} → A: $${p.toPrice}`}
+    //                 />
+    //               </ListItem>
+    //             ))}
+    //           </List>
+    //           <Button
+    //             variant="outlined"
+    //             onClick={() =>
+    //               exportCodes(
+    //                 increased,
+    //                 `aumentos_${listData?.name?.replace(/\s+/g, "_")}.txt`
+    //               )
+    //             }
+    //           >
+    //             Exportar aumentos
+    //           </Button>
+    //         </>
+    //       )}
 
-          <Divider sx={{ my: 3 }} />
+    //       <Divider sx={{ my: 3 }} />
 
-          {/* Bajas */}
-          <Typography variant="h6" color="error.main">
-            Productos que bajaron:
-          </Typography>
-          {decreased.length === 0 ? (
-            <Typography>No hubo bajas de precio.</Typography>
-          ) : (
-            <>
-              <List dense>
-                {decreased.map((p) => (
-                  <ListItem key={p._id}>
-                    <ListItemText
-                      primary={`${p.barcode} - ${p.name}`}
-                      secondary={`De: $${p.fromPrice} → A: $${p.toPrice}`}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={() =>
-                  exportCodes(
-                    decreased,
-                    `bajas_${listData?.name?.replace(/\s+/g, "_")}.txt`
-                  )
-                }
-              >
-                Exportar bajas
-              </Button>
-            </>
-          )}
+    //       {/* Bajas */}
+    //       <Typography variant="h6" color="error.main">
+    //         Productos que bajaron:
+    //       </Typography>
+    //       {decreased.length === 0 ? (
+    //         <Typography>No hubo bajas de precio.</Typography>
+    //       ) : (
+    //         <>
+    //           <List dense>
+    //             {decreased.map((p) => (
+    //               <ListItem key={p._id}>
+    //                 <ListItemText
+    //                   primary={`${p.barcode} - ${p.name}`}
+    //                   secondary={`De: $${p.fromPrice} → A: $${p.toPrice}`}
+    //                 />
+    //               </ListItem>
+    //             ))}
+    //           </List>
+    //           <Button
+    //             variant="outlined"
+    //             color="error"
+    //             onClick={() =>
+    //               exportCodes(
+    //                 decreased,
+    //                 `bajas_${listData?.name?.replace(/\s+/g, "_")}.txt`
+    //               )
+    //             }
+    //           >
+    //             Exportar bajas
+    //           </Button>
+    //         </>
+    //       )}
 
-          <Divider sx={{ my: 3 }} />
+    //       <Divider sx={{ my: 3 }} />
 
-          {/* Sin cambios */}
-          <Typography variant="h6">Productos sin cambios:</Typography>
-          {unchanged.length === 0 ? (
-            <Typography>No hubo productos sin cambios.</Typography>
-          ) : (
-            <List dense>
-              {unchanged.map((p) => (
-                <ListItem key={p._id}>
-                  <ListItemText
-                    primary={`${p.barcode} - ${p.name}`}
-                    secondary={`Precio estable: $${p.toPrice}`}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          )}
+    //       {/* Sin cambios */}
+    //       <Typography variant="h6">Productos sin cambios:</Typography>
+    //       {unchanged.length === 0 ? (
+    //         <Typography>No hubo productos sin cambios.</Typography>
+    //       ) : (
+    //         <List dense>
+    //           {unchanged.map((p) => (
+    //             <ListItem key={p._id}>
+    //               <ListItemText
+    //                 primary={`${p.barcode} - ${p.name}`}
+    //                 secondary={`Precio estable: $${p.toPrice}`}
+    //               />
+    //             </ListItem>
+    //           ))}
+    //         </List>
+    //       )}
 
-          <Divider sx={{ my: 3 }} />
+    //       <Divider sx={{ my: 3 }} />
 
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() =>
-              exportCodes(
-                [...increased, ...decreased],
-                `cambios_precios_${listData?.name?.replace(/\s+/g, "_")}.txt`
-              )
-            }
-          >
-            Exportar todos los códigos con cambios
-          </Button>
-        </>
-      ) : null}
-    </Box>
+    //       <Button
+    //         variant="contained"
+    //         color="primary"
+    //         onClick={() =>
+    //           exportCodes(
+    //             [...increased, ...decreased],
+    //             `cambios_precios_${listData?.name?.replace(/\s+/g, "_")}.txt`
+    //           )
+    //         }
+    //       >
+    //         Exportar todos los códigos con cambios
+    //       </Button>
+    //     </>
+    //   ) : null}
+    // </Box>
   );
 }

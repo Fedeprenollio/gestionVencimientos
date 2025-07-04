@@ -8,6 +8,7 @@ import lotRoutes from './routes/lotRoutes.js';
 import userRoutes from './routes/usersRoutes.js';
 import branchRoutes from './routes/branchRoutes.js';
 import productListRoutes from './routes/productListRoutes.js';
+import stockCounterRouter from './routes/stockCountRoutes.js';
 
 const allowedOrigins = [
   'http://localhost:5173',
@@ -43,6 +44,8 @@ app.use('/lots', lotRoutes);
 app.use('/users', userRoutes);
 app.use('/branches', branchRoutes);
 app.use('/product-lists', productListRoutes);
+app.use('/stockCounter-lists', stockCounterRouter);
+
 // app.use('/productImport', importRouter);
 
 

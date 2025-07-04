@@ -23,7 +23,6 @@ export default function BranchListSelector() {
   const [selectedLists, setSelectedLists] = useState([]);
   const navigate = useNavigate();
 
- 
   const toggleListSelection = (listId) => {
     setSelectedLists((prev) =>
       prev.includes(listId)
@@ -51,7 +50,7 @@ export default function BranchListSelector() {
     enabled: !!selectedBranch,
   });
 
-   useEffect(() => {
+  useEffect(() => {
     if (lists && lists.length > 0) {
       setSelectedLists(lists.map((l) => l._id)); // seleccionadas todas por defecto
     }
@@ -175,22 +174,33 @@ export default function BranchListSelector() {
                   >
                     Analizar precios
                   </Button>
-                  <Button
+                  {/* <Button
                     variant="outlined"
                     size="small"
                     color="info"
                     onClick={() => navigate(`/lists/${list._id}/upload-prices`)}
                   >
                     Subir precios Excel
+                  </Button> */}
+                  {/* <Button
+                    size="small"
+                    variant="contained"
+                    color="secondary"
+                    onClick={() =>
+                      navigate(`/lists/${list._id}/products-to-retag`)
+                    }
+                  >
+                    Ver productos para reetiquetar
+                  </Button> */}
+
+                  <Button
+                    variant="outlined"
+                    onClick={() =>
+                      navigate(`/listas/${list._id}/historial-cargas`)
+                    }
+                  >
+                  Ver historial de cargas de precios
                   </Button>
-                    <Button
-                              size="small"
-                              variant="contained"
-                              color="secondary"
-                              onClick={() => navigate(`/lists/${list._id}/products-to-retag`)}
-                            >
-                              Ver productos para reetiquetar
-                            </Button>
                 </Box>
               </Box>
             </Paper>

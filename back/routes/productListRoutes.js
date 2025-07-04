@@ -14,6 +14,8 @@ import {
   uploadPricesForList,
   uploadPricesForMultipleLists,
   getProductsToRetag,
+  getUploadLogsForList,
+  getUploadLogs,
 } from '../controllers/productListController.js';
 import { comparePricesByDateSeparateCollections } from '../controllers/historyPruceController.js';
 import ProductList from '../models/ProductList.js';
@@ -27,7 +29,7 @@ productListRoutes.put('/:listId/add/:productId', addProductToList);
 productListRoutes.put('/:listId/remove/:productId', removeProductFromList);
 productListRoutes.delete('/:listId', deleteProductList);
 // routes/productListRoutes.js
-productListRoutes.get("/:id/compare-prices", comparePricesByDateSeparateCollections);
+// productListRoutes.get("/:id/compare-prices", comparePricesByDateSeparateCollections);
 
 // productListRoutes.get("/:id/compare-prices", comparePricesByDate);
 productListRoutes.post("/:listId/upload-prices", uploadPricesForList);
@@ -65,6 +67,11 @@ productListRoutes.post("/:id/update-last-tag-date", async (req, res) => {
     res.status(500).json({ message: "❌ Error del servidor" });
   }
 });
+
+//CON PAGIACION
+productListRoutes.get("/:listId/upload-logs", getUploadLogs);
+productListRoutes.get('/:listId/compare-prices', comparePricesByDate);
+
 productListRoutes.get('/:listId/products-to-retag', getProductsToRetag);
 productListRoutes.get("/:listId/quick-products", getQuickProducts);
 productListRoutes.put("/:listId/quick-products", addQuickProducts);

@@ -38,6 +38,8 @@ export default function Navbar({
   const [anchorElLote, setAnchorElLote] = useState(null);
   const [anchorElStock, setAnchorElStock] = useState(null);
   const [anchorElUser, setAnchorElUser] = useState(null);
+  const [anchorElList, setAnchorElList] = useState(null);
+
   const openUser = Boolean(anchorElUser);
   // Drawer móvil
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -46,6 +48,7 @@ export default function Navbar({
   const openProd = Boolean(anchorElProd);
   const openLote = Boolean(anchorElLote);
   const openStock = Boolean(anchorElStock);
+  const openList = Boolean(anchorElList);
 
   // Items de menú para usar en ambos casos (desktop y móvil)
   const menuItems = [
@@ -54,7 +57,7 @@ export default function Navbar({
       submenu: [
         { label: "Administrar productos", to: "/" },
         { label: "Importar productos", to: "/products/import" },
-        { label: "Precios", to: "/products/prices" },
+        // { label: "Precios", to: "/products/prices" },
       ],
     },
     {
@@ -66,11 +69,21 @@ export default function Navbar({
     },
     {
       label: "Stock",
+      submenu: [{ label: "Buscar stock en sucursales", to: "/stock-search" }],
+    },
+  
+    {
+      label: "Listas",
       submenu: [
-        { label: "Buscar stock en sucursales", to: "/stock-search" },
-        { label: "Listas", to: "/lists" }, // ✅ nuevo
+        { label: "Listas de cambio de precio", to: "/lists" },
+        { label: "Listas de control de stock", to: "/lists/stock-control" },
+        {
+          label: "Listas de devolución a droguerías",
+          to: "/lists/drug-returns",
+        },
       ],
     },
+
     {
       label: "Sucursales",
       submenu: [{ label: "Ver sucursales", to: "/branches" }],
@@ -162,9 +175,35 @@ export default function Navbar({
                     </MenuItem>
                   ))}
                 </Menu>
+
+                {/* ✅ Nuevo menú para Listas */}
+                <Button
+                  color="inherit"
+                  onClick={(e) => setAnchorElList(e.currentTarget)}
+                >
+                  Listas
+                </Button>
+                <Menu
+                  anchorEl={anchorElList}
+                  open={openList}
+                  onClose={() => setAnchorElList(null)}
+                >
+                  {menuItems[3].submenu.map(({ label, to }) => (
+                    <MenuItem
+                      component={Link}
+                      to={to}
+                      key={label}
+                      onClick={() => setAnchorElList(null)}
+                    >
+                      {label}
+                    </MenuItem>
+                  ))}
+                </Menu>
+
                 <Button color="inherit" component={Link} to="/branches">
                   Sucursales
                 </Button>
+
                 <Button
                   color="inherit"
                   onClick={(e) => setAnchorElUser(e.currentTarget)}
