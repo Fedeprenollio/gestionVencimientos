@@ -41,6 +41,7 @@ import QuickStockCount from "./pages/quickStockCount/QuickStockCount.jsx";
 import CreateStockCountList from "./pages/quickStockCount/StockCountForm.jsx";
 import StockCountListPage from "./pages/quickStockCount/StockCountListPage.jsx";
 import QuickStockCountPage from "./pages/quickStockCount/QuickStockCountPage.jsx";
+import MainTabs from "./pages/price/MainTabs.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -115,7 +116,9 @@ function App() {
               <Route path="/branches" element={<BranchList />} />
               <Route path="/branches/new" element={<BranchForm />} />
               <Route path="/branches/:id" element={<BranchForm />} />
-              <Route path="/lists" element={<ProductListList />} />
+              {/* <Route path="/lists" element={<ProductListList />} /> */}
+              <Route path="/lists" element={<MainTabs />} />
+              
               <Route path="/lists/new" element={<ProductListForm />} />
               <Route path="/lists/edit/:id" element={<ProductListForm />} />
               <Route
@@ -127,7 +130,6 @@ function App() {
                 element={<BarcodeSalesAnalyzer />}
               />
               <Route path="/products/import" element={<ImportProducts />} />
-
               <Route path="/users/create" element={<UserCreatePage />} />
               <Route path="/products/prices" element={<ProductPrices />} />
               <Route
@@ -146,10 +148,8 @@ function App() {
                 path="/listas/:listId/historial-cargas"
                 element={<UploadLogs />}
               />
-
               {/* <Route path="/stock-count" element={<QuickStockCountPage />} /> */}
               <Route path="/stock-count" element={<StockCountListPage />} />
-
               <Route
                 path="/stock-count/new"
                 element={<CreateStockCountList />}

@@ -2,7 +2,16 @@ import React, { useState, useEffect } from "react";
 import { jsPDF } from "jspdf";
 import JsBarcode from "jsbarcode";
 import dayjs from "dayjs";
-import { Box, Button, TextField, Typography, Paper, Grid } from "@mui/material";
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  Paper,
+  Grid,
+  IconButton,
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
 
 const generateBarcodeImage = (text) => {
@@ -67,13 +76,12 @@ const ProductLabelManager = () => {
       updated[index][field] = value;
 
       // Recalcular precio final según base
-    const basePrice =
-  updated[index].manualPreviousPrice && updated[index].manualPreviousPrice > 0
-    ? updated[index].manualPreviousPrice
-    : updated[index].manualPrice && updated[index].manualPrice > 0
-    ? updated[index].manualPrice
-    : updated[index].currentPrice || 0;
-
+      const basePrice =
+        updated[index].manualPreviousPrice && updated[index].manualPreviousPrice > 0
+          ? updated[index].manualPreviousPrice
+          : updated[index].manualPrice && updated[index].manualPrice > 0
+          ? updated[index].manualPrice
+          : updated[index].currentPrice || 0;
 
       const discount = updated[index].discount || 0;
       updated[index].discountedPrice = Number(
@@ -82,6 +90,23 @@ const ProductLabelManager = () => {
 
       return updated;
     });
+  };
+
+  // Eliminar producto individual
+  const handleDeleteProduct = (index) => {
+    setProducts((prev) => {
+      const updated = [...prev];
+      updated.splice(index, 1);
+      return updated;
+    });
+  };
+
+  // Eliminar todos los productos
+  const handleDeleteAll = () => {
+    if (window.confirm("¿Seguro que querés eliminar todas las etiquetas?")) {
+      setProducts([]);
+      localStorage.removeItem("labels_products");
+    }
   };
 
   const generatePDF = () => {
@@ -157,9 +182,7 @@ const ProductLabelManager = () => {
 
       doc.setFontSize(8);
       doc.setTextColor(100);
-      // const prevPriceText = `$${currentPrice.toFixed(2)}`;
       const prevPriceText = `$${prevPrice.toFixed(2)}`;
-     
 
       doc.text(prevPriceText, x + 2, y + 20);
       const prevWidth = doc.getTextWidth(prevPriceText);
@@ -212,10 +235,31 @@ const ProductLabelManager = () => {
         </Button>
       </Box>
 
+      {products.length > 0 && (
+        <Button
+          variant="outlined"
+          color="error"
+          sx={{ mb: 2 }}
+          onClick={handleDeleteAll}
+        >
+          Eliminar todas las etiquetas
+        </Button>
+      )}
+
       <Grid container spacing={2}>
         {products.map((p, i) => (
           <Grid item xs={12} md={6} key={p._id}>
-            <Paper sx={{ p: 2 }}>
+            <Paper sx={{ p: 2, position: "relative" }}>
+              <IconButton
+                size="small"
+                color="error"
+                onClick={() => handleDeleteProduct(i)}
+                sx={{ position: "absolute", top: 4, right: 4 }}
+                aria-label="Eliminar etiqueta"
+              >
+                <DeleteIcon />
+              </IconButton>
+
               <Typography variant="subtitle1" gutterBottom>
                 {p.name}
               </Typography>

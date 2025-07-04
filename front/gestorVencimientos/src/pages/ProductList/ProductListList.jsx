@@ -208,7 +208,7 @@ export default function BranchListSelector() {
         Actualizar precios de listas seleccionadas
       </Button>
 
-      <ProductLabelManager />
+      {/* <ProductLabelManager /> */}
     </Box>
   );
 }
