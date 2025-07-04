@@ -99,34 +99,6 @@ export const exportToPDF = (products, sortBy = "expiration") => {
   };
 
 
-  // export function exportToExcelLots(lots) {
-  //   console.log("Lote a exportar,", lots)
-  //   const rows = lots.map((lot) => ({
-  //     Codigo: lot.barcode,  
-  //     Producto: lot.name,
-  //     Tipo: lot.type || "-", // por si no viene en esta estructura
-  //     Sucursal: lot.branch,
-  //     Cantidad: lot.quantity,
-  //     Vencimiento: formatDate(lot.expirationDate),
-  //     Carga: formatDateWhitDay(lot.createdAt || new Date()), // usá fecha actual si no hay
-  //   }));
-  
-  //   const worksheet = XLSX.utils.json_to_sheet(rows);
-  //   const workbook = XLSX.utils.book_new();
-  //   XLSX.utils.book_append_sheet(workbook, worksheet, "Productos");
-  
-  //   const excelBuffer = XLSX.write(workbook, {
-  //     bookType: "xlsx",
-  //     type: "array",
-  //   });
-  
-  //   const blob = new Blob([excelBuffer], {
-  //     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  //   });
-  
-  //   saveAs(blob, "productos_por_vencer.xlsx");
-  // }
-
 export function exportToExcelLots(lots) {
   console.log("Lote a exportar,", lots);
 

@@ -76,7 +76,7 @@ export default function Navbar({
       label: "Listas",
       submenu: [
         { label: "Listas de cambio de precio", to: "/lists" },
-        { label: "Listas de control de stock", to: "/lists/stock-control" },
+        { label: "Listas de control de stock", to: "/stock-count" },
         {
           label: "Listas de devolución a droguerías",
           to: "/lists/drug-returns",

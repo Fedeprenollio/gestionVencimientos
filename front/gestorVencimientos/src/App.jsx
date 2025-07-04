@@ -38,6 +38,9 @@ import UploadPricesMultiple from "./pages/ProductList/UploadPricesMultiple.jsx";
 import ProductsToRetag from "./pages/ProductList/ProductsToRetag.jsx";
 import UploadLogs from "./pages/price/UploadLogs.jsx";
 import QuickStockCount from "./pages/quickStockCount/QuickStockCount.jsx";
+import CreateStockCountList from "./pages/quickStockCount/CreateStockCountList.jsx";
+import StockCountListPage from "./pages/quickStockCount/StockCountListPage.jsx";
+import QuickStockCountPage from "./pages/quickStockCount/QuickStockCountPage.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -144,8 +147,15 @@ function App() {
                 element={<UploadLogs />}
               />
 
+              <Route path="/stock-count" element={<QuickStockCountPage />} />
+              {/* <Route path="/stock-count" element={<StockCountListPage />} /> */}
+
               <Route
-                path="/lists/stock-control"
+                path="/stock-count/new"
+                element={<CreateStockCountList />}
+              />
+              <Route
+                path="/stock-count/:listId"
                 element={<QuickStockCount />}
               />
               <Route path="*" element={<Productos />} />

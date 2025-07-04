@@ -44,7 +44,7 @@ app.use('/lots', lotRoutes);
 app.use('/users', userRoutes);
 app.use('/branches', branchRoutes);
 app.use('/product-lists', productListRoutes);
-app.use('/stockCounter-lists', stockCounterRouter);
+app.use('/stock-count', stockCounterRouter);
 
 // app.use('/productImport', importRouter);
 
