@@ -17,6 +17,7 @@ import { exportToTXT } from "../../../utils/exportUtils";
 import ProductLabelManager from "../price/ProductLabelManager";
 import { Checkbox, FormControlLabel } from "@mui/material"; // Agregá esto
 import { useEffect } from "react";
+import AddIcon from "@mui/icons-material/Add"; // al inicio del archivo
 
 export default function BranchListSelector() {
   const [selectedBranch, setSelectedBranch] = useState("");
@@ -56,17 +57,16 @@ export default function BranchListSelector() {
     }
   }, [lists]);
 
-const handleExport = (list) => {
-  console.log("LA LISTA", list);
-  console.log("LA list.products", list.products);
-  
-  const codes =
-    list.products
-      ?.map((p) => p.product?.barcode?.trim())
-      .filter(Boolean) || [];
+  const handleExport = (list) => {
+    console.log("LA LISTA", list);
+    console.log("LA list.products", list.products);
 
-  exportToTXT(codes, `etiquetas_${list.name.replace(/\s+/g, "_")}.txt`);
-};
+    const codes =
+      list.products?.map((p) => p.product?.barcode?.trim()).filter(Boolean) ||
+      [];
+
+    exportToTXT(codes, `etiquetas_${list.name.replace(/\s+/g, "_")}.txt`);
+  };
 
   return (
     <Box p={3}>
@@ -126,37 +126,34 @@ const handleExport = (list) => {
                 borderRadius: 2,
               }}
             >
-              <Box
-                display="flex"
-                alignItems="center"
-                justifyContent="space-between"
-                flexWrap="wrap"
-              >
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={selectedLists.includes(list._id)}
-                      onChange={() => toggleListSelection(list._id)}
-                    />
-                  }
-                  label=""
-                  sx={{ mr: 2 }}
-                />
+              <Box display="flex" flexDirection="column" gap={1}>
+                {/* Encabezado: checkbox + nombre */}
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Checkbox
+                    checked={selectedLists.includes(list._id)}
+                    onChange={() => toggleListSelection(list._id)}
+                  />
+                  <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+                    {list.name}
+                  </Typography>
+                </Box>
 
-                <Typography
-                  variant="subtitle1"
-                  sx={{ fontWeight: "bold", mb: { xs: 1, sm: 0 } }}
+                {/* Botones con diseño responsive */}
+                <Box
+                  display="flex"
+                  flexDirection={{ xs: "column", sm: "row" }}
+                  gap={1}
+                  flexWrap="wrap"
                 >
-                  {list.name}
-                </Typography>
-                <Box display="flex" flexWrap="wrap" gap={1}>
                   <Button
                     variant="outlined"
                     size="small"
+                    startIcon={<AddIcon />}
                     onClick={() => navigate(`/lists/${list._id}/add-products`)}
                   >
                     Agregar productos
                   </Button>
+
                   <Button
                     variant="outlined"
                     size="small"
@@ -164,6 +161,7 @@ const handleExport = (list) => {
                   >
                     Analizar ventas
                   </Button>
+
                   <Button
                     variant="outlined"
                     size="small"
@@ -172,6 +170,7 @@ const handleExport = (list) => {
                   >
                     Generar txt para etiquetas
                   </Button>
+
                   <Button
                     variant="outlined"
                     size="small"
@@ -180,32 +179,15 @@ const handleExport = (list) => {
                   >
                     Analizar precios
                   </Button>
-                  {/* <Button
-                    variant="outlined"
-                    size="small"
-                    color="info"
-                    onClick={() => navigate(`/lists/${list._id}/upload-prices`)}
-                  >
-                    Subir precios Excel
-                  </Button> */}
-                  {/* <Button
-                    size="small"
-                    variant="contained"
-                    color="secondary"
-                    onClick={() =>
-                      navigate(`/lists/${list._id}/products-to-retag`)
-                    }
-                  >
-                    Ver productos para reetiquetar
-                  </Button> */}
 
                   <Button
                     variant="outlined"
+                    size="small"
                     onClick={() =>
                       navigate(`/listas/${list._id}/historial-cargas`)
                     }
                   >
-                  Ver historial de cargas de precios
+                    Ver historial de cargas
                   </Button>
                 </Box>
               </Box>

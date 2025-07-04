@@ -137,3 +137,32 @@ console.log(branchId)
     res.status(500).json({ message: "Error al obtener listas por sucursal" });
   }
 };
+
+
+export const updateListStock = async (req, res) => {
+  try {
+    const { name,branchId  } = req.body;
+    const {listId} = req.params;
+      console.log("branchId",branchId)
+
+    if (!name) {
+      return res.status(400).json({ message: "El nombre es requerido" });
+    }
+
+    const updated = await StockCountList.findByIdAndUpdate(
+      listId,
+      { name, branch: branchId },
+
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Lista no encontrada" });
+    }
+
+    res.json(updated);
+  } catch (error) {
+    console.error("Error al editar lista:", error);
+    res.status(500).json({ message: "Error al editar la lista" });
+  }
+}

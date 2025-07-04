@@ -8,6 +8,7 @@ import {
   deleteStockCountList,
   removeProductFromStockCountList,
   getStockCountListsByBranch,
+  updateListStock,
 } from "../controllers/stockCountController.js";
 
 const router = express.Router();
@@ -36,4 +37,6 @@ router.delete("/:id", deleteStockCountList);
 // Nueva ruta para obtener listas por sucursal
 router.get("/branch/:branchId", getStockCountListsByBranch);
 
+
+router.put("/:listId", updateListStock);
 export default router;
