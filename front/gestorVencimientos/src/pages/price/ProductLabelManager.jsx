@@ -434,84 +434,78 @@ const ProductLabelManager = () => {
   const handleRemoveEspecial = (index) => {
     setEspeciales((prev) => prev.filter((_, i) => i !== index));
   };
-const generatePDF_Grandes = async () => {
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const generatePDF_Grandes = async () => {
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
 
-  const etiquetaAncho = 70;
-  const etiquetaAlto = 104;
-  const etiquetasPorFila = 2;
-  const etiquetasPorColumna = 2;
+    const etiquetaAncho = 70;
+    const etiquetaAlto = 104;
+    const etiquetasPorFila = 2;
+    const etiquetasPorColumna = 2;
 
-  const logoBase64 = await loadImageBase64("/logo.png");
+    const logoBase64 = await loadImageBase64("/logo.png");
 
-  especiales.forEach((p, i) => {
-    const col = i % etiquetasPorFila;
-    const row = Math.floor(i / etiquetasPorFila) % etiquetasPorColumna;
+    especiales.forEach((p, i) => {
+      const col = i % etiquetasPorFila;
+      const row = Math.floor(i / etiquetasPorFila) % etiquetasPorColumna;
 
-    if (i > 0 && i % (etiquetasPorFila * etiquetasPorColumna) === 0) {
-      doc.addPage();
-    }
-
-    const x = 10 + col * (etiquetaAncho + 10);
-    const y = 10 + row * (etiquetaAlto + 10);
-
-    // Borde
-    doc.setDrawColor(150);
-    doc.rect(x, y, etiquetaAncho, etiquetaAlto);
-
-    // Logo
-    if (logoBase64) {
-      doc.addImage(logoBase64, "PNG", x + 5, y + 5, 15, 15);
-    }
-
-    // Tipo de etiqueta
-    const label =
-      p.tipoEtiqueta === "oferta"
-        ? "OFERTA"
-        : p.tipoEtiqueta === "liquidacion"
-        ? "LIQUIDACIÓN"
-        : p.tipoEtiqueta === "nuevo"
-        ? "NUEVO"
-        : "";
-
-    const labelFontSize = label === "LIQUIDACIÓN" ? 16 : 20;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(labelFontSize);
-    doc.setTextColor(0);
-    doc.text(label, x + 23, y + 15);
-
-    // Nombre del producto
-    const nombreParaMostrar = p.manualName?.trim() || p.name || "";
-    const nameLines = splitTextByWidth(doc, nombreParaMostrar, etiquetaAncho - 5);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(12);
-    nameLines.forEach((line, idx) => {
-      doc.text(line, x + 8, y + 25 + idx * 6);
-    });
-
-    // Ajuste tamaño fuente precio según dígitos y tipoEtiqueta
-    const price = p.discountedPrice ?? p.currentPrice ?? 0;
-    const integerPrice = Math.floor(price);
-    const digitCount = integerPrice.toString().length;
-
-    let priceFontSize;
-
-    if (p.tipoEtiqueta === "nuevo") {
-      // Tamaños más grandes para 'nuevo' pero achicamos si muchos dígitos
-      if (digitCount > 6) {
-        priceFontSize = 40;
-      } else if (digitCount === 6) {
-        priceFontSize = 48;
-      } else if (digitCount === 5) {
-        priceFontSize = 56;
-      } else if (digitCount === 4) {
-        priceFontSize = 60;
-      } else {
-        priceFontSize = 70;
+      if (i > 0 && i % (etiquetasPorFila * etiquetasPorColumna) === 0) {
+        doc.addPage();
       }
-    } else {
-      // Tamaños para oferta y liquidacion
+
+      const x = 10 + col * (etiquetaAncho + 10);
+      const y = 10 + row * (etiquetaAlto + 10);
+
+      // Borde
+      doc.setDrawColor(150);
+      doc.rect(x, y, etiquetaAncho, etiquetaAlto);
+
+      // Logo
+      if (logoBase64) {
+        doc.addImage(logoBase64, "PNG", x + 5, y + 5, 15, 15);
+      }
+
+      // Tipo de etiqueta
+      const label =
+        p.tipoEtiqueta === "oferta"
+          ? "OFERTA"
+          : p.tipoEtiqueta === "liquidacion"
+          ? "LIQUIDACIÓN"
+          : p.tipoEtiqueta === "nuevo"
+          ? "NUEVO"
+          : "";
+
+      const labelFontSize = label === "LIQUIDACIÓN" ? 16 : 20;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(labelFontSize);
+      doc.setTextColor(0);
+      doc.text(label, x + 23, y + 15);
+
+      // Nombre del producto
+      const nombreParaMostrar = p.manualName?.trim() || p.name || "";
+      const nameLines = splitTextByWidth(
+        doc,
+        nombreParaMostrar,
+        etiquetaAncho - 5
+      );
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      nameLines.forEach((line, idx) => {
+        doc.text(line, x + 8, y + 25 + idx * 6);
+      });
+
+      // 🔁 Ajuste vertical según líneas del nombre
+      let offsetY;
+      if (nameLines.length === 1) offsetY = 6;
+      else if (nameLines.length === 2) offsetY = 3;
+      else offsetY = 0;
+
+      // Ajuste de tamaño de fuente según cantidad de dígitos en el precio
+      const price = p.discountedPrice ?? p.currentPrice ?? 0;
+      const integerPrice = Math.floor(price);
+      const digitCount = integerPrice.toString().length;
+
+      let priceFontSize;
       if (digitCount > 6) {
         priceFontSize = 28;
       } else if (digitCount === 6) {
@@ -523,64 +517,89 @@ const generatePDF_Grandes = async () => {
       } else {
         priceFontSize = 60;
       }
-    }
 
-    if (p.tipoEtiqueta === "nuevo") {
-      doc.setFont("times", "bold");
-      doc.setFontSize(priceFontSize);
-      doc.setTextColor(0);
-      doc.text(
-        `$${integerPrice.toFixed(0)}`,
-        x + etiquetaAncho / 2,
-        y + etiquetaAlto / 2 + 10,
-        { align: "center" }
-      );
-    } else if (["oferta", "liquidacion"].includes(p.tipoEtiqueta)) {
-      // % OFF y precio anterior
-      const descuento = p.discount ?? 0;
-      const prevPrice = p.manualPreviousPrice ?? p.currentPrice ?? 0;
+      if (p.tipoEtiqueta === "nuevo") {
+        doc.setFont("times", "bold");
+        doc.setFontSize(priceFontSize);
+        doc.setTextColor(0);
+        doc.text(
+          `$${integerPrice.toFixed(0)}`,
+          x + etiquetaAncho / 2,
+          y + etiquetaAlto / 2 + 10 - offsetY,
+          { align: "center" }
+        );
+      } else if (["oferta", "liquidacion"].includes(p.tipoEtiqueta)) {
+        const descuento = p.discount ?? 0;
+        const prevPrice = p.manualPreviousPrice ?? p.currentPrice ?? 0;
+        // Cantidad de líneas del nombre del producto
+        const nameLineCount = nameLines.length;
 
-      doc.setFontSize(14);
-      doc.setTextColor(0);
-      doc.text(`${descuento}% OFF`, x + 8, y + 50);
+        // Ajustes dinámicos según cantidad de líneas
+        const offsetY =
+          nameLineCount <= 1
+            ? -10
+            : nameLineCount === 2
+            ? -6
+            : nameLineCount === 3
+            ? -2
+            : 0;
+        doc.setFontSize(11);
+        doc.setTextColor(0);
+        doc.text(`${descuento}% OFF`, x + 8, y + 50 + offsetY);
 
-      const prevText = `$${prevPrice.toFixed(2)}`;
-      const prevWidth = doc.getTextWidth(prevText);
-      doc.text(prevText, x + 8, y + 56);
-      doc.setLineWidth(0.5);
-      doc.line(x + 8, y + 55.5, x + 8 + prevWidth, y + 55.5);
+        const prevText = `$${prevPrice.toFixed(2)}`;
+        const prevWidth = doc.getTextWidth(prevText);
+        doc.text(prevText, x + 8, y + 56 + offsetY);
+        doc.setLineWidth(0.5);
+        doc.line(
+          x + 8,
+          y + 55.5 + offsetY,
+          x + 8 + prevWidth,
+          y + 55.5 + offsetY
+        );
 
-      doc.setFont("times", "bold");
-      doc.setFontSize(priceFontSize);
-      doc.setTextColor(0);
-      doc.text(`$${integerPrice.toFixed(0)}`, x + etiquetaAncho / 2, y + 78, {
-        align: "center",
-      });
-    }
+        doc.setFont("times", "bold");
+        doc.setFontSize(priceFontSize);
+        doc.setTextColor(0);
+        doc.text(
+          `$${integerPrice.toFixed(0)}`,
+          x + etiquetaAncho / 2,
+          y + 78 + offsetY,
+          {
+            align: "center",
+          }
+        );
+      }
 
-    // Código de barras
-    if (p.barcode) {
-      const barcodeImg = generateBarcodeImage(p.barcode);
-      const barcodeY = y + etiquetaAlto - 20;
+      // Código de barras
+      if (p.barcode) {
+        const barcodeImg = generateBarcodeImage(p.barcode);
+        const barcodeY = y + etiquetaAlto - 20;
 
-      doc.addImage(barcodeImg, "PNG", x + 8, barcodeY, etiquetaAncho - 16, 10);
-      doc.setFontSize(8);
-      doc.setTextColor(80);
-      doc.text(p.barcode, x + etiquetaAncho / 2, barcodeY + 12, {
-        align: "center",
-      });
-    }
+        doc.addImage(
+          barcodeImg,
+          "PNG",
+          x + 8,
+          barcodeY,
+          etiquetaAncho - 16,
+          10
+        );
+        doc.setFontSize(8);
+        doc.setTextColor(80);
+        doc.text(p.barcode, x + etiquetaAncho / 2, barcodeY + 12, {
+          align: "center",
+        });
+      }
 
-    // Fecha
-    const fecha = dayjs().format("DD/MM/YYYY");
-    doc.setFontSize(7);
-    doc.setTextColor(120);
-    doc.text(fecha, x + etiquetaAncho - 22, y + etiquetaAlto - 4);
-  });
+      // Fecha
+      const fecha = dayjs().format("DD/MM/YYYY");
+      doc.setFontSize(7);
+      doc.setTextColor(120);
+      doc.text(fecha, x + etiquetaAncho - 22, y + etiquetaAlto - 4);
+    });
 
-  doc.save("etiquetas_especiales.pdf");
-};
-
+    doc.save("etiquetas_especiales.pdf");
+  };
 
   const generatePDF_Clasicas = () => {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -668,143 +687,140 @@ const generatePDF_Grandes = async () => {
     doc.save("etiquetas_clasicas.pdf");
   };
 
-  
-// const generatePDF_Grandes = async () => {
-//   const doc = new jsPDF({ unit: "mm", format: "a4" });
+  // const generatePDF_Grandes = async () => {
+  //   const doc = new jsPDF({ unit: "mm", format: "a4" });
 
-//   const etiquetaAncho = 70;
-//   const etiquetaAlto = 104;
-//   const etiquetasPorFila = 2;
-//   const etiquetasPorColumna = 2;
+  //   const etiquetaAncho = 70;
+  //   const etiquetaAlto = 104;
+  //   const etiquetasPorFila = 2;
+  //   const etiquetasPorColumna = 2;
 
-//   const logoBase64 = await loadImageBase64("/logo.png");
+  //   const logoBase64 = await loadImageBase64("/logo.png");
 
-//   especiales.forEach((p, i) => {
-//     const col = i % etiquetasPorFila;
-//     const row = Math.floor(i / etiquetasPorFila) % etiquetasPorColumna;
+  //   especiales.forEach((p, i) => {
+  //     const col = i % etiquetasPorFila;
+  //     const row = Math.floor(i / etiquetasPorFila) % etiquetasPorColumna;
 
-//     if (i > 0 && i % (etiquetasPorFila * etiquetasPorColumna) === 0) {
-//       doc.addPage();
-//     }
+  //     if (i > 0 && i % (etiquetasPorFila * etiquetasPorColumna) === 0) {
+  //       doc.addPage();
+  //     }
 
-//     const x = 10 + col * (etiquetaAncho + 10);
-//     const y = 10 + row * (etiquetaAlto + 10);
+  //     const x = 10 + col * (etiquetaAncho + 10);
+  //     const y = 10 + row * (etiquetaAlto + 10);
 
-//     // Borde
-//     doc.setDrawColor(150);
-//     doc.rect(x, y, etiquetaAncho, etiquetaAlto);
+  //     // Borde
+  //     doc.setDrawColor(150);
+  //     doc.rect(x, y, etiquetaAncho, etiquetaAlto);
 
-//     // Logo
-//     if (logoBase64) {
-//       doc.addImage(logoBase64, "PNG", x + 5, y + 5, 15, 15);
-//     }
+  //     // Logo
+  //     if (logoBase64) {
+  //       doc.addImage(logoBase64, "PNG", x + 5, y + 5, 15, 15);
+  //     }
 
-//     // Tipo de etiqueta
-//     const label =
-//       p.tipoEtiqueta === "oferta"
-//         ? "OFERTA"
-//         : p.tipoEtiqueta === "liquidacion"
-//         ? "LIQUIDACIÓN"
-//         : p.tipoEtiqueta === "nuevo"
-//         ? "NUEVO"
-//         : "";
+  //     // Tipo de etiqueta
+  //     const label =
+  //       p.tipoEtiqueta === "oferta"
+  //         ? "OFERTA"
+  //         : p.tipoEtiqueta === "liquidacion"
+  //         ? "LIQUIDACIÓN"
+  //         : p.tipoEtiqueta === "nuevo"
+  //         ? "NUEVO"
+  //         : "";
 
-//     const labelFontSize = label === "LIQUIDACIÓN" ? 16 : 20;
-//     doc.setFont("helvetica", "bold");
-//     doc.setFontSize(labelFontSize);
-//     doc.setTextColor(0);
-//     doc.text(label, x + 23, y + 15);
+  //     const labelFontSize = label === "LIQUIDACIÓN" ? 16 : 20;
+  //     doc.setFont("helvetica", "bold");
+  //     doc.setFontSize(labelFontSize);
+  //     doc.setTextColor(0);
+  //     doc.text(label, x + 23, y + 15);
 
-//     // Nombre del producto
-//     const nombreParaMostrar = p.manualName?.trim() || p.name || "";
-//     const nameLines = splitTextByWidth(
-//       doc,
-//       nombreParaMostrar,
-//       etiquetaAncho - 5
-//     );
-//     console.log("nameLines",nameLines)
-//     doc.setFont("helvetica", "normal");
-//     doc.setFontSize(12);
-//     nameLines.forEach((line, idx) => {
-//       doc.text(line, x + 8, y + 25 + idx * 6);
-//     });
+  //     // Nombre del producto
+  //     const nombreParaMostrar = p.manualName?.trim() || p.name || "";
+  //     const nameLines = splitTextByWidth(
+  //       doc,
+  //       nombreParaMostrar,
+  //       etiquetaAncho - 5
+  //     );
+  //     console.log("nameLines",nameLines)
+  //     doc.setFont("helvetica", "normal");
+  //     doc.setFontSize(12);
+  //     nameLines.forEach((line, idx) => {
+  //       doc.text(line, x + 8, y + 25 + idx * 6);
+  //     });
 
-//     // Ajuste de tamaño de fuente según cantidad de dígitos en el precio
-//     const price = p.discountedPrice ?? p.currentPrice ?? 0;
-//     const integerPrice = Math.floor(price);
-//     const digitCount = integerPrice.toString().length;
+  //     // Ajuste de tamaño de fuente según cantidad de dígitos en el precio
+  //     const price = p.discountedPrice ?? p.currentPrice ?? 0;
+  //     const integerPrice = Math.floor(price);
+  //     const digitCount = integerPrice.toString().length;
 
-//     let priceFontSize;
-//     if (digitCount > 6) {
-//       priceFontSize = 28;
-//     } else if (digitCount === 6) {
-//       priceFontSize = 38;
-//     } else if (digitCount === 5) {
-//       priceFontSize = 40;
-//     } else if (digitCount === 4) {
-//       priceFontSize = 44;
-//     } else {
-//       priceFontSize = 60;
-//     }
+  //     let priceFontSize;
+  //     if (digitCount > 6) {
+  //       priceFontSize = 28;
+  //     } else if (digitCount === 6) {
+  //       priceFontSize = 38;
+  //     } else if (digitCount === 5) {
+  //       priceFontSize = 40;
+  //     } else if (digitCount === 4) {
+  //       priceFontSize = 44;
+  //     } else {
+  //       priceFontSize = 60;
+  //     }
 
-//     if (p.tipoEtiqueta === "nuevo") {
-//       doc.setFont("times", "bold");
-//       doc.setFontSize(priceFontSize);
-//       doc.setTextColor(0);
-//       doc.text(
-//         `$${integerPrice.toFixed(0)}`,
-//         x + etiquetaAncho / 2,
-//         y + etiquetaAlto / 2 + 10,
-//         { align: "center" }
-//       );
-//     } else if (["oferta", "liquidacion"].includes(p.tipoEtiqueta)) {
-//       // % OFF y precio anterior
-//       const descuento = p.discount ?? 0;
-//       const prevPrice = p.manualPreviousPrice ?? p.currentPrice ?? 0;
+  //     if (p.tipoEtiqueta === "nuevo") {
+  //       doc.setFont("times", "bold");
+  //       doc.setFontSize(priceFontSize);
+  //       doc.setTextColor(0);
+  //       doc.text(
+  //         `$${integerPrice.toFixed(0)}`,
+  //         x + etiquetaAncho / 2,
+  //         y + etiquetaAlto / 2 + 10,
+  //         { align: "center" }
+  //       );
+  //     } else if (["oferta", "liquidacion"].includes(p.tipoEtiqueta)) {
+  //       // % OFF y precio anterior
+  //       const descuento = p.discount ?? 0;
+  //       const prevPrice = p.manualPreviousPrice ?? p.currentPrice ?? 0;
 
-//       doc.setFontSize(14);
-//       doc.setTextColor(0);
-//       doc.text(`${descuento}% OFF`, x + 8, y + 50);
+  //       doc.setFontSize(14);
+  //       doc.setTextColor(0);
+  //       doc.text(`${descuento}% OFF`, x + 8, y + 50);
 
-//       const prevText = `$${prevPrice.toFixed(2)}`;
-//       const prevWidth = doc.getTextWidth(prevText);
-//       doc.text(prevText, x + 8, y + 56);
-//       doc.setLineWidth(0.5);
-//       doc.line(x + 8, y + 55.5, x + 8 + prevWidth, y + 55.5);
+  //       const prevText = `$${prevPrice.toFixed(2)}`;
+  //       const prevWidth = doc.getTextWidth(prevText);
+  //       doc.text(prevText, x + 8, y + 56);
+  //       doc.setLineWidth(0.5);
+  //       doc.line(x + 8, y + 55.5, x + 8 + prevWidth, y + 55.5);
 
-//       doc.setFont("times", "bold");
-//       doc.setFontSize(priceFontSize);
-//       doc.setTextColor(0);
-//       doc.text(`$${integerPrice.toFixed(0)}`, x + etiquetaAncho / 2, y + 78, {
-//         align: "center",
-//       });
-//     }
+  //       doc.setFont("times", "bold");
+  //       doc.setFontSize(priceFontSize);
+  //       doc.setTextColor(0);
+  //       doc.text(`$${integerPrice.toFixed(0)}`, x + etiquetaAncho / 2, y + 78, {
+  //         align: "center",
+  //       });
+  //     }
 
-//     // Código de barras
-//     if (p.barcode) {
-//       const barcodeImg = generateBarcodeImage(p.barcode);
-//       const barcodeY = y + etiquetaAlto - 20;
+  //     // Código de barras
+  //     if (p.barcode) {
+  //       const barcodeImg = generateBarcodeImage(p.barcode);
+  //       const barcodeY = y + etiquetaAlto - 20;
 
-//       doc.addImage(barcodeImg, "PNG", x + 8, barcodeY, etiquetaAncho - 16, 10);
-//       doc.setFontSize(8);
-//       doc.setTextColor(80);
-//       doc.text(p.barcode, x + etiquetaAncho / 2, barcodeY + 12, {
-//         align: "center",
-//       });
-//     }
+  //       doc.addImage(barcodeImg, "PNG", x + 8, barcodeY, etiquetaAncho - 16, 10);
+  //       doc.setFontSize(8);
+  //       doc.setTextColor(80);
+  //       doc.text(p.barcode, x + etiquetaAncho / 2, barcodeY + 12, {
+  //         align: "center",
+  //       });
+  //     }
 
-//     // Fecha
-//     const fecha = dayjs().format("DD/MM/YYYY");
-//     doc.setFontSize(7);
-//     doc.setTextColor(120);
-//     doc.text(fecha, x + etiquetaAncho - 22, y + etiquetaAlto - 4);
-//   });
+  //     // Fecha
+  //     const fecha = dayjs().format("DD/MM/YYYY");
+  //     doc.setFontSize(7);
+  //     doc.setTextColor(120);
+  //     doc.text(fecha, x + etiquetaAncho - 22, y + etiquetaAlto - 4);
+  //   });
 
-//   doc.save("etiquetas_especiales.pdf");
-// };
+  //   doc.save("etiquetas_especiales.pdf");
+  // };
 
-
-  
   // 🔁 Divide texto sin cortar palabras
   const splitTextByWidth = (doc, text, maxWidth) => {
     const words = text.split(" ");
