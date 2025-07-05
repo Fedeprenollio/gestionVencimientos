@@ -400,7 +400,15 @@
 
 // ProductLabelManager.jsx
 import React, { useEffect, useState } from "react";
-import { Box, Button, Grid, Typography, Divider, Tabs, Tab } from "@mui/material";
+import {
+  Box,
+  Button,
+  Grid,
+  Typography,
+  Divider,
+  Tabs,
+  Tab,
+} from "@mui/material";
 import ClasicasInput from "./ClasicasInput";
 import EspecialesInput from "./EspecialesInput";
 import EtiquetaPreview from "./EtiquetaPreview";
@@ -544,22 +552,26 @@ const ProductLabelManager = () => {
             : nameLineCount === 3
             ? -2
             : 0;
-        doc.setFontSize(11);
+
+        // Agrandar % OFF
+        doc.setFontSize(20); // tamaño más grande solo para % OFF
         doc.setTextColor(0);
         doc.text(`${descuento}% OFF`, x + 8, y + 50 + offsetY);
 
-        const prevText = `$${prevPrice.toFixed(2)}`;
-        const prevWidth = doc.getTextWidth(prevText);
-        doc.text(prevText, x + 8, y + 56 + offsetY);
+        // Volver a tamaño normal para precio anterior
+        doc.setFontSize(15);
+        doc.setTextColor(100);
+        const prevPriceText = `$${prevPrice.toFixed(2)}`;
+        doc.text(prevPriceText, x + 8, y + 56 + offsetY);
         doc.setLineWidth(0.5);
         doc.line(
           x + 8,
-          y + 55.5 + offsetY,
-          x + 8 + prevWidth,
-          y + 55.5 + offsetY
+          y + 54.8 + offsetY,
+          x + 8 + doc.getTextWidth(prevPriceText),
+          y + 54.8+ offsetY
         );
 
-        doc.setFont("times", "bold");
+        doc.setFont("helvetica", "bold");
         doc.setFontSize(priceFontSize);
         doc.setTextColor(0);
         doc.text(
@@ -663,7 +675,7 @@ const ProductLabelManager = () => {
       doc.text(prevPriceText, x + 2, y + 20);
       const prevWidth = doc.getTextWidth(prevPriceText);
       doc.setLineWidth(0.5);
-      doc.line(x + 2, y + 19.5, x + 2 + prevWidth, y + 19.5);
+      doc.line(x + 2, y + 19, x + 2 + prevWidth, y + 19);
 
       doc.setFontSize(28);
       doc.setTextColor(0);
@@ -881,7 +893,7 @@ const ProductLabelManager = () => {
       return updated;
     });
   };
-    const handleTabChange = (event, newValue) => {
+  const handleTabChange = (event, newValue) => {
     setTabIndex(newValue);
   };
 
@@ -889,97 +901,91 @@ const ProductLabelManager = () => {
     <Box sx={{ p: 2 }}>
       <Typography variant="h5">Generador de Etiquetas</Typography>
 
- {/* Pestañas */}
+      {/* Pestañas */}
       <Tabs value={tabIndex} onChange={handleTabChange} sx={{ mb: 2 }}>
         <Tab label="Etiquetas Clásicas" />
         <Tab label="Etiquetas Especiales" />
       </Tabs>
 
-        { tabIndex === 0 && (
-            <Box>
-              <Box mt={2}>
-                {/* <Typography variant="h6">Etiquetas Clásicas</Typography> */}
-                <ClasicasInput
-                  productos={clasicos}
-                  setProductos={setClasicos}
-                  generateBarcodeImage={generateBarcodeImage}
-                />
-              </Box>
-              {clasicos.length > 0 && (
-                <Button
-                  variant="contained"
-                  color="success"
-                  sx={{ mt: 2 }}
-                  onClick={generatePDF_Clasicas}
-                >
-                  Generar PDF de etiquetas clásicas
-                </Button>
-              )}
-
-
-            </Box>
-          
-
-        )     }
+      {tabIndex === 0 && (
+        <Box>
+          <Box mt={2}>
+            {/* <Typography variant="h6">Etiquetas Clásicas</Typography> */}
+            <ClasicasInput
+              productos={clasicos}
+              setProductos={setClasicos}
+              generateBarcodeImage={generateBarcodeImage}
+            />
+          </Box>
+          {clasicos.length > 0 && (
+            <Button
+              variant="contained"
+              color="success"
+              sx={{ mt: 2 }}
+              onClick={generatePDF_Clasicas}
+            >
+              Generar PDF de etiquetas clásicas
+            </Button>
+          )}
+        </Box>
+      )}
       {/* CLASICAS */}
 
       {/* <Divider sx={{ my: 4 }} /> */}
 
-        { tabIndex === 1 && (
+      {tabIndex === 1 && (
+        <Box>
+          {/* ESPECIALES */}
           <Box>
-      {/* ESPECIALES */}
-      <Box>
-        {/* <Typography variant="h6">Etiquetas Especiales</Typography> */}
-        <EspecialesInput productos={especiales} setProductos={setEspeciales} />
+            {/* <Typography variant="h6">Etiquetas Especiales</Typography> */}
+            <EspecialesInput
+              productos={especiales}
+              setProductos={setEspeciales}
+            />
 
-        <Grid container spacing={2} mt={2}>
-          {especiales.map((p, i) => (
-            <Grid item xs={12} md={6} key={p._id}>
-              <EtiquetaPreview
-                producto={p}
-                onChange={(field, value) => {
-                  const updated = [...especiales];
-                  updated[i][field] = value;
+            <Grid container spacing={2} mt={2}>
+              {especiales.map((p, i) => (
+                <Grid item xs={12} md={6} key={p._id}>
+                  <EtiquetaPreview
+                    producto={p}
+                    onChange={(field, value) => {
+                      const updated = [...especiales];
+                      updated[i][field] = value;
 
-                  const base =
-                    updated[i].manualPreviousPrice &&
-                    updated[i].manualPreviousPrice > 0
-                      ? updated[i].manualPreviousPrice
-                      : updated[i].manualPrice && updated[i].manualPrice > 0
-                      ? updated[i].manualPrice
-                      : updated[i].currentPrice || 0;
+                      const base =
+                        updated[i].manualPreviousPrice &&
+                        updated[i].manualPreviousPrice > 0
+                          ? updated[i].manualPreviousPrice
+                          : updated[i].manualPrice && updated[i].manualPrice > 0
+                          ? updated[i].manualPrice
+                          : updated[i].currentPrice || 0;
 
-                  const discount = updated[i].discount || 0;
-                  updated[i].discountedPrice = Number(
-                    (base * (1 - discount / 100)).toFixed(2)
-                  );
+                      const discount = updated[i].discount || 0;
+                      updated[i].discountedPrice = Number(
+                        (base * (1 - discount / 100)).toFixed(2)
+                      );
 
-                  setEspeciales(updated);
-                }}
-                onRemove={() => handleRemoveEspecial(i)}
-              />
+                      setEspeciales(updated);
+                    }}
+                    onRemove={() => handleRemoveEspecial(i)}
+                  />
+                </Grid>
+              ))}
             </Grid>
-          ))}
-        </Grid>
 
-        {especiales.length > 0 && (
-          <Button
-            variant="contained"
-            color="success"
-            sx={{ mt: 3 }}
-            onClick={generatePDF_Grandes}
-          >
-            Generar PDF de etiquetas especiales
-          </Button>
-        )}
-      </Box>
-
-
+            {especiales.length > 0 && (
+              <Button
+                variant="contained"
+                color="success"
+                sx={{ mt: 3 }}
+                onClick={generatePDF_Grandes}
+              >
+                Generar PDF de etiquetas especiales
+              </Button>
+            )}
           </Box>
-
-
-        )   }
-
+        </Box>
+      )}
     </Box>
   );
 };
