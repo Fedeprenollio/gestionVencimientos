@@ -163,9 +163,19 @@ const EspecialesInput = ({ productos, setProductos }) => {
                 size="small"
                 color="error"
                 onClick={() => handleDeleteProduct(i)}
-                sx={{ position: "absolute", top: 4, right: 4 }}
+                sx={{
+                  position: "absolute",
+                  top: 6,
+                  right: 6,
+                  bgcolor: "#fff",
+                  border: "1px solid #ddd",
+                  zIndex: 10,
+                  "&:hover": {
+                    bgcolor: "#fdd",
+                  },
+                }}
               >
-                <DeleteIcon />
+                <DeleteIcon fontSize="small" />
               </IconButton>
 
               <TextField
@@ -179,8 +189,8 @@ const EspecialesInput = ({ productos, setProductos }) => {
 
               {!p.currentPrice || p.currentPrice <= 0 ? (
                 <TextField
-                size="small"
-                 sx={{ mt: 0.5 }}
+                  size="small"
+                  sx={{ mt: 0.5 }}
                   label="Precio"
                   type="number"
                   value={p.manualPrice || ""}
@@ -188,7 +198,6 @@ const EspecialesInput = ({ productos, setProductos }) => {
                     updateProductField(i, "manualPrice", Number(e.target.value))
                   }
                   fullWidth
-                 
                 />
               ) : (
                 <Typography variant="body2" sx={{ mt: 1 }}>
@@ -198,7 +207,7 @@ const EspecialesInput = ({ productos, setProductos }) => {
 
               <TextField
                 size="small"
-                 sx={{ mt: 0.5 }}
+                sx={{ mt: 0.5 }}
                 label="% Descuento"
                 type="number"
                 value={p.discount}
@@ -209,7 +218,7 @@ const EspecialesInput = ({ productos, setProductos }) => {
               />
               <TextField
                 size="small"
-                 sx={{ mt: 0.5 }}
+                sx={{ mt: 0.5 }}
                 label="Precio anterior"
                 type="number"
                 value={p.manualPreviousPrice ?? ""}

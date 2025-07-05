@@ -400,7 +400,7 @@
 
 // ProductLabelManager.jsx
 import React, { useEffect, useState } from "react";
-import { Box, Button, Grid, Typography, Divider } from "@mui/material";
+import { Box, Button, Grid, Typography, Divider, Tabs, Tab } from "@mui/material";
 import ClasicasInput from "./ClasicasInput";
 import EspecialesInput from "./EspecialesInput";
 import EtiquetaPreview from "./EtiquetaPreview";
@@ -421,6 +421,7 @@ const generateBarcodeImage = (text) => {
 const ProductLabelManager = () => {
   const [clasicos, setClasicos] = useState([]);
   const [especiales, setEspeciales] = useState([]);
+  const [tabIndex, setTabIndex] = useState(0); // Estado para la pestaña activa
 
   useEffect(() => {
     const saved = localStorage.getItem("labels_clasicos");
@@ -880,36 +881,55 @@ const ProductLabelManager = () => {
       return updated;
     });
   };
+    const handleTabChange = (event, newValue) => {
+    setTabIndex(newValue);
+  };
 
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h5">Generador de Etiquetas</Typography>
 
+ {/* Pestañas */}
+      <Tabs value={tabIndex} onChange={handleTabChange} sx={{ mb: 2 }}>
+        <Tab label="Etiquetas Clásicas" />
+        <Tab label="Etiquetas Especiales" />
+      </Tabs>
+
+        { tabIndex === 0 && (
+            <Box>
+              <Box mt={2}>
+                {/* <Typography variant="h6">Etiquetas Clásicas</Typography> */}
+                <ClasicasInput
+                  productos={clasicos}
+                  setProductos={setClasicos}
+                  generateBarcodeImage={generateBarcodeImage}
+                />
+              </Box>
+              {clasicos.length > 0 && (
+                <Button
+                  variant="contained"
+                  color="success"
+                  sx={{ mt: 2 }}
+                  onClick={generatePDF_Clasicas}
+                >
+                  Generar PDF de etiquetas clásicas
+                </Button>
+              )}
+
+
+            </Box>
+          
+
+        )     }
       {/* CLASICAS */}
-      <Box mt={2}>
-        <Typography variant="h6">Etiquetas Clásicas</Typography>
-        <ClasicasInput
-          productos={clasicos}
-          setProductos={setClasicos}
-          generateBarcodeImage={generateBarcodeImage}
-        />
-      </Box>
-      {clasicos.length > 0 && (
-        <Button
-          variant="contained"
-          color="success"
-          sx={{ mt: 2 }}
-          onClick={generatePDF_Clasicas}
-        >
-          Generar PDF de etiquetas clásicas
-        </Button>
-      )}
 
-      <Divider sx={{ my: 4 }} />
+      {/* <Divider sx={{ my: 4 }} /> */}
 
+        { tabIndex === 1 && (
+          <Box>
       {/* ESPECIALES */}
       <Box>
-        <Typography variant="h6">Etiquetas Especiales</Typography>
+        {/* <Typography variant="h6">Etiquetas Especiales</Typography> */}
         <EspecialesInput productos={especiales} setProductos={setEspeciales} />
 
         <Grid container spacing={2} mt={2}>
@@ -953,6 +973,13 @@ const ProductLabelManager = () => {
           </Button>
         )}
       </Box>
+
+
+          </Box>
+
+
+        )   }
+
     </Box>
   );
 };
