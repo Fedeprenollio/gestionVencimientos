@@ -49,6 +49,7 @@ export default function AddProductsLocal() {
     message: "",
     severity: "success",
   });
+  const [loadingSearch, setLoadingSearch] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -75,27 +76,59 @@ export default function AddProductsLocal() {
     },
   });
 
+  // const handleSearch = async (codebar) => {
+  //   if (!codebar) return;
+  //   const res = await fetchProducts(codebar);
+  //     setLoadingSearch(true);
+
+  //   if (res.length > 0) {
+  //     const product = res[0];
+  //     setProductExists(true);
+  //     setBarcode(product.barcode || codebar);
+  //     await handleAddToList(product._id);
+  //   } else {
+  //     setProductExists(false);
+  //     setBarcode(codebar);
+  //     setShowCreateModal(true);
+  //   }
+  // };
+
   const handleSearch = async (codebar) => {
     if (!codebar) return;
-    const res = await fetchProducts(codebar);
-    if (res.length > 0) {
-      const product = res[0];
-      setProductExists(true);
-      setBarcode(product.barcode || codebar);
-      await handleAddToList(product._id);
-    } else {
-      setProductExists(false);
-      setBarcode(codebar);
-      setShowCreateModal(true);
+    setLoadingSearch(true);
+    try {
+      const res = await fetchProducts(codebar);
+      if (res.length > 0) {
+        const product = res[0];
+        setProductExists(true);
+        setBarcode(product.barcode || codebar);
+        await handleAddToList(product._id);
+      } else {
+        setProductExists(false);
+        setBarcode(codebar);
+        setShowCreateModal(true);
+      }
+    } catch (err) {
+      console.error("Error en búsqueda:", err);
+    } finally {
+      setLoadingSearch(false);
     }
   };
 
+  // const handleAddToList = async (productId) => {
+  //   await addProductToList(listId, productId);
+  //   loadList();
+  //   setBarcode("");
+  //   barcodeInputRef.current?.focus();
+  // };
+
   const handleAddToList = async (productId) => {
-    await addProductToList(listId, productId);
-    loadList();
-    setBarcode("");
-    barcodeInputRef.current?.focus();
-  };
+  await addProductToList(listId, productId);
+  showFeedback("Producto agregado correctamente", "success"); // ✅
+  loadList();
+  setBarcode("");
+  barcodeInputRef.current?.focus();
+};
 
   const handleRemoveFromList = async (productId) => {
     if (!window.confirm("¿Estás seguro que querés eliminar estos productos?"))
@@ -121,8 +154,8 @@ export default function AddProductsLocal() {
     setLoadingBulk(true);
     const codes = parseBarcodes(bulkAddInput);
     const existingCodes = new Set(
-  list.products.map((p) => p.product?.barcode?.trim()).filter(Boolean)
-);
+      list.products.map((p) => p.product?.barcode?.trim()).filter(Boolean)
+    );
 
     try {
       for (const code of codes) {
@@ -149,12 +182,11 @@ export default function AddProductsLocal() {
     setLoadingBulk(true);
     const codesToRemove = parseBarcodes(bulkRemoveInput);
     const codeToProductMap = {};
-  list.products.forEach((p) => {
-  if (p.product?.barcode) {
-    codeToProductMap[p.product.barcode.trim()] = p.product._id;
-  }
-});
-
+    list.products.forEach((p) => {
+      if (p.product?.barcode) {
+        codeToProductMap[p.product.barcode.trim()] = p.product._id;
+      }
+    });
 
     try {
       for (const code of codesToRemove) {
@@ -181,6 +213,22 @@ export default function AddProductsLocal() {
       <Typography variant="h6">
         Agregar productos a la lista: {list.name}
       </Typography>
+      {loadingSearch && (
+        <Box
+          position="fixed"
+          top={0}
+          left={0}
+          width="100vw"
+          height="100vh"
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          bgcolor="rgba(255, 255, 255, 0.6)"
+          zIndex={1300}
+        >
+          <CircularProgress />
+        </Box>
+      )}
 
       <BarcodeSearchSection
         barcode={barcode}
@@ -274,13 +322,30 @@ export default function AddProductsLocal() {
         </Table>
       </Paper>
 
-      {loadingBulk && <Typography mt={2}>Procesando...</Typography>}
-
+      {loadingBulk && (
+        <Box
+          sx={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(255,255,255,0.6)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1300, // mayor que el z-index de Paper
+          }}
+        >
+          <CircularProgress size={60} />
+          <Typography mt={2}>Procesando...</Typography>
+        </Box>
+      )}
       <Snackbar
         open={feedback.open}
         autoHideDuration={4000}
         onClose={() => setFeedback({ ...feedback, open: false })}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
           onClose={() => setFeedback({ ...feedback, open: false })}

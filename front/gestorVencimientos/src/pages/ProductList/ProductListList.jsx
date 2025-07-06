@@ -20,9 +20,17 @@ import { useEffect } from "react";
 import AddIcon from "@mui/icons-material/Add"; // al inicio del archivo
 
 export default function BranchListSelector() {
-  const [selectedBranch, setSelectedBranch] = useState("");
   const [selectedLists, setSelectedLists] = useState([]);
   const navigate = useNavigate();
+  const [selectedBranch, setSelectedBranch] = useState(() => {
+  return localStorage.getItem("lastSelectedBranch") || "";
+});
+
+useEffect(() => {
+  if (selectedBranch) {
+    localStorage.setItem("lastSelectedBranch", selectedBranch);
+  }
+}, [selectedBranch]);
 
   const toggleListSelection = (listId) => {
     setSelectedLists((prev) =>
