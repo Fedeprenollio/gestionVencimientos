@@ -276,3 +276,49 @@ res.json({ message: "Lote actualizado", lot: plainLot });
     res.status(500).json({ message: "Error al actualizar el lote" });
   }
 };
+
+
+// GET /lots/expiring
+export const getExpiringLotsFlat = async (req, res) => {
+  const {
+    from,
+    months = 1,
+    branch,
+  } = req.query;
+
+  try {
+    const fromDate = dayjs(from || dayjs()).startOf("month").toDate();
+    const untilDate = dayjs(fromDate).add(Number(months), "month").toDate();
+
+    const filter = {
+      expirationDate: { $gte: fromDate, $lt: untilDate },
+    };
+
+    if (branch) filter.branch = branch;
+
+    const lots = await Lot.find(filter)
+      .populate("productId", "name barcode")
+      .populate("branch", "name")
+      .lean();
+
+    const response = lots.map((lot) => ({
+      _id: lot._id,
+      expirationDate: lot.expirationDate,
+      quantity: lot.quantity,
+      branch: lot.branch?.name || "",
+      createdAt: lot.createdAt,
+      overstock: lot.overstock === true,
+      productId: {
+        _id: lot.productId?._id,
+        name: lot.productId?.name,
+        barcode: lot.productId?.barcode,
+      },
+    }));
+
+    res.json(response);
+  } catch (err) {
+    console.error("Error al obtener lotes planos:", err);
+    res.status(500).json({ message: "Error al obtener lotes planos" });
+  }
+};
+

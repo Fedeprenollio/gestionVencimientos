@@ -67,7 +67,8 @@ export default function ExpiringProductList() {
     );
     setProducts(res.data);
   };
-
+  
+console.log("PRODUCTOS DEL FILTRO::::", products)
   const handleFilter = (newFilters) => {
     setFilters(newFilters);
     // fetchProducts(newFilters);
