@@ -4,6 +4,7 @@ import {
   createProduct,
   deleteProduct,
   getExpiringProducts,
+  getExpiringProductsLotesComoString,
   getPriceHistory,
   getProductByBarcode,
   getProductsWithoutPrice,
@@ -16,6 +17,9 @@ import Product from '../models/Product.js';
 
 const productRoutes = express.Router();
 productRoutes.get('/', getExpiringProducts);
+// getExpiringProductsLotesComoString
+productRoutes.get('/lotesComoString', getExpiringProductsLotesComoString);
+
 productRoutes.get('/without-price', getProductsWithoutPrice);
 productRoutes.get('/search', searchProductsByName);
 productRoutes.get('/:barcode', getProductByBarcode);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import MonthExpirationScanner from "./MonthExpirationScanner";
+import ReturnListManager from "../../components/returnList/ReturnListManager";
 
 const VencimientosPage = () => {
   const [branches, setBranches] = useState([]);
@@ -13,7 +14,7 @@ const VencimientosPage = () => {
     fetchBranches();
   }, []);
 
-  return <MonthExpirationScanner branches={branches} />;
+  return <ReturnListManager branches={branches} />;
 };
 
 export default VencimientosPage;

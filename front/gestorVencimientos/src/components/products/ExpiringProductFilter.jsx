@@ -18,7 +18,7 @@ export default function ExpiringProductFilter({ onFilter }) {
   const getTodayDate = () => new Date().toISOString().split("T")[0];
   const [from, setFrom] = useState(getTodayDate());
   const [months, setMonths] = useState(6);
-  const [branch, setBranch] = useState("");
+  const [branch, setBranch] = useState("ALL");
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
   const [overstock, setOverstock] = useState("all");
@@ -59,10 +59,17 @@ export default function ExpiringProductFilter({ onFilter }) {
   }, []);
 
   const applyFilter = () => {
+
+
+     let branchesToSend = branch;
+
+  if (branch === "ALL") {
+    branchesToSend = branches.map((b) => b._id); // array de ObjectId válidos
+  }
     const filtros = {
       from,
       months,
-      branch,
+       branch: branchesToSend,
       overstock,
       barcodes,
     };
@@ -138,7 +145,8 @@ export default function ExpiringProductFilter({ onFilter }) {
               <MenuItem value="sucursal2">Sucursal 2</MenuItem>
               <MenuItem value="sucursal3">Sucursal 3</MenuItem>
               <MenuItem value="9dejulio">9 de julio</MenuItem> */}
-                <MenuItem value="">Todas</MenuItem>
+                <MenuItem   value="ALL">Todas</MenuItem>
+
               {branches.map((b) => (
                 <MenuItem key={b._id} value={b._id}>
                   {b.name}

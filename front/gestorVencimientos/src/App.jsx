@@ -43,6 +43,7 @@ import StockCountListPage from "./pages/quickStockCount/StockCountListPage.jsx";
 import QuickStockCountPage from "./pages/quickStockCount/QuickStockCountPage.jsx";
 import MainTabs from "./pages/price/MainTabs.jsx";
 import VencimientosPage from "./pages/vencimientosPage/VencimientosPage.jsx";
+import ReturnListManager from "./components/returnList/ReturnListManager.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -166,6 +167,10 @@ function App() {
                 path="/lists/drug-returns"
                 element={<VencimientosPage />}
               />
+              {/* <Route
+                path="/lists/drug-returns"
+                element={<ReturnListManager />}
+              /> */}
               <Route path="*" element={<Productos />} />
               <Route path="/analisis" element={<StockAnalysisUploader />} />
               <Route

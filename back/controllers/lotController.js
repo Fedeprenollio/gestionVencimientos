@@ -280,21 +280,33 @@ res.json({ message: "Lote actualizado", lot: plainLot });
 
 // GET /lots/expiring
 export const getExpiringLotsFlat = async (req, res) => {
-  const {
-    from,
-    months = 1,
-    branch,
-  } = req.query;
+  const { year, month, branch } = req.query;
+
+  console.log("Consulta recibida:", { year, month, branch });
 
   try {
-    const fromDate = dayjs(from || dayjs()).startOf("month").toDate();
-    const untilDate = dayjs(fromDate).add(Number(months), "month").toDate();
+    const yearNumber = Number(year);
+    const monthNumber = Number(month) - 1; // importante: los meses en JS van de 0 a 11
+
+    if (
+      isNaN(yearNumber) ||
+      isNaN(monthNumber) ||
+      monthNumber < 0 ||
+      monthNumber > 11
+    ) {
+      return res.status(400).json({ message: "Parámetros de año o mes inválidos" });
+    }
+
+    const fromDate = new Date(yearNumber, monthNumber, 1);
+    const untilDate = new Date(yearNumber, monthNumber + 1, 1); // primer día del mes siguiente
 
     const filter = {
       expirationDate: { $gte: fromDate, $lt: untilDate },
     };
 
     if (branch) filter.branch = branch;
+
+    console.log("Filtro final:", filter);
 
     const lots = await Lot.find(filter)
       .populate("productId", "name barcode")
@@ -322,3 +334,26 @@ export const getExpiringLotsFlat = async (req, res) => {
   }
 };
 
+export const markLotAsReturned = async (req, res) => {
+  try {
+    const lotId = req.params.id;
+    const userId = req.user._id; // asumimos que usás auth
+
+    const updatedLot = await Lot.findByIdAndUpdate(
+      lotId,
+      {
+        returned: {
+          status: true,
+          date: new Date(),
+          by: userId,
+        },
+      },
+      { new: true }
+    );
+
+    res.json({ message: "Lote marcado como devuelto", lot: updatedLot });
+  } catch (error) {
+    console.error("Error al marcar como devuelto:", error);
+    res.status(500).json({ message: "Error interno" });
+  }
+};

@@ -46,6 +46,7 @@ export default function ProductListGrid() {
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (query.trim() === "") {
+        console.log("GOLA")
         fetchProducts("");
       } else {
         fetchProducts(query);
@@ -102,25 +103,13 @@ export default function ProductListGrid() {
     }
   }, [addingLotProduct]);
 
-  // const fetchProducts = async (customQuery = query) => {
-
-  //   try {
-  //     const url = customQuery.trim()
-  //       ? `${import.meta.env.VITE_API_URL}/products/search?name=${customQuery}`
-  //       : `${import.meta.env.VITE_API_URL}/products`;
-  //     const res = await axios.get(url);
-  //     setProducts(res.data);
-  //   } catch (err) {
-  //     console.error("Error buscando productos", err);
-  //     alert("Error buscando productos");
-  //   }
-  // };
 
   const fetchProducts = async (customQuery = query) => {
+   
     await withLoading(async () => {
       const url = customQuery.trim()
         ? `${import.meta.env.VITE_API_URL}/products/search?name=${customQuery}`
-        : `${import.meta.env.VITE_API_URL}/products`;
+        : `${import.meta.env.VITE_API_URL}/products/lotesComoString`;
       const res = await axios.get(url);
       setProducts(res.data);
     });

@@ -9,6 +9,7 @@ import userRoutes from './routes/usersRoutes.js';
 import branchRoutes from './routes/branchRoutes.js';
 import productListRoutes from './routes/productListRoutes.js';
 import stockCounterRouter from './routes/stockCountRoutes.js';
+import returnListRoutes from './routes/returnListRoutes.js';
 
 const allowedOrigins = [
   'http://localhost:5173',
@@ -45,6 +46,8 @@ app.use('/users', userRoutes);
 app.use('/branches', branchRoutes);
 app.use('/product-lists', productListRoutes);
 app.use('/stock-count', stockCounterRouter);
+app.use("/return-lists", returnListRoutes);
+
 
 // app.use('/productImport', importRouter);
 
