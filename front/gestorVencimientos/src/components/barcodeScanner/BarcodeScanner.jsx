@@ -151,19 +151,20 @@ const CAMERA_KEY = "preferred-camera-id";
 
 export default function BarcodeScanner({ onDetected, onClose }) {
   const scannerRef = useRef(null);
+  const alreadyScannedRef = useRef(false); // ⛔ Bloquea múltiples escaneos
   const [cameras, setCameras] = useState([]);
   const [selectedCamera, setSelectedCamera] = useState(null);
   const [scanningText, setScanningText] = useState("");
   const [loadingCameras, setLoadingCameras] = useState(true);
 
-  // Obtener cámaras disponibles
+  // 🔍 Obtener cámaras disponibles
   useEffect(() => {
     Html5Qrcode.getCameras()
       .then((devices) => {
         setCameras(devices);
         const savedCamera = localStorage.getItem(CAMERA_KEY);
         const defaultCam = devices.find((d) => d.id === savedCamera) || devices[0];
-        setSelectedCamera(defaultCam.id);
+        setSelectedCamera(defaultCam?.id);
         setLoadingCameras(false);
       })
       .catch((err) => {
@@ -172,12 +173,13 @@ export default function BarcodeScanner({ onDetected, onClose }) {
       });
   }, []);
 
-  // Inicializar escáner cuando cambia la cámara seleccionada
+  // 🎯 Inicializar escáner cuando cambia la cámara seleccionada
   useEffect(() => {
     if (!selectedCamera) return;
 
     const html5QrCode = new Html5Qrcode(SCANNER_ID);
     scannerRef.current = html5QrCode;
+    alreadyScannedRef.current = false;
 
     html5QrCode
       .start(
@@ -186,25 +188,30 @@ export default function BarcodeScanner({ onDetected, onClose }) {
           fps: 10,
           qrbox: { width: 250, height: 250 },
         },
-        (decodedText, decodedResult) => {
-          console.log("Detectado:", decodedText);
+        (decodedText) => {
+          if (alreadyScannedRef.current) return;
+
+          alreadyScannedRef.current = true;
           setScanningText(decodedText);
           onDetected(decodedText);
-          html5QrCode.stop().then(() => onClose()).catch(console.error);
+
+          html5QrCode
+            .stop()
+            .then(() => onClose())
+            .catch(console.error);
         },
         (error) => {
-          // escaneo fallido (no hace falta mostrar)
+          // fallos de escaneo silenciosos
         }
       )
       .catch((err) => {
         console.error("Error al iniciar el escáner:", err);
       });
 
-    // Guardar en localStorage
     localStorage.setItem(CAMERA_KEY, selectedCamera);
 
     return () => {
-      html5QrCode.stop().catch(console.error);
+      html5QrCode.stop().catch(() => {});
     };
   }, [selectedCamera, onDetected, onClose]);
 

@@ -151,6 +151,8 @@ export default function ReturnListManager({ branches }) {
   const [scannedReturns, setScannedReturns] = useState([]);
   const [originalLots, setOriginalLots] = useState([]);
   const [originalScanned, setOriginalScanned] = useState([]);
+const [lastScannedCode, setLastScannedCode] = useState(null);
+const [lastScanTime, setLastScanTime] = useState(0);
 
   const values = watch();
 
@@ -236,27 +238,39 @@ export default function ReturnListManager({ branches }) {
     setScannedReturns((prev) => prev.filter((_, i) => i !== index));
   };
 
-  useEffect(() => {
-    if (returnListId && !scannerStarted) {
-      const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-      scanner.render(
-        (decodedText) => {
-          addReturnByBarcode(decodedText, Number(quantity) || 1);
-          setManualCode("");
-          setQuantity(1);
-          scanner.clear();
-          setTimeout(() => {
-            scanner.render(
-              (decodedText) => addReturnByBarcode(decodedText, 1),
-              () => {}
-            );
-          }, 500);
-        },
-        (error) => {}
-      );
-      setScannerStarted(true);
-    }
-  }, [returnListId, scannerStarted, quantity, expiringLots]);
+ useEffect(() => {
+  if (returnListId && !scannerStarted) {
+    const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+
+    let lastScannedCode = null;
+    let lastScanTime = 0;
+
+    scanner.render(
+      (decodedText) => {
+        const now = Date.now();
+
+        // Evitar escaneos repetidos en menos de 3 segundos
+        if (decodedText === lastScannedCode && now - lastScanTime < 3000) {
+          return;
+        }
+
+        lastScannedCode = decodedText;
+        lastScanTime = now;
+
+        addReturnByBarcode(decodedText, Number(quantity) || 1);
+        setManualCode("");
+        setQuantity(1);
+      },
+      (error) => {
+        // podés loguearlo si querés
+        // console.warn("QR error", error);
+      }
+    );
+
+    setScannerStarted(true);
+  }
+}, [returnListId, scannerStarted, quantity, expiringLots]);
+
 
   const onAddReturns = async () => {
     try {
