@@ -28,7 +28,8 @@ export default function BarcodeScanner({ onDetected, onClose }) {
       .then((devices) => {
         setCameras(devices);
         const savedCamera = localStorage.getItem(CAMERA_KEY);
-        const defaultCam = devices.find((d) => d.id === savedCamera) || devices[0];
+        const defaultCam =
+          devices.find((d) => d.id === savedCamera) || devices[0];
         setSelectedCamera(defaultCam.id);
         setLoadingCameras(false);
       })
@@ -56,7 +57,10 @@ export default function BarcodeScanner({ onDetected, onClose }) {
           console.log("Detectado:", decodedText);
           setScanningText(decodedText);
           onDetected(decodedText);
-          html5QrCode.stop().then(() => onClose()).catch(console.error);
+          html5QrCode
+            .stop()
+            .then(() => onClose())
+            .catch(console.error);
         },
         () => {}
       )
@@ -66,24 +70,18 @@ export default function BarcodeScanner({ onDetected, onClose }) {
 
     localStorage.setItem(CAMERA_KEY, selectedCamera);
 
-    return () => {
-      html5QrCode
-        .getState()
-        .then((state) => {
-          if (
-            state === Html5QrcodeScannerState.SCANNING ||
-            state === Html5QrcodeScannerState.PAUSED
-          ) {
-            html5QrCode.stop().then(onClose).catch(console.error);
-          } else {
-            onClose();
-          }
-        })
-        .catch((err) => {
-          console.error("Error obteniendo estado del escáner:", err);
-          onClose();
-        });
-    };
+   return () => {
+  const state = html5QrCode.getState();
+  if (
+    state === Html5QrcodeScannerState.SCANNING ||
+    state === Html5QrcodeScannerState.PAUSED
+  ) {
+    html5QrCode.stop().then(onClose).catch(console.error);
+  } else {
+    onClose();
+  }
+};
+
   }, [selectedCamera, onDetected, onClose]);
 
   if (loadingCameras) {
@@ -136,17 +134,17 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         color="error"
         fullWidth
         onClick={() => {
-          if (scannerRef.current) {
-            scannerRef.current.getState().then((state) => {
-              if (
-                state === Html5QrcodeScannerState.SCANNING ||
-                state === Html5QrcodeScannerState.PAUSED
-              ) {
-                scannerRef.current.stop().then(onClose).catch(console.error);
-              } else {
-                onClose();
-              }
-            });
+          const scanner = scannerRef.current;
+          if (scanner) {
+            const state = scanner.getState();
+            if (
+              state === Html5QrcodeScannerState.SCANNING ||
+              state === Html5QrcodeScannerState.PAUSED
+            ) {
+              scanner.stop().then(onClose).catch(console.error);
+            } else {
+              onClose();
+            }
           } else {
             onClose();
           }
