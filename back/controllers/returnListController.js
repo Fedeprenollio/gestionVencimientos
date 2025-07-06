@@ -92,9 +92,9 @@ export const addLotsToReturnList = async (req, res) => {
       $addToSet: { lots: { $each: Array.from(addedLotsSet) } },
       $push: { scannedReturns: { $each: scannedReturnsToAdd } },
     });
-const addedLots = await Lot.find({ _id: { $in: Array.from(addedLotsSet) } })
-  .populate("productId", "name barcode") // solo traés el nombre y código de barras
-  .lean();
+    const addedLots = await Lot.find({ _id: { $in: Array.from(addedLotsSet) } })
+      .populate("productId", "name barcode") // solo traés el nombre y código de barras
+      .lean();
     res.json({
       message: "Lotes y devoluciones actualizados correctamente",
       // addedLots: Array.from(addedLotsSet),
@@ -103,7 +103,9 @@ const addedLots = await Lot.find({ _id: { $in: Array.from(addedLotsSet) } })
     });
   } catch (err) {
     console.error("Error al actualizar lotes y devoluciones:", err);
-    res.status(500).json({ message: "Error al actualizar lotes y devoluciones" });
+    res
+      .status(500)
+      .json({ message: "Error al actualizar lotes y devoluciones" });
   }
 };
 
@@ -195,5 +197,38 @@ export const getReturnLists = async (req, res) => {
     res.json(lists);
   } catch (error) {
     res.status(500).json({ message: "Error al obtener listas" });
+  }
+};
+
+export const getReturnListById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+   const list = await ReturnList.findById(id)
+      .populate("createdBy", "fullname username")
+      .populate({
+        path: "lots",
+        populate: {
+          path: "productId",
+          select: "name barcode",
+        },
+      })
+      .populate({
+        path: "scannedReturns.loteId",
+        populate: {
+          path: "productId", // 🔁 Esta es la parte clave
+          select: "name barcode",
+        },
+      })
+      .lean();
+
+    console.log("LISTA", list);
+
+    if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+    res.json(list);
+  } catch (error) {
+    console.error("Error al obtener lista por ID:", error);
+    res.status(500).json({ message: "Error al obtener la lista" });
   }
 };
