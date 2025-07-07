@@ -13,6 +13,8 @@ const EtiquetaPreview = ({ producto, onChange }) => {
     tipoEtiqueta,
   } = producto;
 
+  const displayName = manualName || name || "";
+
   const label =
     tipoEtiqueta === "oferta"
       ? "OFERTA"
@@ -26,9 +28,9 @@ const EtiquetaPreview = ({ producto, onChange }) => {
   const prevPrice = manualPreviousPrice ?? currentPrice ?? 0;
 
   const tipos = [
-    { key: "oferta", label: "OFERTA", color: "#d32f2f" }, // rojo
-    { key: "nuevo", label: "NUEVO", color: "#1976d2" }, // azul
-    { key: "liquidacion", label: "LIQUIDACIÓN", color: "#f9a825" }, // amarillo
+    { key: "oferta", label: "OFERTA", color: "#d32f2f" },
+    { key: "nuevo", label: "NUEVO", color: "#1976d2" },
+    { key: "liquidacion", label: "LIQUIDACIÓN", color: "#f9a825" },
   ];
 
   return (
@@ -43,7 +45,7 @@ const EtiquetaPreview = ({ producto, onChange }) => {
         display: "flex",
         flexDirection: "column",
         fontFamily: "Arial",
-        mb: 3, // margen inferior para separar tarjetas
+        mb: 3,
       }}
     >
       {/* Botones tipo etiqueta */}
@@ -63,7 +65,7 @@ const EtiquetaPreview = ({ producto, onChange }) => {
               color: tipoEtiqueta === key ? "#fff" : color,
               backgroundColor: tipoEtiqueta === key ? color : "transparent",
               "&:hover": {
-                backgroundColor: tipoEtiqueta === key ? color : `${color}33`, // un poco transparente
+                backgroundColor: tipoEtiqueta === key ? color : `${color}33`,
                 borderColor: color,
               },
             }}
@@ -73,6 +75,7 @@ const EtiquetaPreview = ({ producto, onChange }) => {
         ))}
       </Box>
 
+      {/* Etiqueta principal */}
       <Typography
         variant="h6"
         sx={{ textAlign: "center", fontWeight: "bold", mt: 0.5, mb: 1 }}
@@ -80,10 +83,11 @@ const EtiquetaPreview = ({ producto, onChange }) => {
         {label}
       </Typography>
 
+      {/* Nombre editable */}
       <TextField
         variant="standard"
         fullWidth
-        value={manualName}
+        value={displayName}
         onChange={(e) => onChange("manualName", e.target.value)}
         inputProps={{
           style: {
@@ -92,7 +96,7 @@ const EtiquetaPreview = ({ producto, onChange }) => {
           },
         }}
         sx={{
-          my: 1,
+          my: 0.5,
           input: { textAlign: "center" },
         }}
       />
@@ -114,20 +118,35 @@ const EtiquetaPreview = ({ producto, onChange }) => {
         </Typography>
       ) : (
         <>
-          <Typography sx={{ textAlign: "center", fontSize: 16, fontWeight: 500 }}>
-            {discount}% OFF
-          </Typography>
+          {discount > 0 && (
+            <>
+              <Typography
+                sx={{
+                  textAlign: "center",
+                  fontSize: 16,
+                  fontWeight: 500,
+                  mt: 0.5,
+                }}
+              >
+                {discount}% OFF
+              </Typography>
+              <Typography
+                sx={{
+                  textAlign: "center",
+                  fontSize: 14,
+                  textDecoration: "line-through",
+                  color: "#999",
+                  mt: -0.5, // esta línea sube el precio anterior un poco
+                }}
+              >
+                ${prevPrice.toFixed(2)}
+              </Typography>
+            </>
+          )}
           <Typography
-            sx={{
-              textAlign: "center",
-              fontSize: 14,
-              textDecoration: "line-through",
-              color: "#999",
-            }}
+            variant="h3"
+            sx={{ textAlign: "center", fontWeight: "bold", mt: 1 }}
           >
-            ${prevPrice.toFixed(2)}
-          </Typography>
-          <Typography variant="h3" sx={{ textAlign: "center", fontWeight: "bold", mt: 1 }}>
             ${price.toFixed(0)}
           </Typography>
         </>

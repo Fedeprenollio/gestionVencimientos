@@ -415,11 +415,21 @@ import EtiquetaPreview from "./EtiquetaPreview";
 import jsPDF from "jspdf";
 import JsBarcode from "jsbarcode";
 import dayjs from "dayjs";
+import { Modal } from "@mui/material";
+import UploadFileIcon from "@mui/icons-material/UploadFile"; // ícono opcional
+import * as XLSX from "xlsx";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from "@mui/material";
+import ExcelDiscountUploader from "./ExcelDiscountUploader";
 
 const generateBarcodeImage = (text) => {
   const canvas = document.createElement("canvas");
   JsBarcode(canvas, text, {
-    format: "EAN13",
+    // format: "EAN13",
     displayValue: false,
     height: 20,
   });
@@ -430,6 +440,10 @@ const ProductLabelManager = () => {
   const [clasicos, setClasicos] = useState([]);
   const [especiales, setEspeciales] = useState([]);
   const [tabIndex, setTabIndex] = useState(0); // Estado para la pestaña activa
+  // Nuevo estado
+  const [openModal, setOpenModal] = useState(false);
+  const [updateResults, setUpdateResults] = useState([]);
+  const [openDiscountModal, setOpenDiscountModal] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("labels_clasicos");
@@ -568,7 +582,7 @@ const ProductLabelManager = () => {
           x + 8,
           y + 54.8 + offsetY,
           x + 8 + doc.getTextWidth(prevPriceText),
-          y + 54.8+ offsetY
+          y + 54.8 + offsetY
         );
 
         doc.setFont("helvetica", "bold");
@@ -700,140 +714,6 @@ const ProductLabelManager = () => {
     doc.save("etiquetas_clasicas.pdf");
   };
 
-  // const generatePDF_Grandes = async () => {
-  //   const doc = new jsPDF({ unit: "mm", format: "a4" });
-
-  //   const etiquetaAncho = 70;
-  //   const etiquetaAlto = 104;
-  //   const etiquetasPorFila = 2;
-  //   const etiquetasPorColumna = 2;
-
-  //   const logoBase64 = await loadImageBase64("/logo.png");
-
-  //   especiales.forEach((p, i) => {
-  //     const col = i % etiquetasPorFila;
-  //     const row = Math.floor(i / etiquetasPorFila) % etiquetasPorColumna;
-
-  //     if (i > 0 && i % (etiquetasPorFila * etiquetasPorColumna) === 0) {
-  //       doc.addPage();
-  //     }
-
-  //     const x = 10 + col * (etiquetaAncho + 10);
-  //     const y = 10 + row * (etiquetaAlto + 10);
-
-  //     // Borde
-  //     doc.setDrawColor(150);
-  //     doc.rect(x, y, etiquetaAncho, etiquetaAlto);
-
-  //     // Logo
-  //     if (logoBase64) {
-  //       doc.addImage(logoBase64, "PNG", x + 5, y + 5, 15, 15);
-  //     }
-
-  //     // Tipo de etiqueta
-  //     const label =
-  //       p.tipoEtiqueta === "oferta"
-  //         ? "OFERTA"
-  //         : p.tipoEtiqueta === "liquidacion"
-  //         ? "LIQUIDACIÓN"
-  //         : p.tipoEtiqueta === "nuevo"
-  //         ? "NUEVO"
-  //         : "";
-
-  //     const labelFontSize = label === "LIQUIDACIÓN" ? 16 : 20;
-  //     doc.setFont("helvetica", "bold");
-  //     doc.setFontSize(labelFontSize);
-  //     doc.setTextColor(0);
-  //     doc.text(label, x + 23, y + 15);
-
-  //     // Nombre del producto
-  //     const nombreParaMostrar = p.manualName?.trim() || p.name || "";
-  //     const nameLines = splitTextByWidth(
-  //       doc,
-  //       nombreParaMostrar,
-  //       etiquetaAncho - 5
-  //     );
-  //     console.log("nameLines",nameLines)
-  //     doc.setFont("helvetica", "normal");
-  //     doc.setFontSize(12);
-  //     nameLines.forEach((line, idx) => {
-  //       doc.text(line, x + 8, y + 25 + idx * 6);
-  //     });
-
-  //     // Ajuste de tamaño de fuente según cantidad de dígitos en el precio
-  //     const price = p.discountedPrice ?? p.currentPrice ?? 0;
-  //     const integerPrice = Math.floor(price);
-  //     const digitCount = integerPrice.toString().length;
-
-  //     let priceFontSize;
-  //     if (digitCount > 6) {
-  //       priceFontSize = 28;
-  //     } else if (digitCount === 6) {
-  //       priceFontSize = 38;
-  //     } else if (digitCount === 5) {
-  //       priceFontSize = 40;
-  //     } else if (digitCount === 4) {
-  //       priceFontSize = 44;
-  //     } else {
-  //       priceFontSize = 60;
-  //     }
-
-  //     if (p.tipoEtiqueta === "nuevo") {
-  //       doc.setFont("times", "bold");
-  //       doc.setFontSize(priceFontSize);
-  //       doc.setTextColor(0);
-  //       doc.text(
-  //         `$${integerPrice.toFixed(0)}`,
-  //         x + etiquetaAncho / 2,
-  //         y + etiquetaAlto / 2 + 10,
-  //         { align: "center" }
-  //       );
-  //     } else if (["oferta", "liquidacion"].includes(p.tipoEtiqueta)) {
-  //       // % OFF y precio anterior
-  //       const descuento = p.discount ?? 0;
-  //       const prevPrice = p.manualPreviousPrice ?? p.currentPrice ?? 0;
-
-  //       doc.setFontSize(14);
-  //       doc.setTextColor(0);
-  //       doc.text(`${descuento}% OFF`, x + 8, y + 50);
-
-  //       const prevText = `$${prevPrice.toFixed(2)}`;
-  //       const prevWidth = doc.getTextWidth(prevText);
-  //       doc.text(prevText, x + 8, y + 56);
-  //       doc.setLineWidth(0.5);
-  //       doc.line(x + 8, y + 55.5, x + 8 + prevWidth, y + 55.5);
-
-  //       doc.setFont("times", "bold");
-  //       doc.setFontSize(priceFontSize);
-  //       doc.setTextColor(0);
-  //       doc.text(`$${integerPrice.toFixed(0)}`, x + etiquetaAncho / 2, y + 78, {
-  //         align: "center",
-  //       });
-  //     }
-
-  //     // Código de barras
-  //     if (p.barcode) {
-  //       const barcodeImg = generateBarcodeImage(p.barcode);
-  //       const barcodeY = y + etiquetaAlto - 20;
-
-  //       doc.addImage(barcodeImg, "PNG", x + 8, barcodeY, etiquetaAncho - 16, 10);
-  //       doc.setFontSize(8);
-  //       doc.setTextColor(80);
-  //       doc.text(p.barcode, x + etiquetaAncho / 2, barcodeY + 12, {
-  //         align: "center",
-  //       });
-  //     }
-
-  //     // Fecha
-  //     const fecha = dayjs().format("DD/MM/YYYY");
-  //     doc.setFontSize(7);
-  //     doc.setTextColor(120);
-  //     doc.text(fecha, x + etiquetaAncho - 22, y + etiquetaAlto - 4);
-  //   });
-
-  //   doc.save("etiquetas_especiales.pdf");
-  // };
-
   // 🔁 Divide texto sin cortar palabras
   const splitTextByWidth = (doc, text, maxWidth) => {
     const words = text.split(" ");
@@ -897,6 +777,97 @@ const ProductLabelManager = () => {
     setTabIndex(newValue);
   };
 
+  const [fileData, setFileData] = useState([]);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const bstr = evt.target.result;
+      const workbook = XLSX.read(bstr, { type: "binary" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(sheet);
+
+      const updatedItems = [];
+
+      // 🔁 Procesar tanto en clásicos como en especiales
+      const updateProductos = (productos, setProductos) => {
+        const updated = productos.map((p) => {
+          const match = data.find(
+            (row) =>
+              row.Codebar?.toString().trim() === p.barcode?.toString().trim()
+          );
+
+          if (match) {
+            const newPrice = Number(match.Unitario);
+            if (newPrice > 0 && newPrice !== p.currentPrice) {
+              updatedItems.push({
+                name: p.name,
+                old: p.currentPrice,
+                new: newPrice,
+              });
+
+              return {
+                ...p,
+                currentPrice: newPrice,
+                manualPrice: newPrice,
+                discountedPrice: p.discount
+                  ? Number((newPrice * (1 - p.discount / 100)).toFixed(2))
+                  : newPrice,
+              };
+            }
+          }
+
+          return p;
+        });
+
+        setProductos(updated);
+      };
+
+      updateProductos(clasicos, setClasicos);
+      updateProductos(especiales, setEspeciales);
+      setUpdateResults(updatedItems);
+    };
+
+    reader.readAsBinaryString(file);
+  };
+  const handleActualizarPrecios = () => {
+    let actualizados = 0;
+
+    const actualizar = (lista, setLista) => {
+      const nuevaLista = lista.map((p) => {
+        const fila = fileData.find(
+          (f) => String(f.codigo)?.trim() === String(p.barcode)?.trim()
+        );
+        if (fila && fila.precio) {
+          actualizados++;
+          return {
+            ...p,
+            currentPrice: Number(fila.precio),
+            discountedPrice:
+              p.discount && p.discount > 0
+                ? Number((fila.precio * (1 - p.discount / 100)).toFixed(2))
+                : Number(fila.precio),
+          };
+        }
+        return p;
+      });
+
+      setLista(nuevaLista);
+    };
+
+    actualizar(clasicos, setClasicos);
+    actualizar(especiales, setEspeciales);
+
+    setOpenUpdateModal(false);
+    alert(`Precios actualizados para ${actualizados} productos`);
+  };
+console.log("Clasicos", clasicos)
+console.log("Especiales", especiales)
+
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h5">Generador de Etiquetas</Typography>
@@ -906,6 +877,29 @@ const ProductLabelManager = () => {
         <Tab label="Etiquetas Clásicas" />
         <Tab label="Etiquetas Especiales" />
       </Tabs>
+
+      <Button
+        variant="outlined"
+        sx={{ mb: 2 }}
+        onClick={() => setOpenModal(true)}
+      >
+        Actualizar precios desde Excel
+      </Button>
+      <Button
+        variant="outlined"
+        sx={{ mb: 2, ml: 2 }}
+        onClick={() => setOpenDiscountModal(true)}
+      >
+        Cargar descuentos desde Excel
+      </Button>
+
+      <ExcelDiscountUploader
+        open={openDiscountModal}
+        onClose={() => setOpenDiscountModal(false)}
+         productos={tabIndex === 0 ? clasicos : especiales}
+        setProductos={tabIndex === 0 ? setClasicos : setEspeciales}
+        tipoEtiqueta={tabIndex === 0 ? "clasica" : "oferta"}
+      />
 
       {tabIndex === 0 && (
         <Box>
@@ -986,6 +980,38 @@ const ProductLabelManager = () => {
           </Box>
         </Box>
       )}
+      <Dialog
+        open={openModal}
+        onClose={() => setOpenModal(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Actualizar precios</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Subí un archivo Excel con las columnas <strong>Codebar</strong> y{" "}
+            <strong>Unitario</strong>
+          </Typography>
+
+          <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
+
+          {updateResults.length > 0 && (
+            <Box mt={2}>
+              <Typography variant="subtitle2">Precios actualizados:</Typography>
+              <ul>
+                {updateResults.map((item, idx) => (
+                  <li key={idx}>
+                    {item.name} – ${item.old} → ${item.new}
+                  </li>
+                ))}
+              </ul>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenModal(false)}>Cerrar</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

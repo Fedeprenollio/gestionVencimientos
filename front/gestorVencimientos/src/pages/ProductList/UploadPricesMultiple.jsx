@@ -177,6 +177,24 @@ import api from "../../api/axiosInstance";
 import UploadPricesResultByList from "../price/UploadPricesResultByList";
 import { ArrowCircleUp, ArrowCircleDown, FiberNew } from "@mui/icons-material";
 
+const SummaryItem = ({ label, value, color, icon }) => (
+  <Box display="flex" alignItems="center" gap={1} color={color}>
+    <Box display="flex" alignItems="center">
+      {typeof icon === "string" ? (
+        <Typography variant="h6">{icon}</Typography>
+      ) : (
+        icon
+      )}
+    </Box>
+    <Typography variant="body1">
+      {label}: <strong>{value || 0}</strong>
+    </Typography>
+  </Box>
+);
+
+
+
+
 export default function UploadPricesMultiple() {
   const location = useLocation();
   const selectedListIds = location.state?.selectedListIds || [];
@@ -230,7 +248,7 @@ export default function UploadPricesMultiple() {
       const formatted = parsed
         .map((row) => ({
           barcode: String(row.Codebar).trim(),
-          price: parseFloat(String(row.Precio).replace(",", ".")),
+          price: parseFloat(String(row.Unitario).replace(",", ".")),
         }))
         .filter((p) => p.barcode && !isNaN(p.price));
 
@@ -255,7 +273,7 @@ export default function UploadPricesMultiple() {
       setUploading(false);
     }
   };
-
+  console.log("RESULT", result);
   return (
     <Box p={3}>
       {/* Título con icono y tipografía similar a UploadLogs */}
@@ -343,37 +361,84 @@ export default function UploadPricesMultiple() {
       )}
 
       {/* Resumen de cambios con colores e íconos coherentes */}
-   {result && (
-  <Paper sx={{ p: 2, mb: 3 }} variant="outlined">
-    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-      📊 Resumen de cambios
+      {/* {result && (
+        <Paper sx={{ p: 2, mb: 3 }} variant="outlined">
+          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+            📊 Resumen de cambios
+          </Typography>
+          <Box display="flex" flexDirection="column" gap={1} mt={1}>
+            <Box display="flex" alignItems="center" color="success.main">
+              <ArrowCircleUp sx={{ mr: 1 }} />
+              <Typography variant="body1">
+                Aumentos:{" "}
+                <strong>{result.lists[0].priceIncreased?.length || 0}</strong>
+              </Typography>
+            </Box>
+            <Box display="flex" alignItems="center" color="error.main">
+              <ArrowCircleDown sx={{ mr: 1 }} />
+              <Typography variant="body1">
+                Bajas:{" "}
+                <strong>{result.lists[0].priceDecreased?.length || 0}</strong>
+              </Typography>
+            </Box>
+            <Box display="flex" alignItems="center" color="text.secondary">
+              <Typography sx={{ mr: 1 }}>➖</Typography>
+              <Typography variant="body1">
+                Sin cambios:{" "}
+                <strong>{result.lists[0].priceUnchanged?.length || 0}</strong>
+              </Typography>
+            </Box>
+            <Box display="flex" alignItems="center" color="info.main">
+              <FiberNew sx={{ mr: 1 }} />
+              <Typography variant="body1">
+                Primeros precios:{" "}
+                <strong>{result.lists[0].firstTimeSet?.length || 0}</strong>
+              </Typography>
+            </Box>
+          </Box>
+        </Paper>
+      )} */}
+
+      {result?.lists?.length > 0 && (
+  <Paper sx={{ p: 3, mb: 3 }} variant="outlined">
+    <Typography variant="h6" fontWeight="bold" gutterBottom>
+      📊 Resumen de cambios por lista
     </Typography>
-    <Box display="flex" flexDirection="column" gap={1} mt={1}>
-      <Box display="flex" alignItems="center" color="success.main">
-        <ArrowCircleUp sx={{ mr: 1 }} />
-        <Typography variant="body1">
-          Aumentos: <strong>{result.priceIncreased?.length || 0}</strong>
+
+    {result.lists.map((list, idx) => (
+      <Box key={idx} mb={2} p={2} border="1px solid #eee" borderRadius={2}>
+        <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+          {list.listName}
         </Typography>
+
+        <Box display="flex" flexWrap="wrap" gap={2} mt={1}>
+          <SummaryItem
+            label="Aumentos"
+            value={list.priceIncreased?.length}
+            color="success.main"
+            icon={<ArrowCircleUp />}
+          />
+          <SummaryItem
+            label="Bajas"
+            value={list.priceDecreased?.length}
+            color="error.main"
+            icon={<ArrowCircleDown />}
+          />
+          <SummaryItem
+            label="Sin cambios"
+            value={list.priceUnchanged?.length}
+            color="text.secondary"
+            icon="➖"
+          />
+          <SummaryItem
+            label="Primeros precios"
+            value={list.firstTimeSet?.length}
+            color="info.main"
+            icon={<FiberNew />}
+          />
+        </Box>
       </Box>
-      <Box display="flex" alignItems="center" color="error.main">
-        <ArrowCircleDown sx={{ mr: 1 }} />
-        <Typography variant="body1">
-          Bajas: <strong>{result.priceDecreased?.length || 0}</strong>
-        </Typography>
-      </Box>
-      <Box display="flex" alignItems="center" color="text.secondary">
-        <Typography sx={{ mr: 1 }}>➖</Typography>
-        <Typography variant="body1">
-          Sin cambios: <strong>{result.priceUnchanged?.length || 0}</strong>
-        </Typography>
-      </Box>
-      <Box display="flex" alignItems="center" color="info.main">
-        <FiberNew sx={{ mr: 1 }} />
-        <Typography variant="body1">
-          Primeros precios: <strong>{result.firstTimeSet?.length || 0}</strong>
-        </Typography>
-      </Box>
-    </Box>
+    ))}
   </Paper>
 )}
 

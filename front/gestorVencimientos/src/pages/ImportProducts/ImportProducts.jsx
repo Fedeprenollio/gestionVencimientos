@@ -27,8 +27,9 @@ export default function ImportProducts({ onImport }) {
     // Importador de ejemplo si no se pasa por props
     console.warn("No se pasó onImport, usando comportamiento por defecto");
     const defaultImport = async (products) => {
+      console.log("PRODUCOTS", products);
       try {
-         await axios.post(
+        await axios.post(
           `${import.meta.env.VITE_API_URL}/products/import`,
           products
         );
@@ -86,7 +87,14 @@ export default function ImportProducts({ onImport }) {
           (p) => !existing.includes(p.Codebar?.toString())
         );
 
-        setProducts(filtered);
+        // Ordenar: primero los nuevos, luego los existentes
+        const ordered = [...filtered].sort((a, b) => {
+          const aExists = existing.includes(a.Codebar?.toString());
+          const bExists = existing.includes(b.Codebar?.toString());
+          return aExists - bExists; // false < true => nuevos primero
+        });
+
+        setProducts(ordered);
         setExistingProducts(existing);
         setNewProducts(nuevos);
       } catch (err) {
@@ -104,8 +112,10 @@ export default function ImportProducts({ onImport }) {
       barcode: p.Codebar.toString().trim(),
       name: p.Producto.trim(),
     }));
+    console.log("toImport", toImport);
     onImport(toImport);
   };
+  console.log("Products", products);
 
   return (
     <Box p={2}>
@@ -114,7 +124,10 @@ export default function ImportProducts({ onImport }) {
       </Typography>
 
       <input type="file" accept=".xls,.xlsx" onChange={handleFileChange} />
-
+      <Typography>
+        {" "}
+        Codebar y Producto deben ser los nombres de las columnas
+      </Typography>
       {fileName && (
         <Typography variant="body2" sx={{ mt: 1 }}>
           Archivo seleccionado: <strong>{fileName}</strong>
