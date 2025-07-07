@@ -111,7 +111,12 @@ export const getProductByBarcode = async (req, res) => {
   const { barcode } = req.params;
 
   try {
-    const product = await Product.findOne({ barcode });
+    const product = await Product.findOne({
+      $or: [
+        { barcode }, // busca en el principal
+        { alternateBarcodes: barcode }, // busca en el array de alternativos
+      ],
+    });
 
     if (!product) {
       return res.status(404).json({ message: "Producto no encontrado" });
@@ -178,8 +183,14 @@ export const getExpiringProductsLotesComoString = async (req, res) => {
 
   try {
     const productQuery = {};
+    // if (barcodes && barcodes.length > 0) {
+    //   productQuery.barcode = { $in: barcodes };
+    // }
     if (barcodes && barcodes.length > 0) {
-      productQuery.barcode = { $in: barcodes };
+      productQuery.$or = [
+        { barcode: { $in: barcodes } },
+        { alternateBarcodes: { $in: barcodes } },
+      ];
     }
 
     const products = await Product.find(productQuery).sort({ name: 1 });
@@ -498,11 +509,23 @@ export const getExpiringProducts = async (req, res) => {
       filter.overstock = { $ne: true };
     } // si es "only", ya está cubierto con "true"
 
+    // if (barcodes) {
+    //   const barcodeList = barcodes.split(",").map((b) => b.trim());
+    //   const products = await Product.find({
+    //     barcode: { $in: barcodeList },
+    //   }).select("_id");
+    //   const ids = products.map((p) => p._id);
+    //   filter.productId = { $in: ids };
+    // }
     if (barcodes) {
       const barcodeList = barcodes.split(",").map((b) => b.trim());
       const products = await Product.find({
-        barcode: { $in: barcodeList },
+        $or: [
+          { barcode: { $in: barcodeList } },
+          { alternateBarcodes: { $in: barcodeList } },
+        ],
       }).select("_id");
+
       const ids = products.map((p) => p._id);
       filter.productId = { $in: ids };
     }
@@ -560,7 +583,11 @@ export const searchProductsByName = async (req, res) => {
   try {
     const regex = new RegExp(name, "i"); // búsqueda insensible a mayúsculas
     const products = await Product.find({
-      $or: [{ name: regex }, { barcode: regex }],
+      $or: [
+        { name: regex },
+        { barcode: regex },
+        { alternateBarcodes: regex }, // ← esto agrega la búsqueda en alternativos
+      ],
     });
 
     res.json(products);
@@ -670,24 +697,75 @@ export const updateProduct = async (req, res) => {
 // };
 
 // controllers/productController.js
+// export const importProducts = async (req, res) => {
+//   const products = req.body;
+
+//   if (!Array.isArray(products) || products.length === 0) {
+//     return res.status(400).json({ message: "No se enviaron productos." });
+//   }
+
+//   try {
+//     const inserted = await Product.insertMany(products, { ordered: false });
+//     res
+//       .status(201)
+//       .json({ message: `Se importaron ${inserted.length} productos.` });
+//   } catch (err) {
+//     console.error("Error al importar productos:", err);
+//     return res.status(500).json({ message: "Error al importar productos." });
+//   }
+// };
+
 export const importProducts = async (req, res) => {
   const products = req.body;
-
+  console.log("products", products);
   if (!Array.isArray(products) || products.length === 0) {
     return res.status(400).json({ message: "No se enviaron productos." });
   }
 
+  const inserted = [];
+  const alreadyExists = [];
+
+  // función para dividir en grupos de tamaño 20
+  const chunkArray = (arr, size) => {
+    const result = [];
+    for (let i = 0; i < arr.length; i += size) {
+      result.push(arr.slice(i, i + size));
+    }
+    return result;
+  };
+
+  const chunks = chunkArray(products, 20);
+
   try {
-    const inserted = await Product.insertMany(products, { ordered: false });
-    res
-      .status(201)
-      .json({ message: `Se importaron ${inserted.length} productos.` });
+    for (const chunk of chunks) {
+      const results = await Promise.allSettled(
+        chunk.map(async (prod) => {
+          const exists = await Product.findOne({ barcode: prod.barcode });
+          if (!exists) {
+            const created = await Product.create(prod);
+            inserted.push(created);
+          } else {
+            alreadyExists.push(prod.barcode);
+          }
+        })
+      );
+
+      // opcional: podés loguear errores individuales si querés
+      results
+        .filter((r) => r.status === "rejected")
+        .forEach((r) => console.error("❌ Error:", r.reason));
+    }
+
+    res.status(201).json({
+      message: `✅ Se importaron ${inserted.length} productos.`,
+      alreadyExistsCount: alreadyExists.length,
+      alreadyExists,
+    });
   } catch (err) {
-    console.error("Error al importar productos:", err);
+    console.error("Error general al importar productos:", err);
     return res.status(500).json({ message: "Error al importar productos." });
   }
 };
-
 export const updateProductPrices = async (req, res) => {
   try {
     const { products } = req.body;

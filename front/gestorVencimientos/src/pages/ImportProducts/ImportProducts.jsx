@@ -57,41 +57,60 @@ export default function ImportProducts({ onImport }) {
       const ws = wb.Sheets[wsname];
       const json = XLSX.utils.sheet_to_json(ws);
 
-      // 1. Filtrar productos únicos
+      const toBarcodeString = (value) => {
+        if (typeof value === "number") return value.toFixed(0);
+        if (typeof value === "string") return value.trim();
+        return "";
+      };
+
+      // 1. Limpiar y transformar productos
       const seen = {};
-      const filtered = json.filter((row) => {
-        const codebar = row.Codebar?.toString().trim();
-        const name = row.Producto?.trim();
-        if (!codebar || !name || seen[codebar]) return false;
-        seen[codebar] = name;
-        return true;
-      });
+      const normalized = json
+        .map((row) => {
+          const mainCode = toBarcodeString(row.Codebar);
+          const name = row.producto?.trim() || row.Producto?.trim() || "";
+
+          if (!mainCode || !name || seen[mainCode]) return null;
+          seen[mainCode] = true;
+
+          const rawAlternates = toBarcodeString(row.CodigosBarra);
+          const alternateBarcodes = rawAlternates
+            .split("-")
+            .map((code) => toBarcodeString(code))
+            .filter(
+              (code) => code && code !== mainCode && /^[0-9]{8,14}$/.test(code)
+            );
+
+          return {
+            barcode: mainCode,
+            name,
+            alternateBarcodes,
+          };
+        })
+        .filter(Boolean);
 
       // 2. Ordenar alfabéticamente
-      filtered.sort((a, b) =>
-        a.Producto.localeCompare(b.Producto, "es", { sensitivity: "base" })
+      normalized.sort((a, b) =>
+        a.name.localeCompare(b.name, "es", { sensitivity: "base" })
       );
 
-      // 3. Chequear cuáles ya existen en la DB
-      const barcodes = filtered.map((p) => p.Codebar);
+      // 3. Verificar existentes
+      const barcodes = normalized.map((p) => p.barcode);
       try {
         const res = await axios.post(
           `${import.meta.env.VITE_API_URL}/products/check-exist`,
-          {
-            barcodes,
-          }
+          { barcodes }
         );
 
         const existing = res.data.existingBarcodes;
-        const nuevos = filtered.filter(
-          (p) => !existing.includes(p.Codebar?.toString())
+        const nuevos = normalized.filter(
+          (p) => !existing.includes(p.barcode?.toString())
         );
 
-        // Ordenar: primero los nuevos, luego los existentes
-        const ordered = [...filtered].sort((a, b) => {
-          const aExists = existing.includes(a.Codebar?.toString());
-          const bExists = existing.includes(b.Codebar?.toString());
-          return aExists - bExists; // false < true => nuevos primero
+        const ordered = [...normalized].sort((a, b) => {
+          const aExists = existing.includes(a.barcode?.toString());
+          const bExists = existing.includes(b.barcode?.toString());
+          return aExists - bExists;
         });
 
         setProducts(ordered);
@@ -107,11 +126,20 @@ export default function ImportProducts({ onImport }) {
     reader.readAsBinaryString(file);
   };
 
+  console.log("NUEVOS,", newProducts);
   const handleImport = () => {
-    const toImport = newProducts.map((p) => ({
-      barcode: p.Codebar.toString().trim(),
-      name: p.Producto.trim(),
-    }));
+    // const toImport = newProducts.map((p) => ({
+    //   barcode: p.Codebar.toString().trim(),
+    //   name: p.Producto.trim(),
+    // }));
+    const toImport = newProducts
+      .map((p) => ({
+        barcode: p.barcode?.toString().trim(),
+        name: p.name?.trim(),
+        alternateBarcodes: p.alternateBarcodes || [],
+      }))
+      .filter((p) => p.barcode && p.name); // opcional, para evitar errores
+
     console.log("toImport", toImport);
     onImport(toImport);
   };
@@ -153,19 +181,24 @@ export default function ImportProducts({ onImport }) {
                 <TableRow>
                   <TableCell sx={{ fontWeight: "bold" }}>Codebar</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Producto</TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>
+                    Alternativos
+                  </TableCell>
+
                   <TableCell sx={{ fontWeight: "bold" }}>Estado</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {products.map((row, i) => {
-                  const isExisting = existingProducts.includes(
-                    row.Codebar?.toString()
-                  );
+                  const isExisting = existingProducts.includes(row.barcode);
                   return (
                     <TableRow key={i}>
-                      <TableCell>{row.Codebar}</TableCell>
-                      <TableCell sx={{ fontWeight: 500 }}>
-                        {row.Producto}
+                      <TableCell>{row.barcode}</TableCell>
+                      <TableCell sx={{ fontWeight: 500 }}>{row.name}</TableCell>
+                      <TableCell>
+                        {row.alternateBarcodes?.length > 0
+                          ? row.alternateBarcodes.join(", ")
+                          : "-"}
                       </TableCell>
                       <TableCell>
                         {isExisting ? (
