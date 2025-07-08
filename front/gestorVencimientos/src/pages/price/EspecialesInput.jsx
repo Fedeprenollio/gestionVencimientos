@@ -148,96 +148,124 @@ const EspecialesInput = ({ productos, setProductos }) => {
       </Box>
 
       <Grid container spacing={2}>
-        {productos.map((p, i) => (
-          <Grid item xs={12} md={6} key={p._id}>
-            <Paper
-              sx={{
-                p: 2,
-                position: "relative",
-                bgcolor: "#f9f9f9", // color neutro claro
-                border: "1px solid #ddd", // borde suave
-                boxShadow: "none", // sin sombra
-              }}
-            >
-              <IconButton
-                size="small"
-                color="error"
-                onClick={() => handleDeleteProduct(i)}
+        {productos.map((p, i) => {
+          const hasPriceError =
+            (!p.currentPrice || p.currentPrice <= 0) &&
+            (!p.manualPrice || p.manualPrice <= 0);
+
+          return (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={p._id}>
+              <Paper
                 sx={{
-                  position: "absolute",
-                  top: 6,
-                  right: 6,
-                  bgcolor: "#fff",
-                  border: "1px solid #ddd",
-                  zIndex: 10,
-                  "&:hover": {
-                    bgcolor: "#fdd",
-                  },
+                  p: 2,
+                  position: "relative",
+                  bgcolor: hasPriceError ? "#ffe5e5" : "#f9f9f9",
+                  border: hasPriceError
+                    ? "2px solid #d32f2f"
+                    : "1px solid #ddd",
+                  boxShadow: "none", // sin sombra
+                  minWidth: 280,
+                  maxWidth: 400,
+                  mx: "auto", // centra el Paper si sobra espacio
                 }}
               >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => handleDeleteProduct(i)}
+                  sx={{
+                    position: "absolute",
+                    top: 6,
+                    right: 6,
+                    bgcolor: "#fff",
+                    border: "1px solid #ddd",
+                    zIndex: 10,
+                    "&:hover": {
+                      bgcolor: "#fdd",
+                    },
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
 
-              <TextField
-                label="Nombre del producto"
-                value={p.manualName}
-                onChange={(e) =>
-                  updateProductField(i, "manualName", e.target.value)
-                }
-                fullWidth
-              />
+                <TextField
+                  label="Nombre del producto"
+                  value={p.manualName ?? p.name ?? ""}
+                  onChange={(e) =>
+                    updateProductField(i, "manualName", e.target.value)
+                  }
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{
+                    style: {
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      textAlign: "center",
+                    },
+                  }}
+                />
 
-              {!p.currentPrice || p.currentPrice <= 0 ? (
+                {!p.currentPrice || p.currentPrice <= 0 ? (
+                  <TextField
+                    size="small"
+                    sx={{
+                      mt: 0.5,
+                      bgcolor: hasPriceError ? "#ffe5e5" : undefined,
+                    }}
+                    label="Precio"
+                    type="number"
+                    value={p.manualPrice ?? ""}
+                    onChange={(e) =>
+                      updateProductField(
+                        i,
+                        "manualPrice",
+                        Number(e.target.value)
+                      )
+                    }
+                    fullWidth
+                    error={hasPriceError}
+                  />
+                ) : (
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    Precio actual: ${p.currentPrice.toFixed(2)}
+                  </Typography>
+                )}
+
                 <TextField
                   size="small"
                   sx={{ mt: 0.5 }}
-                  label="Precio"
+                  label="% Descuento"
                   type="number"
-                  value={p.manualPrice || ""}
+                  value={p.discount}
                   onChange={(e) =>
-                    updateProductField(i, "manualPrice", Number(e.target.value))
+                    updateProductField(i, "discount", Number(e.target.value))
                   }
                   fullWidth
                 />
-              ) : (
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Precio actual: ${p.currentPrice.toFixed(2)}
+                <TextField
+                  size="small"
+                  sx={{ mt: 0.5 }}
+                  label="Precio anterior"
+                  type="number"
+                  value={p.manualPreviousPrice ?? ""}
+                  onChange={(e) =>
+                    updateProductField(
+                      i,
+                      "manualPreviousPrice",
+                      Number(e.target.value)
+                    )
+                  }
+                  fullWidth
+                />
+
+                <Typography variant="body1" sx={{ mt: 1 }}>
+                  Precio final:{" "}
+                  <strong>${p.discountedPrice?.toFixed(2)}</strong>
                 </Typography>
-              )}
-
-              <TextField
-                size="small"
-                sx={{ mt: 0.5 }}
-                label="% Descuento"
-                type="number"
-                value={p.discount}
-                onChange={(e) =>
-                  updateProductField(i, "discount", Number(e.target.value))
-                }
-                fullWidth
-              />
-              <TextField
-                size="small"
-                sx={{ mt: 0.5 }}
-                label="Precio anterior"
-                type="number"
-                value={p.manualPreviousPrice ?? ""}
-                onChange={(e) =>
-                  updateProductField(
-                    i,
-                    "manualPreviousPrice",
-                    Number(e.target.value)
-                  )
-                }
-                fullWidth
-              />
-
-              <Typography variant="body1" sx={{ mt: 1 }}>
-                Precio final: <strong>${p.discountedPrice?.toFixed(2)}</strong>
-              </Typography>
-            </Paper>
-          </Grid>
-        ))}
+              </Paper>
+            </Grid>
+          );
+        })}
       </Grid>
     </Box>
   );

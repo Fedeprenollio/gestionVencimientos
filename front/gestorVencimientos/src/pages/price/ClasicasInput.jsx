@@ -52,14 +52,17 @@ const ClasicasInput = ({ productos, setProductos, generateBarcodeImage }) => {
       updated[index][field] = value;
 
       const base =
-        updated[index].manualPreviousPrice && updated[index].manualPreviousPrice > 0
+        updated[index].manualPreviousPrice &&
+        updated[index].manualPreviousPrice > 0
           ? updated[index].manualPreviousPrice
           : updated[index].manualPrice && updated[index].manualPrice > 0
           ? updated[index].manualPrice
           : updated[index].currentPrice || 0;
 
       const discount = updated[index].discount || 0;
-      updated[index].discountedPrice = Number((base * (1 - discount / 100)).toFixed(2));
+      updated[index].discountedPrice = Number(
+        (base * (1 - discount / 100)).toFixed(2)
+      );
       return updated;
     });
   };
@@ -84,63 +87,96 @@ const ClasicasInput = ({ productos, setProductos, generateBarcodeImage }) => {
       </Box>
 
       <Grid container spacing={2}>
-        {productos.map((p, i) => (
-          <Grid item xs={12} md={6} key={p._id}>
-            <Paper sx={{ p: 2, position: "relative" }}>
-              <IconButton
-                size="small"
-                color="error"
-                onClick={() => handleDeleteProduct(i)}
-                sx={{ position: "absolute", top: 4, right: 4 }}
-              >
-                <DeleteIcon />
-              </IconButton>
-              <Typography variant="subtitle1">{p.name}</Typography>
+        {productos.map((p, i) => {
+          const hasPriceError =
+            (!p.currentPrice || p.currentPrice <= 0) &&
+            (!p.manualPrice || p.manualPrice <= 0);
 
-              {!p.currentPrice || p.currentPrice <= 0 ? (
+          return (
+          <Grid item xs={12} sm={6} md={4} lg={3} key={p._id}>
+
+              <Paper
+                sx={{
+                  minWidth: 280,
+                  maxWidth: 400,
+                  mx: "auto", // centra el Paper si sobra espacio
+                  p: 2,
+                  position: "relative",
+                  bgcolor: hasPriceError ? "#ffe5e5" : "#f9f9f9",
+                  border: hasPriceError
+                    ? "2px solid #d32f2f"
+                    : "1px solid #ddd",
+                }}
+              >
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => handleDeleteProduct(i)}
+                  sx={{ position: "absolute", top: 4, right: 4 }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+                <Typography variant="subtitle1">{p.name}</Typography>
+
+                {!p.currentPrice || p.currentPrice <= 0 ? (
+                  <TextField
+                    label="Precio"
+                    type="number"
+                    value={p.manualPrice || ""}
+                    onChange={(e) =>
+                      updateProductField(
+                        i,
+                        "manualPrice",
+                        Number(e.target.value)
+                      )
+                    }
+                    fullWidth
+                    sx={{
+                      mt: 1,
+                      bgcolor: hasPriceError ? "#ffe5e5" : undefined,
+                    }}
+                  />
+                ) : (
+                  <Typography variant="body2">
+                    Precio actual: ${p.currentPrice.toFixed(2)}
+                  </Typography>
+                )}
+
                 <TextField
-                  label="Precio"
+                  label="% Descuento"
                   type="number"
-                  value={p.manualPrice || ""}
+                  value={p.discount}
                   onChange={(e) =>
-                    updateProductField(i, "manualPrice", Number(e.target.value))
+                    updateProductField(i, "discount", Number(e.target.value))
                   }
                   fullWidth
                   sx={{ mt: 1 }}
+                  InputLabelProps={{ shrink: true }}
                 />
-              ) : (
-                <Typography variant="body2">
-                  Precio actual: ${p.currentPrice.toFixed(2)}
+                <TextField
+                  label="Precio anterior"
+                  type="number"
+                  value={p.manualPreviousPrice ?? ""}
+                  onChange={(e) =>
+                    updateProductField(
+                      i,
+                      "manualPreviousPrice",
+                      Number(e.target.value)
+                    )
+                  }
+                  fullWidth
+                  sx={{ mt: 1 }}
+                   InputLabelProps={{ shrink: true }}
+                />
+
+                <Typography variant="body1" sx={{ mt: 1 }}>
+                  Precio final:{" "}
+                  <strong>${p.discountedPrice?.toFixed(2)}</strong>
                 </Typography>
-              )}
-
-              <TextField
-                label="% Descuento"
-                type="number"
-                value={p.discount}
-                onChange={(e) =>
-                  updateProductField(i, "discount", Number(e.target.value))
-                }
-                fullWidth
-                sx={{ mt: 1 }}
-              />
-              <TextField
-                label="Precio anterior"
-                type="number"
-                value={p.manualPreviousPrice ?? ""}
-                onChange={(e) =>
-                  updateProductField(i, "manualPreviousPrice", Number(e.target.value))
-                }
-                fullWidth
-                sx={{ mt: 1 }}
-              />
-
-              <Typography variant="body1" sx={{ mt: 1 }}>
-                Precio final: <strong>${p.discountedPrice?.toFixed(2)}</strong>
-              </Typography>
-            </Paper>
-          </Grid>
-        ))}
+              </Paper>
+            </Grid>
+          );
+        })}
       </Grid>
     </Box>
   );

@@ -505,11 +505,18 @@ const ProductLabelManager = () => {
 
       // Nombre del producto
       const nombreParaMostrar = p.manualName?.trim() || p.name || "";
-      const nameLines = splitTextByWidth(
+      let nameLines = splitTextByWidth(
         doc,
         nombreParaMostrar,
-        etiquetaAncho - 5
-      );
+        etiquetaAncho - 1
+      )
+      
+      const wasTruncated = nameLines.length > 4;
+nameLines = nameLines.slice(0, 4);
+
+if (wasTruncated) {
+  nameLines[3] = nameLines[3].replace(/(.{3,})$/, "$1…");
+}
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(12);

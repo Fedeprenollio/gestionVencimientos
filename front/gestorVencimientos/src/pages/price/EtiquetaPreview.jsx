@@ -38,7 +38,7 @@ const EtiquetaPreview = ({ producto, onChange }) => {
       sx={{
         height: 312,
         border: "1px solid #ccc",
-        bgcolor: "#fff",
+        // bgcolor: "#fff",
         position: "relative",
         px: 1.5,
         py: 1,
@@ -46,6 +46,8 @@ const EtiquetaPreview = ({ producto, onChange }) => {
         flexDirection: "column",
         fontFamily: "Arial",
         mb: 3,
+        borderColor: price === 0 ? "error.main" : "#ccc",
+        bgcolor: price === 0 ? "#fff5f5" : "#fff",
       }}
     >
       {/* Botones tipo etiqueta */}
@@ -155,6 +157,14 @@ const EtiquetaPreview = ({ producto, onChange }) => {
       <Box sx={{ mt: "auto", textAlign: "center", fontSize: 12 }}>
         <Typography variant="caption">{barcode}</Typography>
       </Box>
+      {price === 0 && (
+        <Typography
+          variant="caption"
+          sx={{ color: "error.main", textAlign: "center", mt: 1 }}
+        >
+          Precio no asignado
+        </Typography>
+      )}
     </Box>
   );
 };
