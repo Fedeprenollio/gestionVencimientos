@@ -46,6 +46,25 @@ productRoutes.post("/check-exist", async (req, res) => {
   }
 });
 
+// GET /products/by-codebars?codebars=123,456,789
+productRoutes.post("/by-codebars", async (req, res) => {
+  try {
+    const { codebars } = req.body;
+
+    if (!Array.isArray(codebars) || codebars.length === 0) {
+      return res.status(400).json({ message: "Se requiere un array de codebars." });
+    }
+
+    const products = await Product.find({
+      barcode: { $in: codebars },
+    });
+
+    res.json(products);
+  } catch (error) {
+    console.error("Error al buscar productos:", error);
+    res.status(500).json({ message: "Error interno del servidor" });
+  }
+});
 
 
 
