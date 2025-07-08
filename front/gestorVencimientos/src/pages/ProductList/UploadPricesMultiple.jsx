@@ -370,7 +370,7 @@ export default function UploadPricesMultiple() {
       </Box>
 
       <Typography variant="body1" color="text.secondary" mb={3}>
-        Asegurate de cargar un archivo con columnas: <b>Codebar</b> y <b>Precio</b>.
+        Asegurate de cargar un archivo con columnas: <b>Codebar</b> y <b>Unitario</b>.
       </Typography>
 
       <Paper
