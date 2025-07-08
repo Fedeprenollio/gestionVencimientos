@@ -14,6 +14,7 @@ import {
   updateProductPrices,  
 } from '../controllers/productController.js';
 import Product from '../models/Product.js';
+import { getPriceHistoryByProduct } from '../controllers/historyPruceController.js';
 
 const productRoutes = express.Router();
 productRoutes.get('/', getExpiringProducts);
@@ -66,6 +67,7 @@ productRoutes.post("/by-codebars", async (req, res) => {
   }
 });
 
+productRoutes.get('/price-history/:barcode', getPriceHistoryByProduct);
 
 
 export default productRoutes;

@@ -110,6 +110,8 @@ export default function PriceComparisonByDate({ listId }) {
               <TableRow>
                 <TableCell>Producto</TableCell>
                 <TableCell>Código</TableCell>
+                <TableCell align="center">Última etiqueta</TableCell>
+
                 <TableCell align="right">
                   Precio en {dayjs(compareDate).format("DD/MM/YYYY")}
                 </TableCell>
@@ -127,6 +129,7 @@ export default function PriceComparisonByDate({ listId }) {
                     priceAtDate,
                     currentPrice,
                     needsRetag,
+                    lastTagDate
                   }) => (
                     <TableRow
                       key={barcode}
@@ -136,6 +139,16 @@ export default function PriceComparisonByDate({ listId }) {
                     >
                       <TableCell>{name}</TableCell>
                       <TableCell>{barcode}</TableCell>
+                      <TableCell align="center">
+                        {lastTagDate ? (
+                          dayjs(lastTagDate).format("DD/MM/YYYY")
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            -
+                          </Typography>
+                        )}
+                      </TableCell>
+
                       <TableCell align="right">
                         {priceAtDate !== null
                           ? `$${priceAtDate.toFixed(2)}`

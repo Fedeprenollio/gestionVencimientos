@@ -28,7 +28,7 @@ export const comparePricesByDateSeparateCollections = async (req, res) => {
       .endOf("day")
       .utc()
       .toDate();
-    const product = await Product.findById("684f5a3951cb268a2a43c3d9").populate("priceHistory");
+    const product = await Product.findById(id).populate("priceHistory");
     console.log(product.priceHistory); // ¿Trae los documentos?
 
     const list = await ProductList.findById(id).populate({
@@ -81,6 +81,33 @@ export const comparePricesByDateSeparateCollections = async (req, res) => {
     res.json({ listName: list.name, products: result });
   } catch (error) {
     console.error("Error comparando precios:", error);
+    res.status(500).json({ message: "Error del servidor" });
+  }
+};
+
+export const getPriceHistoryByProduct = async (req, res) => {
+  try {
+    const { barcode } = req.params;
+
+    const product = await Product.findOne({ barcode });
+
+    if (!product) {
+      return res.status(404).json({ message: "Producto no encontrado" });
+    }
+
+    const history = await PriceHistory.find({ productId: product._id })
+      .sort({ date: -1 })
+      .lean();
+console.log("history,history",history)
+    res.json({
+      barcode: product.barcode,
+      name: product.name,
+      currentPrice: product.currentPrice,
+      totalEntries: history.length,
+      history,
+    });
+  } catch (error) {
+    console.error("Error al obtener historial de precios:", error);
     res.status(500).json({ message: "Error del servidor" });
   }
 };

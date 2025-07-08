@@ -785,18 +785,18 @@ export const updateProductPrices = async (req, res) => {
       const product = await Product.findOne({ barcode });
       if (!product) continue;
 
-      // Actualiza el precio actual
-      product.currentPrice = price;
-      await product.save();
+      // ⚠️ Comprobación: solo si el precio cambió
+      if (product.currentPrice !== price) {
+        product.currentPrice = price;
+        await product.save();
 
-      // Guarda un nuevo historial separado
-      await PriceHistory.create({
-        productId: product._id,
-        price,
-        // operator: opcional, si tenés datos para esto
-      });
+        await PriceHistory.create({
+          productId: product._id,
+          price,
+        });
 
-      updates.push({ barcode, price });
+        updates.push({ barcode, price });
+      }
     }
 
     return res.json({ message: "Prices updated", updates });
@@ -841,16 +841,29 @@ export const updatePricesFromList = async (req, res) => {
       const product = await Product.findOne({ barcode });
       if (!product) continue;
 
-      product.currentPrice = price;
-      await product.save();
+      if (product.currentPrice !== price) {
+        product.currentPrice = price;
+        await product.save();
 
-      await PriceHistory.create({
-        productId: product._id,
-        price,
-      });
+        await PriceHistory.create({
+          productId: product._id,
+          price,
+        });
 
-      updates.push({ barcode, price });
+        // ✅ ACTUALIZAR lastTagDate para este producto dentro de la lista
+        const productInList = list.products.find(
+          (p) => p.product?.toString?.() === product._id.toString()
+        );
+        if (productInList) {
+          productInList.lastTagDate = new Date();
+        }
+
+        updates.push({ barcode, price });
+      }
     }
+
+    // ✅ Guardar cambios en la lista (para que se actualice lastTagDate)
+    await list.save();
 
     return res.json({ message: "Prices updated for list products", updates });
   } catch (error) {
