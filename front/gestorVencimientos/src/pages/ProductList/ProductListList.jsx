@@ -59,16 +59,13 @@ useEffect(() => {
     enabled: !!selectedBranch,
   });
 
-  useEffect(() => {
-    if (lists && lists.length > 0) {
-      setSelectedLists(lists.map((l) => l._id)); // seleccionadas todas por defecto
-    }
-  }, [lists]);
+  // useEffect(() => {
+  //   if (lists && lists.length > 0) {
+  //     setSelectedLists(lists.map((l) => l._id)); // seleccionadas todas por defecto
+  //   }
+  // }, [lists]);
 
   const handleExport = (list) => {
-    console.log("LA LISTA", list);
-    console.log("LA list.products", list.products);
-
     const codes =
       list.products?.map((p) => p.product?.barcode?.trim()).filter(Boolean) ||
       [];

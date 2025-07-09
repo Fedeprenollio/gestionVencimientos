@@ -1556,3 +1556,87 @@ export const comparePricesByDate = async (req, res) => {
     res.status(500).json({ message: "Error interno del servidor" });
   }
 };
+
+// POST /product-lists/:listId/add-multiple
+export const addMultipleProductsToList = async (req, res) => {
+  try {
+    const { listId } = req.params;
+    const { barcodes } = req.body;
+
+    if (!Array.isArray(barcodes)) {
+      return res.status(400).json({ message: "Se requiere un array de códigos" });
+    }
+
+    const list = await ProductList.findById(listId);
+    if (!list) {
+      return res.status(404).json({ message: "Lista no encontrada" });
+    }
+
+    const existingCodes = new Set(list.products.map((p) => p.product.toString()));
+
+    const added = [];
+    const missing = [];
+
+    for (const code of barcodes) {
+      const product = await Product.findOne({ barcode: code.trim() });
+      if (!product) {
+        missing.push(code);
+        continue;
+      }
+
+      if (existingCodes.has(product._id.toString())) {
+        continue; // ya está en la lista
+      }
+
+      list.products.push({ product: product._id });
+      added.push(product);
+    }
+
+    await list.save();
+
+    res.json({
+      added: added.map(p => ({
+        _id: p._id,
+        name: p.name,
+        barcode: p.barcode,
+      })),
+      missing,
+      totalAdded: added.length,
+      totalMissing: missing.length,
+    });
+
+  } catch (err) {
+    console.error("Error en addMultipleProductsToList:", err);
+    res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+
+
+export const removeMultipleProductsFromList = async (req, res) => {
+  const { listId } = req.params;
+  const { productIds } = req.body;
+
+  if (!Array.isArray(productIds)) {
+    return res.status(400).json({ message: "Se requiere un array de IDs" });
+  }
+
+  try {
+    const list = await ProductList.findById(listId);
+    if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+    const originalCount = list.products.length;
+
+    list.products = list.products.filter(
+      (entry) => !productIds.includes(entry.product.toString())
+    );
+
+    const removedCount = originalCount - list.products.length;
+
+    await list.save();
+
+    res.json({ removedCount });
+  } catch (err) {
+    console.error("Error al eliminar múltiples productos:", err);
+    res.status(500).json({ message: "Error interno del servidor" });
+  }
+};

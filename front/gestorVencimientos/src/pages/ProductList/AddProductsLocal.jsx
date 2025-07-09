@@ -19,8 +19,10 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 
 import { fetchProducts, createProduct } from "../../api/productApi";
 import {
+  addMultipleProductsToList,
   addProductToList,
   fetchListById,
+  removeMultipleProductsFromList,
   removeProductFromList,
 } from "../../api/listApi";
 import BarcodeSearchSection from "../../components/lots/BarcodeSearchSection";
@@ -50,6 +52,8 @@ export default function AddProductsLocal() {
     severity: "success",
   });
   const [loadingSearch, setLoadingSearch] = useState(false);
+  const [missingBarcodes, setMissingBarcodes] = useState([]);
+  const [selectedProducts, setSelectedProducts] = useState([]);
 
   const queryClient = useQueryClient();
 
@@ -123,12 +127,12 @@ export default function AddProductsLocal() {
   // };
 
   const handleAddToList = async (productId) => {
-  await addProductToList(listId, productId);
-  showFeedback("Producto agregado correctamente", "success"); // ✅
-  loadList();
-  setBarcode("");
-  barcodeInputRef.current?.focus();
-};
+    await addProductToList(listId, productId);
+    showFeedback("Producto agregado correctamente", "success"); // ✅
+    loadList();
+    setBarcode("");
+    barcodeInputRef.current?.focus();
+  };
 
   const handleRemoveFromList = async (productId) => {
     if (!window.confirm("¿Estás seguro que querés eliminar estos productos?"))
@@ -150,6 +154,32 @@ export default function AddProductsLocal() {
       .filter((code) => code.length > 0);
   };
 
+  // const handleBulkAdd = async () => {
+  //   setLoadingBulk(true);
+  //   const codes = parseBarcodes(bulkAddInput);
+  //   const existingCodes = new Set(
+  //     list.products.map((p) => p.product?.barcode?.trim()).filter(Boolean)
+  //   );
+
+  //   try {
+  //     for (const code of codes) {
+  //       const results = await fetchProducts(code);
+  //       const product = results?.[0];
+  //       if (product && !existingCodes.has(product.barcode)) {
+  //         await addProductToList(listId, product._id);
+  //       }
+  //     }
+  //     showFeedback("Códigos agregados correctamente");
+  //     setBulkAddInput("");
+  //     loadList();
+  //   } catch (err) {
+  //     console.error(err);
+  //     showFeedback("Error al agregar productos", "error");
+  //   } finally {
+  //     setLoadingBulk(false);
+  //   }
+  // };
+
   const handleBulkAdd = async () => {
     setLoadingBulk(true);
     const codes = parseBarcodes(bulkAddInput);
@@ -158,14 +188,16 @@ export default function AddProductsLocal() {
     );
 
     try {
-      for (const code of codes) {
-        const results = await fetchProducts(code);
-        const product = results?.[0];
-        if (product && !existingCodes.has(product.barcode)) {
-          await addProductToList(listId, product._id);
-        }
-      }
-      showFeedback("Códigos agregados correctamente");
+      const res = await addMultipleProductsToList(listId, codes);
+      const { added = [], missing = [] } = res;
+
+      setMissingBarcodes(missing); // 👉 guardar los no encontrados
+
+      let msg = `Se agregaron ${added.length} producto(s).`;
+      if (missing.length > 0)
+        msg += ` ${missing.length} código(s) no encontrados.`;
+      showFeedback(msg);
+
       setBulkAddInput("");
       loadList();
     } catch (err) {
@@ -176,10 +208,41 @@ export default function AddProductsLocal() {
     }
   };
 
+  // const handleBulkRemove = async () => {
+  //   if (!window.confirm("¿Estás seguro que querés eliminar estos productos?"))
+  //     return;
+  //   setLoadingBulk(true);
+  //   const codesToRemove = parseBarcodes(bulkRemoveInput);
+  //   const codeToProductMap = {};
+  //   list.products.forEach((p) => {
+  //     if (p.product?.barcode) {
+  //       codeToProductMap[p.product.barcode.trim()] = p.product._id;
+  //     }
+  //   });
+
+  //   try {
+  //     for (const code of codesToRemove) {
+  //       const productId = codeToProductMap[code];
+  //       if (productId) {
+  //         await removeProductFromList(listId, productId);
+  //       }
+  //     }
+  //     showFeedback("Productos eliminados correctamente");
+  //     setBulkRemoveInput("");
+  //     loadList();
+  //   } catch (err) {
+  //     console.error(err);
+  //     showFeedback("Error al eliminar productos", "error");
+  //   } finally {
+  //     setLoadingBulk(false);
+  //   }
+  // };
+
   const handleBulkRemove = async () => {
     if (!window.confirm("¿Estás seguro que querés eliminar estos productos?"))
       return;
     setLoadingBulk(true);
+
     const codesToRemove = parseBarcodes(bulkRemoveInput);
     const codeToProductMap = {};
     list.products.forEach((p) => {
@@ -188,13 +251,12 @@ export default function AddProductsLocal() {
       }
     });
 
+    const productIds = codesToRemove
+      .map((code) => codeToProductMap[code])
+      .filter(Boolean);
+
     try {
-      for (const code of codesToRemove) {
-        const productId = codeToProductMap[code];
-        if (productId) {
-          await removeProductFromList(listId, productId);
-        }
-      }
+      await removeMultipleProductsFromList(listId, productIds);
       showFeedback("Productos eliminados correctamente");
       setBulkRemoveInput("");
       loadList();
@@ -203,6 +265,31 @@ export default function AddProductsLocal() {
       showFeedback("Error al eliminar productos", "error");
     } finally {
       setLoadingBulk(false);
+    }
+  };
+
+  const handleRemoveSelected = async () => {
+    if (!window.confirm("¿Eliminar los productos seleccionados?")) return;
+    try {
+      await removeMultipleProductsFromList(listId, selectedProducts);
+      showFeedback("Productos eliminados correctamente");
+      setSelectedProducts([]);
+      loadList();
+    } catch (err) {
+      console.error(err);
+      showFeedback("Error al eliminar seleccionados", "error");
+    }
+  };
+  const isAllSelected =
+    list.products?.length > 0 &&
+    selectedProducts.length === list.products?.length;
+
+  const handleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedProducts([]);
+    } else {
+      const allIds = list.products.map((p) => p.product?._id).filter(Boolean);
+      setSelectedProducts(allIds);
     }
   };
 
@@ -297,30 +384,95 @@ export default function AddProductsLocal() {
         <Table size="small">
           <TableHead>
             <TableRow>
+              <TableCell padding="checkbox">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={handleSelectAll}
+                />
+              </TableCell>
               <TableCell>Nombre</TableCell>
               <TableCell>Código</TableCell>
               <TableCell align="right">Acción</TableCell>
             </TableRow>
           </TableHead>
+
           <TableBody>
-            {list.products?.map((entry) => (
-              <TableRow key={entry.product?._id}>
-                <TableCell>{entry.product?.name}</TableCell>
-                <TableCell>{entry.product?.barcode}</TableCell>
-                <TableCell align="right">
-                  <Button
-                    size="small"
-                    color="error"
-                    onClick={() => handleRemoveFromList(entry.product._id)}
-                  >
-                    Eliminar
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {list.products?.map((entry) => {
+              const id = entry.product?._id;
+              const isSelected = selectedProducts.includes(id);
+              return (
+                <TableRow key={id} selected={isSelected}>
+                  <TableCell padding="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {
+                        setSelectedProducts((prev) =>
+                          prev.includes(id)
+                            ? prev.filter((pid) => pid !== id)
+                            : [...prev, id]
+                        );
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell>{entry.product?.name}</TableCell>
+                  <TableCell>{entry.product?.barcode}</TableCell>
+                  <TableCell align="right">
+                    <Button
+                      size="small"
+                      color="error"
+                      onClick={() => handleRemoveFromList(id)}
+                    >
+                      Eliminar
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </Paper>
+      {missingBarcodes.length > 0 && (
+        <Paper sx={{ mt: 3, p: 2 }}>
+          <Typography variant="subtitle1" color="error">
+            Códigos no encontrados ({missingBarcodes.length})
+          </Typography>
+          <Box
+            component="ul"
+            sx={{
+              listStyle: "none",
+              p: 0,
+              m: 0,
+              fontFamily: "monospace",
+              fontSize: 14,
+            }}
+          >
+            {missingBarcodes.map((code) => (
+              <li key={code}>{code}</li>
+            ))}
+          </Box>
+          <Button
+            size="small"
+            onClick={() =>
+              exportToTXT(missingBarcodes, "codigos_no_encontrados.txt")
+            }
+          >
+            Exportar .txt
+          </Button>
+        </Paper>
+      )}
+      {selectedProducts.length > 0 && (
+        <Box mt={2}>
+          <Button
+            variant="outlined"
+            color="error"
+            onClick={handleRemoveSelected}
+          >
+            Eliminar seleccionados ({selectedProducts.length})
+          </Button>
+        </Box>
+      )}
 
       {loadingBulk && (
         <Box
@@ -341,6 +493,7 @@ export default function AddProductsLocal() {
           <Typography mt={2}>Procesando...</Typography>
         </Box>
       )}
+
       <Snackbar
         open={feedback.open}
         autoHideDuration={4000}

@@ -16,6 +16,8 @@ import {
   getProductsToRetag,
   getUploadLogsForList,
   getUploadLogs,
+  addMultipleProductsToList,
+  removeMultipleProductsFromList,
 } from '../controllers/productListController.js';
 import { comparePricesByDateSeparateCollections } from '../controllers/historyPruceController.js';
 import ProductList from '../models/ProductList.js';
@@ -26,6 +28,12 @@ productListRoutes.post('/', createProductList);
 productListRoutes.get('/:id', getProductListById); // <-- NUEVA RUTA
 productListRoutes.get('/branch/:branchId', getProductListsByBranch);
 productListRoutes.put('/:listId/add/:productId', addProductToList);
+//CARGA MULTIPLE A LIST
+productListRoutes.post('/:listId/add-multiple', addMultipleProductsToList);
+//ELIMINAR MULTIPLE
+productListRoutes.put("/:listId/remove-many", removeMultipleProductsFromList);
+
+
 productListRoutes.put('/:listId/remove/:productId', removeProductFromList);
 productListRoutes.delete('/:listId', deleteProductList);
 // routes/productListRoutes.js
