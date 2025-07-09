@@ -44,6 +44,7 @@ const ProductLabelManager = () => {
   const [openModal, setOpenModal] = useState(false);
   const [updateResults, setUpdateResults] = useState([]);
   const [openDiscountModal, setOpenDiscountModal] = useState(false);
+  const [openClearDialog, setOpenClearDialog] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("labels_clasicos");
@@ -479,6 +480,14 @@ const ProductLabelManager = () => {
   };
   console.log("Clasicos", clasicos);
   console.log("Especiales", especiales);
+  const handleClearAll = () => {
+    localStorage.removeItem("labels_clasicos");
+    localStorage.removeItem("labels_especiales");
+    setClasicos([]);
+    setEspeciales([]);
+    setOpenClearDialog(false);
+    alert("Se borraron todas las etiquetas guardadas.");
+  };
 
   return (
     <Box sx={{ p: 2 }}>
@@ -503,6 +512,14 @@ const ProductLabelManager = () => {
         onClick={() => setOpenDiscountModal(true)}
       >
         Cargar descuentos desde Excel
+      </Button>
+      <Button
+        variant="outlined"
+        color="error"
+        sx={{ mb: 2, ml: 2 }}
+        onClick={() => setOpenClearDialog(true)}
+      >
+        Borrar todas las etiquetas guardadas
       </Button>
 
       <ExcelDiscountUploader
@@ -615,6 +632,21 @@ const ProductLabelManager = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenModal(false)}>Cerrar</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={openClearDialog} onClose={() => setOpenClearDialog(false)}>
+        <DialogTitle>Confirmar borrado</DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Estás seguro de que querés borrar <strong>todas</strong> las
+            etiquetas guardadas? Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenClearDialog(false)}>Cancelar</Button>
+          <Button color="error" onClick={handleClearAll}>
+            Borrar todo
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
