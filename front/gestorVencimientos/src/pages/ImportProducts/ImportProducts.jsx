@@ -15,6 +15,8 @@ import {
   CircularProgress,
 } from "@mui/material";
 import axios from "axios";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+
 
 export default function ImportProducts({ onImport }) {
   const [fileName, setFileName] = useState("");
@@ -151,11 +153,30 @@ export default function ImportProducts({ onImport }) {
         Importar productos desde Excel
       </Typography>
 
-      <input type="file" accept=".xls,.xlsx" onChange={handleFileChange} />
-      <Typography>
-        {" "}
-        Codebar y Producto deben ser los nombres de las columnas
-      </Typography>
+      <Box mt={2}>
+        <input
+          accept=".xls,.xlsx"
+          style={{ display: "none" }}
+          id="upload-products"
+          type="file"
+          onChange={handleFileChange}
+        />
+        <label htmlFor="upload-products">
+          <Button
+            variant="outlined"
+            component="span"
+            startIcon={<CloudUploadIcon />}
+          >
+            Seleccionar archivo Excel
+          </Button>
+        </label>
+        <Typography variant="body2" mt={1} color="text.secondary">
+          El archivo debe tener las columnas <strong>Codebar</strong> y{" "}
+          <strong>Producto</strong>. Opcional: <strong>CodigosBarra</strong>{" "}
+          para alternativos. - LISTA DE STOCK
+        </Typography>
+      </Box>
+
       {fileName && (
         <Typography variant="body2" sx={{ mt: 1 }}>
           Archivo seleccionado: <strong>{fileName}</strong>
