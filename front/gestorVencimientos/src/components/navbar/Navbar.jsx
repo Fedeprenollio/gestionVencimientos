@@ -23,6 +23,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import SucursalSelector from "../SucursalSelector";
 
 export default function Navbar({
   currentUser,
@@ -39,6 +40,7 @@ export default function Navbar({
   const [anchorElStock, setAnchorElStock] = useState(null);
   const [anchorElUser, setAnchorElUser] = useState(null);
   const [anchorElList, setAnchorElList] = useState(null);
+  const [anchorElUseful, setAnchorElUseful] = useState(null);
 
   const openUser = Boolean(anchorElUser);
   // Drawer móvil
@@ -69,11 +71,12 @@ export default function Navbar({
     },
     {
       label: "Stock",
-      submenu: [{ label: "Buscar stock en sucursales", to: "/stock-search" },
-        { label: "Ventas sin stock", to: "/stock/stockAnalysiss" }
+      submenu: [
+        { label: "Buscar stock en sucursales", to: "/stock-search" },
+        { label: "Ventas sin stock", to: "/stock/stockAnalysiss" },
       ],
     },
-  
+
     {
       label: "Listas",
       submenu: [
@@ -95,6 +98,14 @@ export default function Navbar({
       submenu: [
         { label: "Crear usuario", to: "/users/create" },
         // { label: "Listar usuarios", to: "/users" }, // opcional
+      ],
+    },
+    {
+      label: "Links Útiles",
+      submenu: [
+        { label: "Sucursales y teléfonos", to: "/contacts" },
+        // { label: "Validaciones y Droguerías", to: "/links/validaciones" },
+        // { label: "Web y Redes Sociales", to: "/links/web" },
       ],
     },
   ];
@@ -227,6 +238,30 @@ export default function Navbar({
                       {label}
                     </MenuItem>
                   ))}
+                </Menu>
+                <Button
+                  color="inherit"
+                  onClick={(e) => setAnchorElUseful(e.currentTarget)}
+                >
+                  Links Útiles
+                </Button>
+                <Menu
+                  anchorEl={anchorElUseful}
+                  open={Boolean(anchorElUseful)}
+                  onClose={() => setAnchorElUseful(null)}
+                >
+                  {menuItems[menuItems.length - 1].submenu.map(
+                    ({ label, to }) => (
+                      <MenuItem
+                        component={Link}
+                        to={to}
+                        key={label}
+                        onClick={() => setAnchorElUseful(null)}
+                      >
+                        {label}
+                      </MenuItem>
+                    )
+                  )}
                 </Menu>
               </>
             )}

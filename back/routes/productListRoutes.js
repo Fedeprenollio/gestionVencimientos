@@ -18,6 +18,7 @@ import {
   getUploadLogs,
   addMultipleProductsToList,
   removeMultipleProductsFromList,
+  updateTagDate,
 } from '../controllers/productListController.js';
 import { comparePricesByDateSeparateCollections } from '../controllers/historyPruceController.js';
 import ProductList from '../models/ProductList.js';
@@ -85,5 +86,5 @@ productListRoutes.get("/:listId/quick-products", getQuickProducts);
 productListRoutes.put("/:listId/quick-products", addQuickProducts);
 productListRoutes.put("/:id/quick-products", updateQuickProducts);
 productListRoutes.delete("/:id/quick-products", clearQuickProducts ); // <- esta es la nueva
-
+productListRoutes.patch("/lists/:listId/product/:productId/tag-date", updateTagDate);
 export default productListRoutes;

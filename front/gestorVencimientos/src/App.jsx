@@ -45,6 +45,7 @@ import MainTabs from "./pages/price/MainTabs.jsx";
 import VencimientosPage from "./pages/vencimientosPage/VencimientosPage.jsx";
 import ReturnListManager from "./components/returnList/ReturnListManager.jsx";
 import ImportStockAnalysis from "./pages/importStockAnalysis/ImportStockAnalysis.jsx";
+import SucursalesContactList from "./pages/contactosYLinks/SucursalesContactList.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -172,6 +173,11 @@ function App() {
                 path="/stock/stockAnalysiss"
                 element={<ImportStockAnalysis />}
               />
+               <Route
+                path="/contacts"
+                element={<SucursalesContactList />}
+              />
+              
               
               {/* <Route
                 path="/lists/drug-returns"
@@ -179,6 +185,7 @@ function App() {
               /> */}
               <Route path="*" element={<Productos />} />
               <Route path="/analisis" element={<StockAnalysisUploader />} />
+
               <Route
                 path="/lists/:listId/products-to-retag"
                 element={<ProductsToRetag />}

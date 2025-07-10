@@ -8,6 +8,7 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import mongoose from "mongoose";
 import PriceUploadLog from "../models/PriceUploadLog.js";
+import Stock from "../models/Stock.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -97,15 +98,62 @@ export const addProductToList = async (req, res) => {
   res.json(list);
 };
 
+// export const getProductListById = async (req, res) => {
+//   try {
+//     const list = await ProductList.findById(req.params.id)
+//       .populate({
+//         path: "products.product",
+//       })
+//       .populate("branch");
+
+//     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+//     res.json(list);
+//   } catch (err) {
+//     console.error("Error al obtener la lista por ID:", err);
+//     res.status(500).json({ message: "Error al obtener la lista" });
+//   }
+// };
+
+// controllers/productListController.js
+
 export const getProductListById = async (req, res) => {
   try {
     const list = await ProductList.findById(req.params.id)
+      .populate("branch")
       .populate({
         path: "products.product",
-      })
-      .populate("branch");
+        populate: {
+          path: "priceHistory",
+          options: { sort: { date: -1 } }, // opcional, para traerlo ordenado por fecha descendente
+        },
+      });
 
     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+    console.log("LISTA", list[0]);
+    const branchId = list.branch._id;
+    const productIds = list.products.map((p) => p.product?._id).filter(Boolean);
+
+    const stocks = await Stock.find({
+      product: { $in: productIds },
+      branch: branchId,
+    });
+    console.log("stocks", stocks);
+
+    const stockMap = {};
+    stocks.forEach((s) => {
+      stockMap[s.product.toString()] = s.quantity;
+    });
+
+    // Asignar stock al producto
+    list.products = list.products.map((p) => {
+      const prod = p.product?.toObject(); // convertir a objeto plano
+      if (prod) {
+        prod.stock = stockMap[prod._id.toString()] ?? 0;
+        return { ...p.toObject(), product: prod };
+      }
+      return p;
+    });
 
     res.json(list);
   } catch (err) {
@@ -113,8 +161,6 @@ export const getProductListById = async (req, res) => {
     res.status(500).json({ message: "Error al obtener la lista" });
   }
 };
-
-// controllers/productListController.js
 
 export const addQuickProducts = async (req, res) => {
   const { listId } = req.params;
@@ -832,7 +878,7 @@ export const uploadPricesForList = async (req, res) => {
 
     const nowArgentina = dayjs().tz("America/Argentina/Buenos_Aires").toDate();
 
-    for (const { barcode, price } of products) {
+    for (const { barcode, price, stock } of products) {
       if (!barcode || typeof price !== "number") continue;
 
       if (!listBarcodesSet.has(barcode)) {
@@ -968,19 +1014,14 @@ const runBatches = async (tasks, batchSize = 20) => {
 //     }
 
 //     if (!Array.isArray(listIds) || listIds.length === 0) {
-//       return res
-//         .status(400)
-//         .json({ message: "No se indicaron listas a actualizar" });
+//       return res.status(400).json({ message: "No se indicaron listas a actualizar" });
 //     }
 
-//     const selectedLists = await ProductList.find({
-//       _id: { $in: listIds },
-//     }).populate("products.product");
-
+//     const selectedLists = await ProductList.find({ _id: { $in: listIds } }).populate("products.product");
 //     const nowArgentina = dayjs().tz("America/Argentina/Buenos_Aires").toDate();
+
 //     const barcodesFromExcel = products.map((p) => p.barcode);
 //     const notInAnyList = [];
-
 //     const resultByList = [];
 
 //     for (const list of selectedLists) {
@@ -1005,86 +1046,101 @@ const runBatches = async (tasks, batchSize = 20) => {
 
 //       for (const { barcode, price } of products) {
 //         if (!barcode || typeof price !== "number") continue;
+
 //         const product = mapListProducts.get(barcode);
 //         if (!product) continue;
 
-//         const oldPrice = product.currentPrice ?? 0;
+//         updateTasks.push(async () => {
+//           const fullProduct = await Product.findById(product._id).populate("priceHistory");
 
-//         if (!oldPrice) {
-//           updateTasks.push(async () => {
+//           const hasHistory = fullProduct.priceHistory?.length > 0;
+
+//           if (!hasHistory) {
+//             await Product.findByIdAndUpdate(fullProduct._id, { currentPrice: price });
+
 //             const history = await PriceHistory.create({
-//               productId: product._id,
+//               productId: fullProduct._id,
 //               price,
 //               date: nowArgentina,
 //             });
 
-//             await Product.findByIdAndUpdate(product._id, {
-//               $set: { currentPrice: price },
+//             await Product.findByIdAndUpdate(fullProduct._id, {
 //               $push: { priceHistory: history._id },
 //             });
 
 //             changes.firstTimeSet.push({
+//               _id: fullProduct._id,
 //               barcode,
-//               name: product.name,
+//               name: fullProduct.name,
 //               newPrice: price,
+//               lastTagDate: nowArgentina,
 //             });
-//           });
-//         } else if (price === oldPrice) {
-//           updateTasks.push(async () => {
-//             const fullProduct = await Product.findById(product._id);
-//             const hasHistory = fullProduct.priceHistory?.length > 0;
+//           } else {
+//             const lastEntry = [...fullProduct.priceHistory].sort(
+//               (a, b) => new Date(b.date) - new Date(a.date)
+//             )[0];
+//             const oldPrice = lastEntry?.price ?? 0;
 
-//             if (!hasHistory) {
+//             if (price === oldPrice) {
+//               changes.priceUnchanged.push({
+//                 _id: fullProduct._id,
+//                 barcode,
+//                 name: fullProduct.name,
+//                 price,
+//               });
+//             } else {
+//               await Product.findByIdAndUpdate(fullProduct._id, { currentPrice: price });
+
 //               const history = await PriceHistory.create({
-//                 productId: product._id,
+//                 productId: fullProduct._id,
 //                 price,
 //                 date: nowArgentina,
 //               });
 
-//               await Product.findByIdAndUpdate(product._id, {
+//               await Product.findByIdAndUpdate(fullProduct._id, {
 //                 $push: { priceHistory: history._id },
 //               });
 
-//               changes.firstTimeSet.push({
+//               const entry = {
+//                 _id: fullProduct._id,
 //                 barcode,
-//                 name: product.name,
+//                 name: fullProduct.name,
+//                 oldPrice,
 //                 newPrice: price,
-//               });
-//             } else {
-//               changes.priceUnchanged.push({
-//                 barcode,
-//                 name: product.name,
-//                 price,
-//               });
+//                  lastTagDate: nowArgentina,
+//               };
+
+//               if (price > oldPrice) changes.priceIncreased.push(entry);
+//               else changes.priceDecreased.push(entry);
 //             }
-//           });
-//         } else {
-//           updateTasks.push(async () => {
-//             const history = await PriceHistory.create({
-//               productId: product._id,
-//               price,
-//               date: nowArgentina,
-//             });
-
-//             await Product.findByIdAndUpdate(product._id, {
-//               $set: { currentPrice: price },
-//               $push: { priceHistory: history._id },
-//             });
-
-//             const entry = {
-//               barcode,
-//               name: product.name,
-//               oldPrice,
-//               newPrice: price,
-//             };
-//             if (price > oldPrice) changes.priceIncreased.push(entry);
-//             else changes.priceDecreased.push(entry);
-//           });
-//         }
+//           }
+//         });
 //       }
 
 //       await runBatches(updateTasks, 20);
 
+//       // ✅ Actualizar lastTagDate solo a productos con cambios
+//       const productosParaEtiquetar = [
+//         ...changes.priceIncreased,
+//         ...changes.priceDecreased,
+//         ...changes.firstTimeSet,
+//       ];
+
+//       for (const prod of productosParaEtiquetar) {
+//         await ProductList.updateOne(
+//           {
+//             _id: list._id,
+//             "products.product": prod._id,
+//           },
+//           {
+//             $set: {
+//               "products.$.lastTagDate": nowArgentina,
+//             },
+//           }
+//         );
+//       }
+
+//       // Marcar productos de la lista que no están en el Excel
 //       for (const item of list.products) {
 //         const prod = item.product;
 //         if (prod?.barcode && !barcodesFromExcel.includes(prod.barcode)) {
@@ -1100,6 +1156,7 @@ const runBatches = async (tasks, batchSize = 20) => {
 //       resultByList.push(changes);
 //     }
 
+//     // Productos del Excel que no están en ninguna lista
 //     const allListBarcodes = new Set(
 //       selectedLists.flatMap((list) =>
 //         list.products.map((item) => item.product?.barcode)
@@ -1112,6 +1169,7 @@ const runBatches = async (tasks, batchSize = 20) => {
 //       }
 //     }
 
+//     // Guardar logs
 //     for (const listResult of resultByList) {
 //       await PriceUploadLog.create({
 //         uploadedBy: req.user?._id || null,
@@ -1141,7 +1199,7 @@ const runBatches = async (tasks, batchSize = 20) => {
 
 export const uploadPricesForMultipleLists = async (req, res) => {
   try {
-    const { products, listIds, fileName } = req.body;
+    const { products, listIds, fileName, branchId } = req.body;
 
     if (!Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ message: "Lista de productos vacía" });
@@ -1151,10 +1209,13 @@ export const uploadPricesForMultipleLists = async (req, res) => {
       return res.status(400).json({ message: "No se indicaron listas a actualizar" });
     }
 
-    const selectedLists = await ProductList.find({ _id: { $in: listIds } }).populate("products.product");
+    const selectedLists = await ProductList.find({
+      _id: { $in: listIds },
+    }).populate("products.product");
+
     const nowArgentina = dayjs().tz("America/Argentina/Buenos_Aires").toDate();
 
-    const barcodesFromExcel = products.map((p) => p.barcode);
+    const barcodesFromExcel = products.map((p) => p.barcode?.trim()).filter(Boolean);
     const notInAnyList = [];
     const resultByList = [];
 
@@ -1162,7 +1223,10 @@ export const uploadPricesForMultipleLists = async (req, res) => {
       const mapListProducts = new Map();
       for (const item of list.products) {
         if (item.product?.barcode) {
-          mapListProducts.set(item.product.barcode, item.product);
+          mapListProducts.set(item.product.barcode.trim(), {
+            product: item.product,
+            lastTagDate: item.lastTagDate,
+          });
         }
       }
 
@@ -1174,23 +1238,30 @@ export const uploadPricesForMultipleLists = async (req, res) => {
         priceUnchanged: [],
         firstTimeSet: [],
         missingInExcel: [],
+        stockUpdated: [],
       };
 
       const updateTasks = [];
 
-      for (const { barcode, price } of products) {
+      for (const { barcode, price, stock } of products) {
         if (!barcode || typeof price !== "number") continue;
 
-        const product = mapListProducts.get(barcode);
-        if (!product) continue;
-
         updateTasks.push(async () => {
+          const cleanBarcode = barcode.trim();
+          const productEntry = mapListProducts.get(cleanBarcode);
+          if (!productEntry || !productEntry.product) return;
+
+          const { product, lastTagDate } = productEntry;
+
           const fullProduct = await Product.findById(product._id).populate("priceHistory");
-
           const hasHistory = fullProduct.priceHistory?.length > 0;
+          const isFirstTag = !lastTagDate;
 
-          if (!hasHistory) {
-            await Product.findByIdAndUpdate(fullProduct._id, { currentPrice: price });
+          if (!hasHistory || isFirstTag) {
+            // Primera etiqueta o sin historial
+            await Product.findByIdAndUpdate(fullProduct._id, {
+              currentPrice: price,
+            });
 
             const history = await PriceHistory.create({
               productId: fullProduct._id,
@@ -1204,7 +1275,7 @@ export const uploadPricesForMultipleLists = async (req, res) => {
 
             changes.firstTimeSet.push({
               _id: fullProduct._id,
-              barcode,
+              barcode: cleanBarcode,
               name: fullProduct.name,
               newPrice: price,
               lastTagDate: nowArgentina,
@@ -1218,12 +1289,15 @@ export const uploadPricesForMultipleLists = async (req, res) => {
             if (price === oldPrice) {
               changes.priceUnchanged.push({
                 _id: fullProduct._id,
-                barcode,
+                barcode: cleanBarcode,
                 name: fullProduct.name,
                 price,
+                stock,
               });
             } else {
-              await Product.findByIdAndUpdate(fullProduct._id, { currentPrice: price });
+              await Product.findByIdAndUpdate(fullProduct._id, {
+                currentPrice: price,
+              });
 
               const history = await PriceHistory.create({
                 productId: fullProduct._id,
@@ -1237,23 +1311,44 @@ export const uploadPricesForMultipleLists = async (req, res) => {
 
               const entry = {
                 _id: fullProduct._id,
-                barcode,
+                barcode: cleanBarcode,
                 name: fullProduct.name,
                 oldPrice,
                 newPrice: price,
-                 lastTagDate: nowArgentina,
+                lastTagDate: nowArgentina,
+                stock,
               };
 
               if (price > oldPrice) changes.priceIncreased.push(entry);
               else changes.priceDecreased.push(entry);
             }
           }
+
+          // Stock
+          if (branchId && typeof stock === "number") {
+            await Stock.findOneAndUpdate(
+              { product: fullProduct._id, branch: branchId },
+              {
+                $set: {
+                  quantity: stock,
+                  lastUpdated: nowArgentina,
+                },
+              },
+              { upsert: true }
+            );
+
+            changes.stockUpdated.push({
+              _id: fullProduct._id,
+              barcode: cleanBarcode,
+              name: fullProduct.name,
+              stock,
+            });
+          }
         });
       }
 
       await runBatches(updateTasks, 20);
 
-      // ✅ Actualizar lastTagDate solo a productos con cambios
       const productosParaEtiquetar = [
         ...changes.priceIncreased,
         ...changes.priceDecreased,
@@ -1274,10 +1369,9 @@ export const uploadPricesForMultipleLists = async (req, res) => {
         );
       }
 
-      // Marcar productos de la lista que no están en el Excel
       for (const item of list.products) {
         const prod = item.product;
-        if (prod?.barcode && !barcodesFromExcel.includes(prod.barcode)) {
+        if (prod?.barcode && !barcodesFromExcel.includes(prod.barcode.trim())) {
           changes.missingInExcel.push({
             barcode: prod.barcode,
             name: prod.name,
@@ -1290,16 +1384,17 @@ export const uploadPricesForMultipleLists = async (req, res) => {
       resultByList.push(changes);
     }
 
-    // Productos del Excel que no están en ninguna lista
+    // Productos que no están en ninguna lista
     const allListBarcodes = new Set(
       selectedLists.flatMap((list) =>
-        list.products.map((item) => item.product?.barcode)
+        list.products.map((item) => item.product?.barcode?.trim())
       )
     );
 
     for (const { barcode, price } of products) {
-      if (!allListBarcodes.has(barcode)) {
-        notInAnyList.push({ barcode, price });
+      const cleanBarcode = barcode?.trim();
+      if (!allListBarcodes.has(cleanBarcode)) {
+        notInAnyList.push({ barcode: cleanBarcode, price });
       }
     }
 
@@ -1317,19 +1412,21 @@ export const uploadPricesForMultipleLists = async (req, res) => {
         firstTimeSet: listResult.firstTimeSet,
         missingInExcel: listResult.missingInExcel,
         notInAnyList,
+        stockUpdated: listResult.stockUpdated,
       });
     }
 
     res.json({
-      message: `Precios actualizados para ${selectedLists.length} listas`,
+      message: `Precios y stock actualizados para ${selectedLists.length} listas`,
       lists: resultByList,
       notInAnyList,
     });
   } catch (error) {
-    console.error("Error al subir precios para múltiples listas:", error);
+    console.error("❌ Error al subir precios y stock:", error);
     res.status(500).json({ message: "Error del servidor" });
   }
 };
+
 
 export const getProductsToRetag = async (req, res) => {
   try {
@@ -1536,7 +1633,7 @@ export const comparePricesByDate = async (req, res) => {
         priceAtDate: priceHistory?.price ?? null,
         currentPrice: product.currentPrice ?? null,
         needsRetag: priceHistory?.price !== product.currentPrice,
-         lastTagDate: item.lastTagDate ?? null,
+        lastTagDate: item.lastTagDate ?? null,
       });
     }
     results.sort((a, b) => {
@@ -1564,7 +1661,9 @@ export const addMultipleProductsToList = async (req, res) => {
     const { barcodes } = req.body;
 
     if (!Array.isArray(barcodes)) {
-      return res.status(400).json({ message: "Se requiere un array de códigos" });
+      return res
+        .status(400)
+        .json({ message: "Se requiere un array de códigos" });
     }
 
     const list = await ProductList.findById(listId);
@@ -1572,7 +1671,9 @@ export const addMultipleProductsToList = async (req, res) => {
       return res.status(404).json({ message: "Lista no encontrada" });
     }
 
-    const existingCodes = new Set(list.products.map((p) => p.product.toString()));
+    const existingCodes = new Set(
+      list.products.map((p) => p.product.toString())
+    );
 
     const added = [];
     const missing = [];
@@ -1595,7 +1696,7 @@ export const addMultipleProductsToList = async (req, res) => {
     await list.save();
 
     res.json({
-      added: added.map(p => ({
+      added: added.map((p) => ({
         _id: p._id,
         name: p.name,
         barcode: p.barcode,
@@ -1604,13 +1705,11 @@ export const addMultipleProductsToList = async (req, res) => {
       totalAdded: added.length,
       totalMissing: missing.length,
     });
-
   } catch (err) {
     console.error("Error en addMultipleProductsToList:", err);
     res.status(500).json({ message: "Error interno del servidor" });
   }
 };
-
 
 export const removeMultipleProductsFromList = async (req, res) => {
   const { listId } = req.params;
@@ -1638,5 +1737,29 @@ export const removeMultipleProductsFromList = async (req, res) => {
   } catch (err) {
     console.error("Error al eliminar múltiples productos:", err);
     res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+
+export const updateTagDate = async (req, res) => {
+  const { listId, productId } = req.params;
+  const { date } = req.body;
+
+  try {
+    const list = await ProductList.findById(listId);
+    if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+    const item = list.products.find((p) => p.product.toString() === productId);
+    if (!item)
+      return res
+        .status(404)
+        .json({ message: "Producto no encontrado en la lista" });
+
+    item.lastTagDate = new Date(date);
+
+    await list.save();
+    res.json({ message: "Fecha actualizada correctamente" });
+  } catch (err) {
+    console.error("Error al actualizar fecha de etiqueta:", err);
+    res.status(500).json({ message: "Error al actualizar la fecha" });
   }
 };

@@ -281,7 +281,7 @@ export default function AddProductsLocal() {
     }
   };
   const isAllSelected =
-    list.products?.length > 0 &&
+    list?.products?.length > 0 &&
     selectedProducts.length === list.products?.length;
 
   const handleSelectAll = () => {

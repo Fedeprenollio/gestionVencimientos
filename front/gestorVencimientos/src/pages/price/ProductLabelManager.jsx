@@ -8,13 +8,15 @@ import {
   Divider,
   Tabs,
   Tab,
+  Table,
+  TableHead,
+  TableCell,
+  TableRow,
+  TableBody,
 } from "@mui/material";
 import ClasicasInput from "./ClasicasInput";
 import EspecialesInput from "./EspecialesInput";
 import EtiquetaPreview from "./EtiquetaPreview";
-import jsPDF from "jspdf";
-import JsBarcode from "jsbarcode";
-import dayjs from "dayjs";
 import { Modal } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile"; // ícono opcional
 import * as XLSX from "xlsx";
@@ -25,18 +27,16 @@ import {
   DialogActions,
 } from "@mui/material";
 import ExcelDiscountUploader from "./ExcelDiscountUploader";
-
-const generateBarcodeImage = (text) => {
-  const canvas = document.createElement("canvas");
-  JsBarcode(canvas, text, {
-    // format: "EAN13",
-    displayValue: false,
-    height: 20,
-  });
-  return canvas.toDataURL("image/png");
-};
+import useStockStore from "../../store/useStockStore";
+import SucursalSelector from "../../components/SucursalSelector";
+import { generateBarcodeImage } from "../../../utils/generateBarcodeImage";
+import {
+  generatePDF_Clasicas,
+  generatePDF_Grandes,
+} from "../../../utils/etiquetas/generatePDF";
 
 const ProductLabelManager = () => {
+  const { selectedBranchId, updateBulkStock } = useStockStore();
   const [clasicos, setClasicos] = useState([]);
   const [especiales, setEspeciales] = useState([]);
   const [tabIndex, setTabIndex] = useState(0); // Estado para la pestaña activa
@@ -45,6 +45,13 @@ const ProductLabelManager = () => {
   const [updateResults, setUpdateResults] = useState([]);
   const [openDiscountModal, setOpenDiscountModal] = useState(false);
   const [openClearDialog, setOpenClearDialog] = useState(false);
+  const clasicosConStock = clasicos.filter((p) => p.stock > 0);
+  const clasicosSinStock = clasicos.filter((p) => !p.stock || p.stock <= 0);
+  console.log("especiales,", especiales);
+  const especialesConStock = especiales.filter((p) => p.stock > 0);
+  console.log("especialesConStock", especialesConStock);
+  const especialesSinStock = especiales.filter((p) => !p.stock || p.stock <= 0);
+  console.log("especialesSinStock", especialesSinStock);
 
   useEffect(() => {
     const saved = localStorage.getItem("labels_clasicos");
@@ -57,307 +64,6 @@ const ProductLabelManager = () => {
 
   const handleRemoveEspecial = (index) => {
     setEspeciales((prev) => prev.filter((_, i) => i !== index));
-  };
-  const generatePDF_Grandes = async () => {
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-
-    const etiquetaAncho = 70;
-    const etiquetaAlto = 104;
-    const etiquetasPorFila = 2;
-    const etiquetasPorColumna = 2;
-
-    const logoBase64 = await loadImageBase64("/logo.png");
-
-    especiales.forEach((p, i) => {
-      const col = i % etiquetasPorFila;
-      const row = Math.floor(i / etiquetasPorFila) % etiquetasPorColumna;
-
-      if (i > 0 && i % (etiquetasPorFila * etiquetasPorColumna) === 0) {
-        doc.addPage();
-      }
-
-      const x = 10 + col * (etiquetaAncho + 10);
-      const y = 10 + row * (etiquetaAlto + 10);
-
-      // Borde
-      doc.setDrawColor(150);
-      doc.rect(x, y, etiquetaAncho, etiquetaAlto);
-
-      // Logo
-      if (logoBase64) {
-        doc.addImage(logoBase64, "PNG", x + 5, y + 5, 15, 15);
-      }
-
-      // Tipo de etiqueta
-      const label =
-        p.tipoEtiqueta === "oferta"
-          ? "OFERTA"
-          : p.tipoEtiqueta === "liquidacion"
-          ? "LIQUIDACIÓN"
-          : p.tipoEtiqueta === "nuevo"
-          ? "NUEVO"
-          : "";
-
-      const labelFontSize = label === "LIQUIDACIÓN" ? 16 : 20;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(labelFontSize);
-      doc.setTextColor(0);
-      doc.text(label, x + 23, y + 15);
-
-      // Nombre del producto
-      const nombreParaMostrar = p.manualName?.trim() || p.name || "";
-      let nameLines = splitTextByWidth(
-        doc,
-        nombreParaMostrar,
-        etiquetaAncho - 1
-      );
-
-      const wasTruncated = nameLines.length > 4;
-      nameLines = nameLines.slice(0, 4);
-
-      if (wasTruncated) {
-        nameLines[3] = nameLines[3].replace(/(.{3,})$/, "$1…");
-      }
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(12);
-      nameLines.forEach((line, idx) => {
-        doc.text(line, x + 8, y + 25 + idx * 6);
-      });
-
-      // 🔁 Ajuste vertical según líneas del nombre
-      let offsetY;
-      if (nameLines.length === 1) offsetY = 6;
-      else if (nameLines.length === 2) offsetY = 3;
-      else offsetY = 0;
-
-      // Ajuste de tamaño de fuente según cantidad de dígitos en el precio
-      const price = p.discountedPrice ?? p.currentPrice ?? 0;
-      const integerPrice = Math.floor(price);
-      const digitCount = integerPrice.toString().length;
-
-      let priceFontSize;
-      if (digitCount > 6) {
-        priceFontSize = 28;
-      } else if (digitCount === 6) {
-        priceFontSize = 38;
-      } else if (digitCount === 5) {
-        priceFontSize = 40;
-      } else if (digitCount === 4) {
-        priceFontSize = 44;
-      } else {
-        priceFontSize = 60;
-      }
-
-      if (p.tipoEtiqueta === "nuevo") {
-        doc.setFont("times", "bold");
-        doc.setFontSize(priceFontSize);
-        doc.setTextColor(0);
-        doc.text(
-          `$${integerPrice.toFixed(0)}`,
-          x + etiquetaAncho / 2,
-          y + etiquetaAlto / 2 + 10 - offsetY,
-          { align: "center" }
-        );
-      } else if (["oferta", "liquidacion"].includes(p.tipoEtiqueta)) {
-        const descuento = p.discount ?? 0;
-        const prevPrice = p.manualPreviousPrice ?? p.currentPrice ?? 0;
-        // Cantidad de líneas del nombre del producto
-        const nameLineCount = nameLines.length;
-
-        // Ajustes dinámicos según cantidad de líneas
-        const offsetY =
-          nameLineCount <= 1
-            ? -10
-            : nameLineCount === 2
-            ? -6
-            : nameLineCount === 3
-            ? -2
-            : 0;
-
-        // Agrandar % OFF
-        doc.setFontSize(20); // tamaño más grande solo para % OFF
-        doc.setTextColor(0);
-        doc.text(`${descuento}% OFF`, x + 8, y + 50 + offsetY);
-
-        // Volver a tamaño normal para precio anterior
-        doc.setFontSize(15);
-        doc.setTextColor(100);
-        const prevPriceText = `$${prevPrice.toFixed(2)}`;
-        doc.text(prevPriceText, x + 8, y + 56 + offsetY);
-        doc.setLineWidth(0.5);
-        doc.line(
-          x + 8,
-          y + 54.8 + offsetY,
-          x + 8 + doc.getTextWidth(prevPriceText),
-          y + 54.8 + offsetY
-        );
-
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(priceFontSize);
-        doc.setTextColor(0);
-        doc.text(
-          `$${integerPrice.toFixed(0)}`,
-          x + etiquetaAncho / 2,
-          y + 78 + offsetY,
-          {
-            align: "center",
-          }
-        );
-      }
-
-      // Código de barras
-      if (p.barcode) {
-        const barcodeImg = generateBarcodeImage(p.barcode);
-        const barcodeY = y + etiquetaAlto - 20;
-
-        doc.addImage(
-          barcodeImg,
-          "PNG",
-          x + 8,
-          barcodeY,
-          etiquetaAncho - 16,
-          10
-        );
-        doc.setFontSize(8);
-        doc.setTextColor(80);
-        doc.text(p.barcode, x + etiquetaAncho / 2, barcodeY + 12, {
-          align: "center",
-        });
-      }
-
-      // Fecha
-      const fecha = dayjs().format("DD/MM/YYYY");
-      doc.setFontSize(7);
-      doc.setTextColor(120);
-      doc.text(fecha, x + etiquetaAncho - 22, y + etiquetaAlto - 4);
-    });
-
-    doc.save("etiquetas_especiales.pdf");
-  };
-
-  const generatePDF_Clasicas = () => {
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-
-    const etiquetaAncho = 50;
-    const etiquetaAlto = 30;
-    const etiquetasPorFila = 3;
-    const etiquetasPorColumna = 8;
-    const margenX = 10;
-    const margenY = 10;
-    const espacioX = 5;
-    const espacioY = 5;
-
-    clasicos.forEach((p, i) => {
-      const col = i % etiquetasPorFila;
-      const fila = Math.floor(i / etiquetasPorFila) % etiquetasPorColumna;
-      if (i > 0 && i % (etiquetasPorFila * etiquetasPorColumna) === 0) {
-        doc.addPage();
-      }
-
-      const x = margenX + col * (etiquetaAncho + espacioX);
-      const y = margenY + fila * (etiquetaAlto + espacioY);
-      const fecha = dayjs().format("DD.MM.YYYY");
-
-      // Nombre truncado
-      const maxNameLength = 22;
-      let name = p.name || "Producto sin nombre";
-      if (name.length > maxNameLength) {
-        name = name.slice(0, maxNameLength - 3) + "...";
-      }
-
-      const currentPrice = p.currentPrice ?? p.manualPrice ?? 0;
-      const discountedPrice = p.discountedPrice ?? currentPrice;
-      const integerPrice = Math.floor(discountedPrice);
-      const digitCount = integerPrice.toString().length;
-
-      let precioXOffset = 26;
-      if (digitCount === 4) precioXOffset = 28;
-      if (digitCount === 5) precioXOffset = 30;
-      if (digitCount >= 6) precioXOffset = 32;
-
-      doc.setDrawColor(150);
-      doc.rect(x, y, etiquetaAncho, etiquetaAlto);
-
-      doc.setFontSize(6);
-      doc.text(fecha, x + etiquetaAncho - 20, y + 5);
-
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.text(name, x + 2, y + 10);
-
-      doc.setFontSize(8);
-      doc.setTextColor(255, 0, 0);
-      doc.text(`${p.discount}% OFF`, x + 2, y + 15);
-
-      const prevPrice = p.manualPreviousPrice ?? p.currentPrice ?? 0;
-      doc.setFontSize(8);
-      doc.setTextColor(100);
-      const prevPriceText = `$${prevPrice.toFixed(2)}`;
-      doc.text(prevPriceText, x + 2, y + 20);
-      const prevWidth = doc.getTextWidth(prevPriceText);
-      doc.setLineWidth(0.5);
-      doc.line(x + 2, y + 19, x + 2 + prevWidth, y + 19);
-
-      doc.setFontSize(28);
-      doc.setTextColor(0);
-      doc.text(`${integerPrice}`, x + etiquetaAncho - precioXOffset, y + 23.1);
-
-      if (p.barcode) {
-        const barcodeImg = generateBarcodeImage(p.barcode);
-        const barcodeHeight = 4;
-        const barcodeY = y + 23.5;
-        doc.addImage(barcodeImg, "PNG", x + 5, barcodeY, 40, barcodeHeight);
-
-        doc.setFontSize(7);
-        doc.setTextColor(0);
-        const barcodeTextWidth = doc.getTextWidth(p.barcode);
-        const barcodeTextX = x + 5 + (40 - barcodeTextWidth) / 2;
-        doc.text(p.barcode, barcodeTextX, barcodeY + barcodeHeight + 1.5);
-      }
-
-      doc.setTextColor(0);
-    });
-
-    doc.save("etiquetas_clasicas.pdf");
-  };
-
-  // 🔁 Divide texto sin cortar palabras
-  const splitTextByWidth = (doc, text, maxWidth) => {
-    const words = text.split(" ");
-    let lines = [];
-    let currentLine = "";
-
-    words.forEach((word) => {
-      const testLine = currentLine ? currentLine + " " + word : word;
-      const width = doc.getTextWidth(testLine);
-      if (width <= maxWidth) {
-        currentLine = testLine;
-      } else {
-        if (currentLine) lines.push(currentLine);
-        currentLine = word;
-      }
-    });
-
-    if (currentLine) lines.push(currentLine);
-    return lines;
-  };
-
-  // 📦 Cargar imagen como base64 desde /public
-  const loadImageBase64 = async (url) => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        canvas.getContext("2d").drawImage(img, 0, 0);
-        resolve(canvas.toDataURL("image/png"));
-      };
-      img.onerror = reject;
-      img.src = url;
-    });
   };
 
   const updateEspecialField = (index, field, value) => {
@@ -392,7 +98,7 @@ const ProductLabelManager = () => {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       const bstr = evt.target.result;
       const workbook = XLSX.read(bstr, { type: "binary" });
       const sheetName = workbook.SheetNames[0];
@@ -400,8 +106,8 @@ const ProductLabelManager = () => {
       const data = XLSX.utils.sheet_to_json(sheet);
 
       const updatedItems = [];
+      const stockUpdates = [];
 
-      // 🔁 Procesar tanto en clásicos como en especiales
       const updateProductos = (productos, setProductos) => {
         const updated = productos.map((p) => {
           const match = data.find(
@@ -411,12 +117,19 @@ const ProductLabelManager = () => {
 
           if (match) {
             const newPrice = Number(match.Unitario);
-            if (newPrice > 0 && newPrice !== p.currentPrice) {
+            const newStock = Number(match.Cantidad);
+
+            if (!isNaN(newPrice) && newPrice > 0) {
               updatedItems.push({
                 name: p.name,
                 old: p.currentPrice,
                 new: newPrice,
+                stock: !isNaN(newStock) ? newStock : undefined,
               });
+
+              if (!isNaN(newStock) && selectedBranchId) {
+                stockUpdates.push({ codebar: p.barcode, quantity: newStock });
+              }
 
               return {
                 ...p,
@@ -425,6 +138,7 @@ const ProductLabelManager = () => {
                 discountedPrice: p.discount
                   ? Number((newPrice * (1 - p.discount / 100)).toFixed(2))
                   : newPrice,
+                stock: !isNaN(newStock) ? newStock : 0, // <-- Agregamos stock aquí
               };
             }
           }
@@ -439,10 +153,17 @@ const ProductLabelManager = () => {
       updateProductos(especiales, setEspeciales);
       setUpdateResults(updatedItems);
       setFileData(data);
+
+      // 👇 Llamada para actualizar stock en backend
+      if (stockUpdates.length > 0 && selectedBranchId) {
+        console.log("STOCK A ACTUALIZAR:", stockUpdates);
+        await updateBulkStock(stockUpdates);
+      }
     };
 
     reader.readAsBinaryString(file);
   };
+
   const handleActualizarPrecios = () => {
     let actualizados = 0;
 
@@ -480,25 +201,27 @@ const ProductLabelManager = () => {
   };
   console.log("Clasicos", clasicos);
   console.log("Especiales", especiales);
+
   const handleClearAll = () => {
     localStorage.removeItem("labels_clasicos");
     localStorage.removeItem("labels_especiales");
     setClasicos([]);
     setEspeciales([]);
+    setFileData([]);
+    setUpdateResults([]);
     setOpenClearDialog(false);
-    alert("Se borraron todas las etiquetas guardadas.");
+    alert("Se borraron todas las etiquetas y archivos cargados.");
   };
 
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h5">Generador de Etiquetas</Typography>
-
+      <SucursalSelector />
       {/* Pestañas */}
       <Tabs value={tabIndex} onChange={handleTabChange} sx={{ mb: 2 }}>
         <Tab label="Etiquetas Clásicas" />
         <Tab label="Etiquetas Especiales" />
       </Tabs>
-
       <Button
         variant="outlined"
         sx={{ mb: 2 }}
@@ -529,70 +252,143 @@ const ProductLabelManager = () => {
         setProductos={tabIndex === 0 ? setClasicos : setEspeciales}
         tipoEtiqueta={tabIndex === 0 ? "clasica" : "oferta"}
       />
-
       {tabIndex === 0 && (
         <Box>
-          <Box mt={2}>
-            {/* <Typography variant="h6">Etiquetas Clásicas</Typography> */}
-            <ClasicasInput
-              productos={clasicos}
-              setProductos={setClasicos}
-              generateBarcodeImage={generateBarcodeImage}
-            />
-          </Box>
-          {clasicos.length > 0 && (
-            <Button
-              variant="contained"
-              color="success"
-              sx={{ mt: 2 }}
-              onClick={generatePDF_Clasicas}
-            >
-              Generar PDF de etiquetas clásicas
-            </Button>
-          )}
-        </Box>
-      )}
-      {/* CLASICAS */}
+          <ClasicasInput
+            productos={clasicos}
+            setProductos={setClasicos}
+            generateBarcodeImage={generateBarcodeImage}
+          />
 
-      {/* <Divider sx={{ my: 4 }} /> */}
-
-      {tabIndex === 1 && (
-        <Box>
-          {/* ESPECIALES */}
-          <Box>
-            {/* <Typography variant="h6">Etiquetas Especiales</Typography> */}
-            <EspecialesInput
-              productos={especiales}
-              setProductos={setEspeciales}
-            />
-
-            <Grid container spacing={2} mt={2}>
-              {especiales.map((p, i) => (
-                <Grid item xs={12} md={6} key={p._id}>
-                  <EtiquetaPreview
-                    producto={p}
-                    onChange={(field, value) =>
-                      updateEspecialField(i, field, value)
-                    }
-                    onRemove={() => handleRemoveEspecial(i)}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-
-            {especiales.length > 0 && (
+          {/* 🟢 CLÁSICOS CON STOCK */}
+          {clasicosConStock.length > 0 && (
+            <>
+              <Typography variant="subtitle1" sx={{ mt: 3 }}>
+                Productos con stock:
+              </Typography>
               <Button
                 variant="contained"
                 color="success"
-                sx={{ mt: 3 }}
-                onClick={generatePDF_Grandes}
+                sx={{ mt: 1 }}
+                onClick={() =>
+                  generatePDF_Clasicas({ clasicos: clasicosConStock })
+                }
               >
-                Generar PDF de etiquetas especiales
+                Generar PDF (con stock)
               </Button>
-            )}
-          </Box>
+            </>
+          )}
+
+          {/* 🔴 CLÁSICOS SIN STOCK */}
+          {clasicosSinStock.length > 0 && (
+            <>
+              <Typography variant="subtitle1" sx={{ mt: 4 }}>
+                Productos sin stock:
+              </Typography>
+              <Button
+                variant="contained"
+                color="warning"
+                sx={{ mt: 1 }}
+                onClick={() =>
+                  generatePDF_Clasicas({ clasicos: clasicosSinStock })
+                }
+              >
+                Generar PDF (sin stock)
+              </Button>
+            </>
+          )}
         </Box>
       )}
+
+      {tabIndex === 1 && (
+        <Box>
+          <EspecialesInput
+            productos={especiales}
+            setProductos={setEspeciales}
+          />
+
+          {/* 🟢 ESPECIALES CON STOCK */}
+          {especialesConStock.length > 0 && (
+            <>
+              <Typography variant="subtitle1" sx={{ mt: 3 }}>
+                Productos con stock:
+              </Typography>
+              <Grid container spacing={2} mt={1}>
+                {especialesConStock.map((p, i) => (
+                  <Grid item xs={12} md={6} key={`${p._id}-con`}>
+                    <EtiquetaPreview
+                      producto={p}
+                      onChange={(field, value) =>
+                        updateEspecialField(
+                          especiales.findIndex((ep) => ep._id === p._id),
+                          field,
+                          value
+                        )
+                      }
+                      onRemove={() =>
+                        handleRemoveEspecial(
+                          especiales.findIndex((ep) => ep._id === p._id)
+                        )
+                      }
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+              <Button
+                variant="contained"
+                color="success"
+                sx={{ mt: 2 }}
+                onClick={() =>
+                  generatePDF_Grandes({ especiales: especialesConStock })
+                }
+              >
+                Generar PDF (con stock)
+              </Button>
+            </>
+          )}
+
+          {/* 🔴 ESPECIALES SIN STOCK */}
+          {especialesSinStock.length > 0 && (
+            <>
+              <Typography variant="subtitle1" sx={{ mt: 4 }}>
+                Productos sin stock:
+              </Typography>
+              <Grid container spacing={2} mt={1}>
+                {especialesSinStock.map((p, i) => (
+                  <Grid item xs={12} md={6} key={`${p._id}-sin`}>
+                    <EtiquetaPreview
+                      producto={p}
+                      onChange={(field, value) =>
+                        updateEspecialField(
+                          especiales.findIndex((ep) => ep._id === p._id),
+                          field,
+                          value
+                        )
+                      }
+                      onRemove={() =>
+                        handleRemoveEspecial(
+                          especiales.findIndex((ep) => ep._id === p._id)
+                        )
+                      }
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+              <Button
+                variant="contained"
+                color="warning"
+                sx={{ mt: 2 }}
+                onClick={() =>
+                  generatePDF_Grandes({ especiales: especialesSinStock })
+                }
+              >
+                Generar PDF (sin stock)
+              </Button>
+            </>
+          )}
+        </Box>
+      )}
+
       <Dialog
         open={openModal}
         onClose={() => setOpenModal(false)}
@@ -602,8 +398,8 @@ const ProductLabelManager = () => {
         <DialogTitle>Actualizar precios</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 1 }}>
-            Subí un archivo Excel con las columnas <strong>Codebar</strong> y{" "}
-            <strong>Unitario</strong>
+            Subí un archivo Excel con las columnas <strong>Codebar</strong>,{" "}
+            <strong>Unitario</strong> y <strong>Cantidad</strong>
           </Typography>
 
           <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
@@ -619,14 +415,39 @@ const ProductLabelManager = () => {
 
           {updateResults.length > 0 && (
             <Box mt={2}>
-              <Typography variant="subtitle2">Precios actualizados:</Typography>
-              <ul>
-                {updateResults.map((item, idx) => (
-                  <li key={idx}>
-                    {item.name} – ${item.old} → ${item.new}
-                  </li>
-                ))}
-              </ul>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Productos actualizados:
+              </Typography>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>
+                      <strong>Producto</strong>
+                    </TableCell>
+                    <TableCell align="right">
+                      <strong>Precio anterior</strong>
+                    </TableCell>
+                    <TableCell align="right">
+                      <strong>Precio nuevo</strong>
+                    </TableCell>
+                    <TableCell align="right">
+                      <strong>Stock actualizado</strong>
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {updateResults.map((item, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell>{item.name}</TableCell>
+                      <TableCell align="right">${item.old ?? "-"}</TableCell>
+                      <TableCell align="right">${item.new ?? "-"}</TableCell>
+                      <TableCell align="right">
+                        {item.stock !== undefined ? item.stock : "-"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </Box>
           )}
         </DialogContent>

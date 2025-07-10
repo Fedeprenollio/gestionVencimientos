@@ -1,4 +1,3 @@
-
 // import React, { useState } from "react";
 // import {
 //   Box,
@@ -240,8 +239,29 @@ export default function UploadPricesResultByList({ data }) {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const Section = ({ title, items, icon, color, showOldNew = false, priceKey = "price" }) => {
+  const Section = ({
+    title,
+    items,
+    icon,
+    color,
+    showOldNew = false,
+    priceKey = "price",
+  }) => {
+    const [sortByStockAsc, setSortByStockAsc] = useState(false);
+
     if (!items || items.length === 0) return null;
+
+    const isStockSection = items.some(
+      (p) => p.quantity !== undefined || p.stock !== undefined
+    );
+
+    const sortedItems = isStockSection
+      ? [...items].sort((a, b) => {
+          const aQty = a.quantity ?? a.stock ?? 0;
+          const bQty = b.quantity ?? b.stock ?? 0;
+          return sortByStockAsc ? aQty - bQty : bQty - aQty;
+        })
+      : items;
 
     return (
       <Box mb={3}>
@@ -271,16 +291,41 @@ export default function UploadPricesResultByList({ data }) {
             <Table size="small">
               <TableHead>
                 <TableRow sx={{ backgroundColor: "#f0f0f0" }}>
-                  <TableCell><strong>Producto</strong></TableCell>
-                  <TableCell><strong>Código</strong></TableCell>
-                  {showOldNew && <TableCell align="right"><strong>Precio anterior</strong></TableCell>}
-                  <TableCell align="right"><strong>Precio nuevo</strong></TableCell>
-                  <TableCell><strong>Última etiqueta</strong></TableCell>
+                  {isStockSection && (
+                    <TableCell
+                      onClick={() => setSortByStockAsc((prev) => !prev)}
+                      sx={{ cursor: "pointer" }}
+                    >
+                      <strong>Stock {sortByStockAsc ? "▲" : "▼"}</strong>
+                    </TableCell>
+                  )}
+                  <TableCell>
+                    <strong>Producto</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Código</strong>
+                  </TableCell>
+                  {showOldNew && (
+                    <TableCell align="right">
+                      <strong>Precio anterior</strong>
+                    </TableCell>
+                  )}
+                  <TableCell align="right">
+                    <strong>Precio nuevo</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Última etiqueta</strong>
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {items.map((p) => (
+                {sortedItems.map((p) => (
                   <TableRow key={p.barcode}>
+                    {isStockSection && (
+                      <TableCell align="right">
+                        {p.quantity ?? p.stock ?? "-"}
+                      </TableCell>
+                    )}
                     <TableCell>{p.name || "Sin nombre"}</TableCell>
                     <TableCell>{p.barcode}</TableCell>
                     {showOldNew && (
@@ -292,7 +337,13 @@ export default function UploadPricesResultByList({ data }) {
                       ${p.newPrice?.toFixed(2) || p[priceKey]?.toFixed(2)}
                     </TableCell>
                     <TableCell>
-                      {p.lastTagDate ? new Date(p.lastTagDate).toLocaleDateString() : <Typography variant="caption" color="text.secondary">Sin etiquetado</Typography>}
+                      {p.lastTagDate ? (
+                        new Date(p.lastTagDate).toLocaleDateString()
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">
+                          Sin etiquetado
+                        </Typography>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -325,7 +376,12 @@ export default function UploadPricesResultByList({ data }) {
           variant="outlined"
           sx={{ p: 3, mb: 4, borderRadius: 3, backgroundColor: "#fcfcfc" }}
         >
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={2}
+          >
             <Box display="flex" alignItems="center" gap={1}>
               <Inventory2 color="primary" />
               <Typography variant="subtitle1" fontWeight={700}>
@@ -336,11 +392,16 @@ export default function UploadPricesResultByList({ data }) {
               size="small"
               variant="outlined"
               startIcon={<UploadFile />}
-              onClick={() => handleExportBarcodes([
-                ...list.priceIncreased,
-                ...list.priceDecreased,
-                ...list.firstTimeSet,
-              ], list.listName)}
+              onClick={() =>
+                handleExportBarcodes(
+                  [
+                    ...list.priceIncreased,
+                    ...list.priceDecreased,
+                    ...list.firstTimeSet,
+                  ],
+                  list.listName
+                )
+              }
             >
               Exportar etiquetas
             </Button>
@@ -383,17 +444,26 @@ export default function UploadPricesResultByList({ data }) {
             icon={<RemoveCircleOutline color="warning" />}
             color="warning.main"
           />
+          {/* <Section
+            title="Stock actualizado"
+            items={list.stockUpdated}
+            icon={<Inventory2 color="secondary" />}
+            color="secondary.main"
+            priceKey="quantity"
+          /> */}
 
-          <Box mt={2}>
+          {/* <Box mt={2}>
             <Button
               variant="contained"
               color="secondary"
               size="small"
-              onClick={() => navigate(`/lists/${list.listId}/products-to-retag`)}
+              onClick={() =>
+                navigate(`/lists/${list.listId}/products-to-retag`)
+              }
             >
               Ver productos para reetiquetar
             </Button>
-          </Box>
+          </Box> */}
         </Paper>
       ))}
     </Box>
