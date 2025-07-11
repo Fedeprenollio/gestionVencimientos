@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import UploadStockExcel from "../../components/uploadStockExcel/UploadStockExcel";
 
 
 export default function ImportProducts({ onImport }) {
@@ -247,6 +248,7 @@ export default function ImportProducts({ onImport }) {
           </Stack>
         </>
       )}
+      <UploadStockExcel/>
     </Box>
   );
 }

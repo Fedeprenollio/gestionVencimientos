@@ -22,6 +22,7 @@ import {
 } from '../controllers/productListController.js';
 import { comparePricesByDateSeparateCollections } from '../controllers/historyPruceController.js';
 import ProductList from '../models/ProductList.js';
+import { updateFromStockImport } from '../controllers/productList/updateFromStockImport.js';
 
 const productListRoutes = express.Router();
 
@@ -87,4 +88,9 @@ productListRoutes.put("/:listId/quick-products", addQuickProducts);
 productListRoutes.put("/:id/quick-products", updateQuickProducts);
 productListRoutes.delete("/:id/quick-products", clearQuickProducts ); // <- esta es la nueva
 productListRoutes.patch("/lists/:listId/product/:productId/tag-date", updateTagDate);
+
+
+
+productListRoutes.post("/update-from-stock-import", updateFromStockImport);
+
 export default productListRoutes;

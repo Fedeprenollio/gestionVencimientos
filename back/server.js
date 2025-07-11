@@ -11,7 +11,7 @@ import productListRoutes from './routes/productListRoutes.js';
 import stockCounterRouter from './routes/stockCountRoutes.js';
 import returnListRoutes from './routes/returnListRoutes.js';
 import routerStock from './routes/stockRoutes.js';
-
+import routerImportStock from "./routes/stockImportRoutes.js"
 const allowedOrigins = [
   'http://localhost:5173',
   'https://gestion-vencimientos.vercel.app'
@@ -41,6 +41,7 @@ app.use(morgan('dev')); // 👈 Middleware para mostrar logs en consola
 
 connectDB();
 
+app.use("/imports",  routerImportStock);
 app.use('/products', productRoutes);
 app.use('/lots', lotRoutes);
 app.use('/users', userRoutes);
@@ -49,6 +50,7 @@ app.use('/product-lists', productListRoutes);
 app.use('/stock-count', stockCounterRouter);
 app.use("/return-lists", returnListRoutes);
 app.use("/stock", routerStock);
+
 
 
 

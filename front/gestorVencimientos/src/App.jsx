@@ -5,7 +5,7 @@ import Productos from "./pages/Productos.jsx";
 import Lotes from "./pages/Lotes.jsx";
 import Vencimientos from "./pages/Vencimientos.jsx";
 import Escaneo from "./pages/Escaneo.jsx";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import Navbar from "./components/navbar/Navbar.jsx";
 import LotList from "./components/lots/LotList.jsx";
 import SearchStockPage from "./pages/SearchStockPage.jsx";
@@ -46,6 +46,8 @@ import VencimientosPage from "./pages/vencimientosPage/VencimientosPage.jsx";
 import ReturnListManager from "./components/returnList/ReturnListManager.jsx";
 import ImportStockAnalysis from "./pages/importStockAnalysis/ImportStockAnalysis.jsx";
 import SucursalesContactList from "./pages/contactosYLinks/SucursalesContactList.jsx";
+import ImportarStock from "./pages/importar/ImportarStock.jsx";
+import HistorialStock from "./pages/importar/HistorialStock.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -122,7 +124,7 @@ function App() {
               <Route path="/branches/:id" element={<BranchForm />} />
               {/* <Route path="/lists" element={<ProductListList />} /> */}
               <Route path="/lists" element={<MainTabs />} />
-              
+
               <Route path="/lists/new" element={<ProductListForm />} />
               <Route path="/lists/edit/:id" element={<ProductListForm />} />
               <Route
@@ -163,22 +165,22 @@ function App() {
                 element={<QuickStockCount />}
               />
 
-
-
               <Route
                 path="/lists/drug-returns"
                 element={<VencimientosPage />}
               />
-                <Route
+              <Route
                 path="/stock/stockAnalysiss"
                 element={<ImportStockAnalysis />}
               />
-               <Route
-                path="/contacts"
-                element={<SucursalesContactList />}
-              />
-              
-              
+              <Route path="/contacts" element={<SucursalesContactList />} />
+
+              {/* //IMPORTACION DE STOCK  */}
+              {/* <Route path="/" element={<Navigate to="/importar-stock" />} /> */}
+              <Route path="/importar-productos" element={<ImportProducts />} />
+              <Route path="/importar-stock" element={<ImportarStock />} />
+              <Route path="/historial-stock" element={<HistorialStock />} />
+
               {/* <Route
                 path="/lists/drug-returns"
                 element={<ReturnListManager />}

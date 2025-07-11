@@ -1,0 +1,25 @@
+// routes/stockImportRoutes.js
+import express from "express";
+import multer from "multer";
+import { applyStockImport, compareStockImport, importStock, listStockImports } from "../controllers/stockImportController.js";
+import StockImport from "../models/StockImport.js";
+import { updateFromStockImport } from "../controllers/productList/updateFromStockImport.js";
+
+const router = express.Router();
+const upload = multer(); // Para leer el buffer
+
+router.get("/compare-stock/:importId", compareStockImport);
+router.post("/import-stock", upload.single("file"), importStock);
+router.get("/", listStockImports);
+// router.post("/apply-to-lists", applyStockImport);
+router.post("/apply-to-lists", updateFromStockImport);
+
+
+// routes/import.routes.js
+router.get("/recent", async (req, res) => {
+  const recent = await StockImport.find().sort({ importedAt: -1 }).limit(10);
+  console.log("RECET", recent)
+  res.json(recent);
+});
+
+export default router;

@@ -995,7 +995,7 @@ export const uploadPricesForList = async (req, res) => {
   }
 };
 
-const runBatches = async (tasks, batchSize = 20) => {
+export const runBatches = async (tasks, batchSize = 20) => {
   const results = [];
   for (let i = 0; i < tasks.length; i += batchSize) {
     const batch = tasks.slice(i, i + batchSize);
@@ -1423,6 +1423,39 @@ export const uploadPricesForMultipleLists = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error al subir precios y stock:", error);
+    res.status(500).json({ message: "Error del servidor" });
+  }
+};
+
+export const updateFromStockImport = async (req, res) => {
+  try {
+    const { listIds, branchId } = req.body;
+
+    if (!Array.isArray(listIds) || listIds.length === 0 || !branchId) {
+      return res.status(400).json({ message: "Faltan listas o sucursal" });
+    }
+
+    // Buscar último StockImport para esa sucursal
+    const lastImport = await StockImport.findOne({ branch: branchId })
+      .sort({ createdAt: -1 });
+
+    if (!lastImport) {
+      return res.status(404).json({ message: "No se encontró un StockImport para esta sucursal" });
+    }
+
+    const products = lastImport.rows?.map((row) => ({
+      barcode: row.barcode?.trim(),
+      price: parseFloat(row.price),
+      stock: Number(row.stock),
+    })).filter(p => p.barcode && !isNaN(p.price));
+
+    // Reutilizamos el controlador actual
+    req.body.products = products;
+    req.body.fileName = `import-${lastImport._id}`; // opcional
+    return uploadPricesForMultipleLists(req, res);
+
+  } catch (error) {
+    console.error("❌ Error al actualizar desde stock import:", error);
     res.status(500).json({ message: "Error del servidor" });
   }
 };

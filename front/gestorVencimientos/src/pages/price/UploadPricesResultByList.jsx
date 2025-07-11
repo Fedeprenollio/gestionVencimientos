@@ -234,7 +234,7 @@ import { useNavigate } from "react-router-dom";
 export default function UploadPricesResultByList({ data }) {
   const [openSections, setOpenSections] = useState({});
   const navigate = useNavigate();
-
+  console.log("LA DFATA", data)
   const toggleSection = (key) => {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
