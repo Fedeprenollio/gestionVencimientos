@@ -14,6 +14,6 @@ const productSchema = new mongoose.Schema({
     },
   ],
 });
-
+productSchema.index({ barcode: 1 }, { unique: true });
 export default mongoose.model("Product", productSchema);
 // [{ type: mongoose.Schema.Types.ObjectId, ref: "PriceHistory" }]

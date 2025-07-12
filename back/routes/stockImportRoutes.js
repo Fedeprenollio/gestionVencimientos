@@ -17,9 +17,18 @@ router.post("/apply-to-lists", updateFromStockImport);
 
 // routes/import.routes.js
 router.get("/recent", async (req, res) => {
-  const recent = await StockImport.find().sort({ importedAt: -1 }).limit(10);
-  console.log("RECET", recent)
-  res.json(recent);
+  try {
+    const recent = await StockImport.find()
+      .sort({ importedAt: -1 })
+      .limit(10)
+      .select("_id branch user importedAt status"); // ⛔ omitimos rows
+
+    res.json(recent);
+  } catch (err) {
+    console.error("Error al obtener recientes:", err);
+    res.status(500).json({ message: "Error al obtener las importaciones recientes" });
+  }
 });
+
 
 export default router;

@@ -6,5 +6,6 @@ const priceHistorySchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
   operator: { type: String }, // opcional: quién hizo el cambio
 });
+priceHistorySchema.index({ productId: 1 });
 
 export default mongoose.model("PriceHistory", priceHistorySchema);

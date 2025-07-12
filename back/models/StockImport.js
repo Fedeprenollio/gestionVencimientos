@@ -20,4 +20,7 @@ const stockImportSchema = new mongoose.Schema({
   rows: [stockRowSchema],
 });
 
+stockImportSchema.index({ importedAt: -1 });
+
+
 export default mongoose.model('StockImport', stockImportSchema);
