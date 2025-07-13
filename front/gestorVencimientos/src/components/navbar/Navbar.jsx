@@ -80,7 +80,7 @@ export default function Navbar({
     {
       label: "Listas",
       submenu: [
-        { label: "Listas de cambio de precio", to: "/lists" },
+        { label: "Listas de seguimientos de precio", to: "/lists" },
         { label: "Listas de control de stock", to: "/stock-count" },
         {
           label: "Listas de devolución a droguerías",
@@ -107,6 +107,10 @@ export default function Navbar({
         // { label: "Validaciones y Droguerías", to: "/links/validaciones" },
         // { label: "Web y Redes Sociales", to: "/links/web" },
       ],
+    },
+     {
+      label: "Ayuda",
+      submenu: [{ label: "Guía de uso de la aplicación", to: "/help" }],
     },
   ];
 

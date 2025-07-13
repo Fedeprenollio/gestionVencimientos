@@ -48,6 +48,7 @@ import ImportStockAnalysis from "./pages/importStockAnalysis/ImportStockAnalysis
 import SucursalesContactList from "./pages/contactosYLinks/SucursalesContactList.jsx";
 import ImportarStock from "./pages/importar/ImportarStock.jsx";
 import HistorialStock from "./pages/importar/HistorialStock.jsx";
+import TutorialPage from "./pages/TutorialPage.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -174,7 +175,7 @@ function App() {
                 element={<ImportStockAnalysis />}
               />
               <Route path="/contacts" element={<SucursalesContactList />} />
-
+              <Route path="/help" element={<TutorialPage />} />
               {/* //IMPORTACION DE STOCK  */}
               {/* <Route path="/" element={<Navigate to="/importar-stock" />} /> */}
               <Route path="/importar-productos" element={<ImportProducts />} />

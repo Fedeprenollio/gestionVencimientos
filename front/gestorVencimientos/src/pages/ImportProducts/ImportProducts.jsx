@@ -154,7 +154,7 @@ export default function ImportProducts({ onImport }) {
         Importar productos desde Excel
       </Typography>
 
-      <Box mt={2}>
+      {/* <Box mt={2}>
         <input
           accept=".xls,.xlsx"
           style={{ display: "none" }}
@@ -247,7 +247,7 @@ export default function ImportProducts({ onImport }) {
             </Button>
           </Stack>
         </>
-      )}
+      )} */}
       <UploadStockExcel/>
     </Box>
   );
