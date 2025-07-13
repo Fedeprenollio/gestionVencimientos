@@ -13,14 +13,20 @@ import {
 
 const router = express.Router();
 
-// Crear una nueva lista de recuento
-router.post("/", createStockCountList);
+
+// Nueva ruta para obtener listas por sucursal
+router.get("/branch/:branchId", getStockCountListsByBranch);
+
+
+// Obtener una lista por ID
+router.get("/:listId", getStockCountListById);
 
 // Obtener todas las listas (con filtros opcionales por branch o usuario)
 router.get("/", getAllStockCountLists);
 
-// Obtener una lista por ID
-router.get("/:id", getStockCountListById);
+// Crear una nueva lista de recuento
+router.post("/", createStockCountList);
+
 
 // Agregar producto (acumulativo) a una lista por barcode
 router.post("/:listId/add-product", addProductToStockCountList);
@@ -34,8 +40,6 @@ router.delete(
 // Eliminar una lista completa
 router.delete("/:id", deleteStockCountList);
 
-// Nueva ruta para obtener listas por sucursal
-router.get("/branch/:branchId", getStockCountListsByBranch);
 
 
 router.put("/:listId", updateListStock);

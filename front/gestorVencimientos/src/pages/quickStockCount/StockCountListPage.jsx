@@ -144,6 +144,15 @@ export default function StockCountListPage() {
                 key={list._id}
                 secondaryAction={
                   <Box display="flex" gap={1}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() =>
+                        navigate(`/lists/${list._id}/analyze-sales?type=stock`)
+                      }
+                    >
+                      Analizar ventas
+                    </Button>
                     <IconButton
                       title="Abrir"
                       component={Link}

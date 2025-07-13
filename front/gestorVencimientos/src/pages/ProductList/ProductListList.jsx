@@ -162,7 +162,7 @@ useEffect(() => {
                   <Button
                     variant="outlined"
                     size="small"
-                    onClick={() => navigate(`/lists/${list._id}/analyze-sales`)}
+                    onClick={() => navigate(`/lists/${list._id}/analyze-sales?type=list`)}
                   >
                     Analizar ventas
                   </Button>

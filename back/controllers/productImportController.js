@@ -2,6 +2,7 @@ import xlsx from "xlsx";
 import Product from "../models/Product.js";
 
 export const importProducts = async (req, res) => {
+  console.log("ESTOY USANDO EL CONTOLADOR")
   try {
     const file = req.file;
 

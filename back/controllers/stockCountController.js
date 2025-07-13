@@ -24,6 +24,7 @@ export const createStockCountList = async (req, res) => {
 
 // 2. Obtener todas las listas (opcional: por sucursal o usuario)
 export const getAllStockCountLists = async (req, res) => {
+  console.log("ACA ENTRA")
   try {
     const { branch, user } = req.query;
     const filter = {};
@@ -43,15 +44,39 @@ export const getAllStockCountLists = async (req, res) => {
 };
 
 // 3. Obtener lista por ID con productos
+// export const getStockCountListById = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     console.log("ID", id)
+//     const list = await StockCountList.findById(id)
+//       .populate("products.product", "barcode name")
+//       .populate("branch", "name")
+//       .populate("countedBy", "username");
+
+//     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+//     res.json(list);
+//   } catch (err) {
+//     console.error("Error al obtener lista:", err);
+//     res.status(500).json({ message: "Error del servidor" });
+//   }
+// };
 export const getStockCountListById = async (req, res) => {
   try {
-    const { id } = req.params;
-    const list = await StockCountList.findById(id)
-      .populate("products.product", "barcode name")
-      .populate("branch", "name")
+    const { listId } = req.params;
+    console.log("ID", listId);
+
+    const list = await StockCountList.findById(listId)
+       .populate({
+        path: "products.product",
+        select: "barcode name stock currentPrice priceHistory alternateBarcodes",
+      })
+      .populate("branch", "name location") // incluí "location" si la usás
       .populate("countedBy", "username");
 
-    if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+    if (!list) {
+      return res.status(404).json({ message: "Lista no encontrada" });
+    }
 
     res.json(list);
   } catch (err) {
@@ -130,7 +155,6 @@ console.log(branchId)
       .populate("branch", "name")
       .populate("countedBy", "username")
       .sort({ createdAt: -1 });
-    console.log("lists:",lists)
     res.json(lists);
   } catch (error) {
     console.error("Error al obtener listas por sucursal:", error);

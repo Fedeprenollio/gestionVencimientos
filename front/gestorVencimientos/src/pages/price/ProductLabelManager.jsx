@@ -34,11 +34,20 @@ import {
   generatePDF_Clasicas,
   generatePDF_Grandes,
 } from "../../../utils/etiquetas/generatePDF";
+import api from "../../api/axiosInstance";
+import useBranchStore from "../../store/useBranchStore";
 
 const ProductLabelManager = () => {
-  const { selectedBranchId, updateBulkStock } = useStockStore();
-  const [clasicos, setClasicos] = useState([]);
-  const [especiales, setEspeciales] = useState([]);
+  const { updateBulkStock } = useStockStore();
+  const [clasicos, setClasicos] = useState(() => {
+  const saved = localStorage.getItem("labels_clasicos");
+  return saved ? JSON.parse(saved) : [];
+});
+const [especiales, setEspeciales] = useState(() => {
+  const saved = localStorage.getItem("labels_especiales");
+  return saved ? JSON.parse(saved) : [];
+});
+
   const [tabIndex, setTabIndex] = useState(0); // Estado para la pestaña activa
   // Nuevo estado
   const [openModal, setOpenModal] = useState(false);
@@ -52,15 +61,19 @@ const ProductLabelManager = () => {
   console.log("especialesConStock", especialesConStock);
   const especialesSinStock = especiales.filter((p) => !p.stock || p.stock <= 0);
   console.log("especialesSinStock", especialesSinStock);
+  const [importId, setImportId] = useState(false);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("labels_clasicos");
-    if (saved) setClasicos(JSON.parse(saved));
-  }, []);
+  const { selectedBranchId } = useBranchStore();
+
 
   useEffect(() => {
     localStorage.setItem("labels_clasicos", JSON.stringify(clasicos));
   }, [clasicos]);
+
+
+  useEffect(() => {
+    localStorage.setItem("labels_especiales", JSON.stringify(especiales));
+  }, [especiales]);
 
   const handleRemoveEspecial = (index) => {
     setEspeciales((prev) => prev.filter((_, i) => i !== index));
@@ -110,10 +123,20 @@ const ProductLabelManager = () => {
 
       const updateProductos = (productos, setProductos) => {
         const updated = productos.map((p) => {
-          const match = data.find(
-            (row) =>
-              row.Codebar?.toString().trim() === p.barcode?.toString().trim()
-          );
+          // const match = data.find(
+          //   (row) =>
+          //     row.Codebar?.toString().trim() === p.barcode?.toString().trim() ||
+          //     row.IDProducto?.toString().trim() === p.barcode?.toString().trim()
+          // );
+          const match = data.find((row) => {
+            const importCodebar = String(
+              row.Codebar || row.IDProducto || ""
+            ).trim();
+            const productCodebar = String(p.barcode || "").trim();
+
+            if (!importCodebar || importCodebar === "0") return false;
+            return importCodebar === productCodebar;
+          });
 
           if (match) {
             const newPrice = Number(match.Unitario);
@@ -170,8 +193,11 @@ const ProductLabelManager = () => {
     const actualizar = (lista, setLista) => {
       const nuevaLista = lista.map((p) => {
         const fila = fileData.find(
-          (f) => String(f.codigo)?.trim() === String(p.barcode)?.trim()
+          (f) =>
+            String(f.Codebar)?.trim() === String(p.barcode)?.trim() ||
+            String(f.IDProducto)?.trim() === String(p.barcode)?.trim()
         );
+
         if (fila && fila.precio) {
           actualizados++;
           return {
@@ -212,6 +238,118 @@ const ProductLabelManager = () => {
     setOpenClearDialog(false);
     alert("Se borraron todas las etiquetas y archivos cargados.");
   };
+  console.log("selectedBranchId", selectedBranchId);
+
+  const updateFromImport = async () => {
+    if (!selectedBranchId) {
+      alert("Seleccioná una sucursal primero");
+      return null;
+    }
+
+    try {
+      const response = await api.get(`/imports/latestApplied`, {
+        params: { branchId: selectedBranchId },
+      });
+      console.log("RESPONSE", response);
+      const importData = response;
+      if (!importData) {
+        alert("No se encontró importación aplicada para esta sucursal");
+        return null;
+      }
+
+      setImportId(importData._id);
+      return importData;
+    } catch (error) {
+      console.error("Error trayendo importación:", error);
+      alert("Error al obtener la importación");
+      return null;
+    }
+  };
+
+  const handleFullImportUpdate = async () => {
+    const importData = await updateFromImport();
+    if (!importData) return;
+
+    const productos = tabIndex === 0 ? clasicos : especiales;
+    // const barcodes = productos
+    //   .map((p) => p.barcode?.toString().trim())
+    //   .filter((b) => b);
+
+    const barcodes = productos
+  .map((p) => p.barcode?.toString().trim())
+  .filter((b) => b && b !== "0"); // evitar vacíos y 0
+
+    if (barcodes.length === 0) {
+      alert("No hay productos cargados para aplicar la importación.");
+      return;
+    }
+
+    try {
+      const res = await api.post("/imports/apply-to-products", {
+        importId: importData._id,
+        barcodes,
+      });
+
+      alert(`Actualización exitosa. ${res.updated} productos actualizados.`);
+      console.log("res:", res);
+
+      const updatedClasicos = clasicos.map((p) => {
+        const match = res?.rows.find(
+          (r) => r.barcode?.toString().trim() === p.barcode?.toString().trim()
+        );
+        if (!match) return p;
+
+        return {
+          ...p,
+          currentPrice: match.price,
+          manualPrice: match.price,
+          discountedPrice: p.discount
+            ? Number((match.price * (1 - p.discount / 100)).toFixed(2))
+            : match.price,
+          stock: typeof match.stock === "number" ? match.stock : p.stock,
+        };
+      });
+
+      const updatedEspeciales = especiales.map((p) => {
+        const match = res?.rows.find(
+          (r) => r.barcode?.toString().trim() === p.barcode?.toString().trim()
+        );
+        if (!match) return p;
+
+        return {
+          ...p,
+          currentPrice: match.price,
+          manualPrice: match.price,
+          discountedPrice: p.discount
+            ? Number((match.price * (1 - p.discount / 100)).toFixed(2))
+            : match.price,
+          stock: typeof match.stock === "number" ? match.stock : p.stock,
+        };
+      });
+
+      setClasicos(updatedClasicos);
+      setEspeciales(updatedEspeciales);
+
+      const stockUpdates = res.rows
+        .filter((r) => typeof r.stock === "number" && r.stock >= 0)
+        .map((r) => ({ codebar: r.barcode, quantity: r.stock }));
+
+      if (stockUpdates.length > 0 && selectedBranchId) {
+        await updateBulkStock(stockUpdates);
+      }
+
+      setUpdateResults(
+        res.rows.map((r) => ({
+          name: r.name,
+          new: r.price,
+          stock: r.stock,
+        }))
+      );
+    } catch (error) {
+      console.error("Error aplicando importación a productos:", error);
+      alert("Error aplicando importación");
+    }
+  };
 
   return (
     <Box sx={{ p: 2 }}>
@@ -222,13 +360,51 @@ const ProductLabelManager = () => {
         <Tab label="Etiquetas Clásicas" />
         <Tab label="Etiquetas Especiales" />
       </Tabs>
-      <Button
-        variant="outlined"
-        sx={{ mb: 2 }}
-        onClick={() => setOpenModal(true)}
-      >
-        Actualizar precios desde Excel
-      </Button>
+      <Box display="flex" flexDirection="column" gap={2} mb={2}>
+        <Box
+          sx={{
+            border: "1px solid #ccc",
+            borderRadius: 2,
+            p: 2,
+          }}
+        >
+          <Typography variant="subtitle1" fontWeight="bold">
+            📥 Actualizar desde Excel
+          </Typography>
+          <Typography variant="body2" mb={1}>
+            Subí un archivo con precios y stock. Requiere columnas:{" "}
+            <strong>Codebar</strong>, <strong>Unitario</strong> y{" "}
+            <strong>Cantidad</strong>.
+          </Typography>
+          <Button variant="contained" onClick={() => setOpenModal(true)}>
+            Subir archivo Excel
+          </Button>
+        </Box>
+
+        <Box
+          sx={{
+            border: "1px solid #ccc",
+            borderRadius: 2,
+            p: 2,
+          }}
+        >
+          <Typography variant="subtitle1" fontWeight="bold">
+            🔁 Aplicar importación reciente
+          </Typography>
+          <Typography variant="body2" mb={1}>
+            Usa la última importación aplicada a esta sucursal y actualiza solo
+            los productos cargados.
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleFullImportUpdate}
+          >
+            Aplicar importación a productos cargados
+          </Button>
+        </Box>
+      </Box>
+
       <Button
         variant="outlined"
         sx={{ mb: 2, ml: 2 }}

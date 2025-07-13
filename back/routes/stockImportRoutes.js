@@ -3,7 +3,7 @@ import express from "express";
 import multer from "multer";
 import { applyStockImport, compareStockImport, importStock, listStockImports } from "../controllers/stockImportController.js";
 import StockImport from "../models/StockImport.js";
-import { updateFromStockImport } from "../controllers/productList/updateFromStockImport.js";
+import { applyImportToBarcodes, updateFromImport, updateFromStockImport } from "../controllers/productList/updateFromStockImport.js";
 
 const router = express.Router();
 const upload = multer(); // Para leer el buffer
@@ -13,7 +13,10 @@ router.post("/import-stock", upload.single("file"), importStock);
 router.get("/", listStockImports);
 // router.post("/apply-to-lists", applyStockImport);
 router.post("/apply-to-lists", updateFromStockImport);
+router.post("/apply-to-products", applyImportToBarcodes);
 
+//ya no lo usaria mas por que lo haria applyImportToBarcodes
+router.get("/latestApplied", updateFromImport);
 
 // routes/import.routes.js
 router.get("/recent", async (req, res) => {

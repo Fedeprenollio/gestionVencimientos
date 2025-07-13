@@ -563,7 +563,7 @@ export const updateFromStockImport = async (req, res) => {
             barcode,
             name: product.name,
             newPrice,
-            lastTagDate: now
+            lastTagDate: now,
           });
         } else if (newPrice > oldPrice) {
           listResult.priceIncreased.push({
@@ -572,7 +572,7 @@ export const updateFromStockImport = async (req, res) => {
             name: product.name,
             oldPrice,
             newPrice,
-            lastTagDate: now
+            lastTagDate: now,
           });
         } else if (newPrice < oldPrice) {
           listResult.priceDecreased.push({
@@ -581,7 +581,7 @@ export const updateFromStockImport = async (req, res) => {
             name: product.name,
             oldPrice,
             newPrice,
-            lastTagDate: now
+            lastTagDate: now,
           });
         } else {
           listResult.priceUnchanged.push({
@@ -678,3 +678,368 @@ export const updateFromStockImport = async (req, res) => {
     res.status(500).json({ message: "Error del servidor" });
   }
 };
+
+// controllers/productList/updateFromStockImport.js
+export const updateFromImport = async (req, res) => {
+  try {
+    const { branchId } = req.query;
+
+    if (!branchId) {
+      return res.status(400).json({ message: "Falta el parámetro branchId" });
+    }
+
+    const latest = await StockImport.findOne({
+      branch: branchId,
+      // status: "applied",
+    })
+      .sort({ importedAt: -1 })
+      .select("_id branch importedAt");
+
+    if (!latest) {
+      return res.status(404).json({
+        message:
+          "No se encontró ninguna importación aplicada para esta sucursal",
+      });
+    }
+
+    res.json(latest);
+  } catch (error) {
+    console.error("❌ Error al obtener importación:", error);
+    res.status(500).json({ message: "Error del servidor" });
+  }
+};
+
+export const applyImportToBarcodes = async (req, res) => {
+  try {
+    const { importId, barcodes } = req.body;
+    console.log("importId, barcodes", importId, barcodes);
+    if (!importId || !Array.isArray(barcodes) || barcodes.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Faltan datos: importId y barcodes" });
+    }
+
+    const stockImport = await StockImport.findById(importId);
+    if (!stockImport) {
+      return res.status(404).json({ message: "Importación no encontrada" });
+    }
+
+    const now = dayjs().tz("America/Argentina/Buenos_Aires").toDate();
+
+    const rowsMap = new Map();
+    for (const row of stockImport.rows) {
+      if (row.barcode && barcodes.includes(row.barcode.trim())) {
+        const key = row.barcode.trim();
+        const prev = rowsMap.get(key) || [];
+        rowsMap.set(key, [...prev, row]);
+      }
+    }
+
+    const finalRows = [];
+    for (const [barcode, rows] of rowsMap.entries()) {
+      const valid = rows.filter((r) => typeof r.price === "number");
+      if (valid.length === 0) continue;
+
+      // Elegimos el que tenga mayor stock positivo, si no, el primero
+      const best =
+        valid
+          .filter((r) => typeof r.stock === "number" && r.stock > 0)
+          .sort((a, b) => b.stock - a.stock)[0] || valid[0];
+
+      finalRows.push(best);
+    }
+
+    const products = await Product.find({ barcode: { $in: barcodes } });
+    const productsMap = new Map(products.map((p) => [p.barcode.trim(), p]));
+
+    const existingStocks = await Stock.find({
+      branch: stockImport.branch,
+      product: { $in: products.map((p) => p._id) },
+    });
+    const stockMap = new Map(
+      existingStocks.map((s) => [`${s.product}_${s.branch}`, s])
+    );
+
+    const bulkProductUpdates = [];
+    const bulkStockOps = [];
+    const priceHistories = [];
+    const seenStockKeys = new Set();
+
+    for (const row of finalRows) {
+      const barcode = row.barcode.trim();
+      const product = productsMap.get(barcode);
+      if (!product || typeof row.price !== "number") continue;
+
+      const oldPrice = product.currentPrice ?? 0;
+      const newPrice = row.price;
+
+      if (oldPrice !== newPrice) {
+        priceHistories.push({
+          productId: product._id,
+          price: newPrice,
+          date: now,
+        });
+      }
+
+      bulkProductUpdates.push({
+        updateOne: {
+          filter: { _id: product._id },
+          update: {
+            $set: {
+              currentPrice: newPrice,
+              cost: row.cost,
+              name: row.name || product.name,
+              category: row.category || product.category,
+              lab: row.lab || product.lab,
+              barcodes: row.barcodes || product.barcodes,
+            },
+          },
+        },
+      });
+
+      const stockKey = `${product._id}_${stockImport.branch}`;
+      const quantity = typeof row.stock === "number" ? row.stock : 0;
+
+      if (stockMap.has(stockKey)) {
+        bulkStockOps.push({
+          updateOne: {
+            filter: { _id: stockMap.get(stockKey)._id },
+            update: {
+              $set: {
+                quantity,
+                lastUpdated: now,
+              },
+            },
+          },
+        });
+      } else if (!seenStockKeys.has(stockKey)) {
+        seenStockKeys.add(stockKey);
+        bulkStockOps.push({
+          insertOne: {
+            document: {
+              product: product._id,
+              branch: stockImport.branch,
+              quantity,
+              lastUpdated: now,
+            },
+          },
+        });
+      }
+    }
+
+    if (bulkProductUpdates.length > 0) {
+      await Product.bulkWrite(bulkProductUpdates);
+    }
+
+    if (bulkStockOps.length > 0) {
+      await Stock.bulkWrite(bulkStockOps);
+    }
+
+    if (priceHistories.length > 0) {
+      const inserted = await PriceHistory.insertMany(priceHistories);
+      const updatesByProduct = new Map();
+      for (const h of inserted) {
+        if (!updatesByProduct.has(h.productId)) {
+          updatesByProduct.set(h.productId, []);
+        }
+        updatesByProduct.get(h.productId).push(h._id);
+      }
+
+      for (const [productId, historyIds] of updatesByProduct.entries()) {
+        await Product.findByIdAndUpdate(productId, {
+          $push: { priceHistory: { $each: historyIds } },
+        });
+      }
+    }
+
+    res.json({
+      message: "Productos actualizados correctamente desde la importación",
+      updated: finalRows.length,
+      rows: finalRows.map((row) => ({
+        barcode: row.barcode,
+        price: row.price,
+        stock: row.stock ?? null,
+        name: row.name,
+      })),
+    });
+  } catch (error) {
+    console.error("❌ Error al aplicar importación por códigos:", error);
+    res.status(500).json({ message: "Error del servidor" });
+  }
+};
+
+// export const applyImportToBarcodes = async (req, res) => {
+//   try {
+//     const { branchId, barcodes } = req.body;
+
+//     if (!branchId || !Array.isArray(barcodes) || barcodes.length === 0) {
+//       return res
+//         .status(400)
+//         .json({ message: "Faltan datos: branchId y barcodes" });
+//     }
+
+//     const stockImport = await StockImport.findOne({ branch: branchId }).sort({
+//       importedAt: -1,
+//     });
+
+//     if (!stockImport || !stockImport.rows) {
+//       return res
+//         .status(404)
+//         .json({ message: "No se encontró una importación válida" });
+//     }
+
+//     const now = dayjs().tz("America/Argentina/Buenos_Aires").toDate();
+
+//     Mapeamos los rows de la importación por barcode o IDProducto
+//     const rowsMap = new Map();
+//     for (const row of stockImport.rows) {
+//       const code =
+//         row.barcode?.toString().trim() || row.IDProducto?.toString().trim();
+//       if (code && barcodes.includes(code)) {
+//         const prev = rowsMap.get(code) || [];
+//         rowsMap.set(code, [...prev, row]);
+//       }
+//     }
+
+//     Elegimos el mejor row por cada barcode
+//     const finalRows = [];
+//     for (const [code, rows] of rowsMap.entries()) {
+//       const valid = rows.filter((r) => typeof r.price === "number");
+//       if (valid.length === 0) continue;
+
+//       const best =
+//         valid
+//           .filter((r) => typeof r.stock === "number" && r.stock > 0)
+//           .sort((a, b) => b.stock - a.stock)[0] || valid[0];
+
+//       finalRows.push({ ...best, _matchCode: code }); // _matchCode es útil por si viene del IDProducto
+//     }
+
+//     Buscamos productos por barcode (que puede coincidir con row.barcode o row.IDProducto)
+//     const products = await Product.find({
+//       barcode: { $in: barcodes },
+//     });
+// console.log("products",products)
+//     const productsMap = new Map(products.map((p) => [p.barcode?.trim(), p]));
+
+//     const existingStocks = await Stock.find({
+//       branch: stockImport.branch,
+//       product: { $in: products.map((p) => p._id) },
+//     });
+
+//     const stockMap = new Map(
+//       existingStocks.map((s) => [`${s.product}_${s.branch}`, s])
+//     );
+
+//     const bulkProductUpdates = [];
+//     const bulkStockOps = [];
+//     const priceHistories = [];
+//     const seenStockKeys = new Set();
+//     console.log("finalRows",finalRows)
+//     for (const row of finalRows) {
+//       const matchCode = row._matchCode;
+//       const product = productsMap.get(matchCode);
+//       if (!product || typeof row.price !== "number") continue;
+
+//       const oldPrice = product.currentPrice ?? 0;
+//       const newPrice = row.price;
+
+//       if (oldPrice !== newPrice) {
+//         priceHistories.push({
+//           productId: product._id,
+//           price: newPrice,
+//           date: now,
+//         });
+//       }
+
+//       bulkProductUpdates.push({
+//         updateOne: {
+//           filter: { _id: product._id },
+//           update: {
+//             $set: {
+//               currentPrice: newPrice,
+//               cost: row.cost,
+//               name: row.name || product.name,
+//               category: row.category || product.category,
+//               lab: row.lab || product.lab,
+//               barcodes: row.barcodes || product.barcodes,
+//             },
+//           },
+//         },
+//       });
+
+//       const stockKey = `${product._id}_${stockImport.branch}`;
+//       const quantity = typeof row.stock === "number" ? row.stock : 0;
+
+//       if (stockMap.has(stockKey)) {
+//         bulkStockOps.push({
+//           updateOne: {
+//             filter: { _id: stockMap.get(stockKey)._id },
+//             update: {
+//               $set: {
+//                 quantity,
+//                 lastUpdated: now,
+//               },
+//             },
+//           },
+//         });
+//       } else if (!seenStockKeys.has(stockKey)) {
+//         seenStockKeys.add(stockKey);
+//         bulkStockOps.push({
+//           insertOne: {
+//             document: {
+//               product: product._id,
+//               branch: stockImport.branch,
+//               quantity,
+//               lastUpdated: now,
+//             },
+//           },
+//         });
+//       }
+//     }
+
+//     if (bulkProductUpdates.length > 0) {
+//       await Product.bulkWrite(bulkProductUpdates);
+//     }
+
+//     if (bulkStockOps.length > 0) {
+//       await Stock.bulkWrite(bulkStockOps);
+//     }
+
+//     if (priceHistories.length > 0) {
+//       const inserted = await PriceHistory.insertMany(priceHistories);
+//       const updatesByProduct = new Map();
+//       for (const h of inserted) {
+//         if (!updatesByProduct.has(h.productId)) {
+//           updatesByProduct.set(h.productId, []);
+//         }
+//         updatesByProduct.get(h.productId).push(h._id);
+//       }
+
+//       for (const [productId, historyIds] of updatesByProduct.entries()) {
+//         await Product.findByIdAndUpdate(productId, {
+//           $push: { priceHistory: { $each: historyIds } },
+//         });
+//       }
+//     }
+
+//     res.json({
+//   message: "Productos actualizados correctamente desde la última importación",
+//   updated: finalRows.length,
+//   rows: finalRows.map((row) => {
+//     const barcode = row.barcode?.trim();
+//     const product = productsMap.get(barcode);
+//     return {
+//       barcode,
+//       name: product?.name ?? null,
+//       price: typeof row.price === "number" ? row.price : null,
+//       stock: typeof row.stock === "number" ? row.stock : null,
+//     };
+//   }),
+// });
+
+//   } catch (error) {
+//     console.error("❌ Error al aplicar importación a barcodes:", error);
+//     res.status(500).json({ message: "Error del servidor" });
+//   }
+// };

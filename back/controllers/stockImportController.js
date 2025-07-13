@@ -1,4 +1,6 @@
 // controllers/stockImportController.js
+import crypto from "crypto";
+
 import Product from "../models/Product.js";
 import Stock from "../models/Stock.js";
 import StockImport from "../models/StockImport.js";
@@ -22,47 +24,153 @@ export const listStockImports = async (req, res) => {
   }
 };
 
+// export const importStock = async (req, res) => {
+//   try {
+//     const fileBuffer = req.file.buffer;
+//     const parsedRows = parseExcelBuffer(fileBuffer); // Utilidad que convierte Excel a JSON
+
+//     const formattedRows = parsedRows.map((row) => {
+//       const barcodes = row['CodigosBarra']
+//         ? row['CodigosBarra'].toString().split('-').map(code => code.trim())
+//         : [];
+
+//       return {
+//         barcode: row['Codebar']?.toString().trim(),
+//         name: row['producto']?.toString().trim(),
+//         stock: Number(row['Cantidad']) || 0,
+//         category: row['Rubro']?.toString().trim() || '',
+//         price: Number(row['Precio']) || 0,
+//         cost: Number(row['costo']) || 0,
+//         lab: row['Laboratorio']?.toString().trim() || '',
+//         barcodes,
+//       };
+//     });
+
+//     const newImport = new StockImport({
+//       user: req.user?._id,           // Si tenés auth, si no, omitilo
+//       branch: req.body.branchId,     // O podés omitirlo si no usás sucursales
+//       rows: formattedRows,
+//     });
+
+//     await newImport.save();
+
+//     res.status(201).json({
+//       message: 'Importación de stock guardada correctamente',
+//       importId: newImport._id,
+//       totalRows: formattedRows.length,
+//     });
+//   } catch (error) {
+//     console.error("Error al importar stock:", error);
+//     res.status(500).json({ error: "Error al procesar el Excel de stock" });
+//   }
+// };
+
+
+
+
 export const importStock = async (req, res) => {
   try {
     const fileBuffer = req.file.buffer;
-    const parsedRows = parseExcelBuffer(fileBuffer); // Utilidad que convierte Excel a JSON
+    const parsedRows = parseExcelBuffer(fileBuffer); // Convierte Excel a JSON
 
-    const formattedRows = parsedRows.map((row) => {
+    // Extraemos todos los códigos únicos para buscar de una vez
+    const uniqueCodesSet = new Set();
+    parsedRows.forEach((row) => {
+      const barcodeRaw = row['Codebar']?.toString().trim() || "";
+      const idProductoRaw = row['IDProducto']?.toString().trim() || "";
+
+      if (barcodeRaw && barcodeRaw !== "0") uniqueCodesSet.add(barcodeRaw);
+      if (idProductoRaw && idProductoRaw !== "0") uniqueCodesSet.add(idProductoRaw);
+    });
+    const uniqueCodes = Array.from(uniqueCodesSet);
+
+    // Buscar todos los productos existentes de una sola vez
+    const existingProducts = await Product.find({
+      barcode: { $in: uniqueCodes },
+    }).lean();
+
+    // Map para búsqueda rápida por barcode
+    const existingMap = new Map(
+      existingProducts.map((p) => [p.barcode, p])
+    );
+
+    const newProductsToInsert = [];
+    const formattedRows = [];
+
+    for (const row of parsedRows) {
+      const barcodeRaw = row['Codebar']?.toString().trim() || "";
+      const barcode = barcodeRaw && barcodeRaw !== "0" ? barcodeRaw : null;
+      const idProductoRaw = row['IDProducto']?.toString().trim() || "";
+      const idProducto = idProductoRaw && idProductoRaw !== "0" ? idProductoRaw : null;
+
       const barcodes = row['CodigosBarra']
         ? row['CodigosBarra'].toString().split('-').map(code => code.trim())
         : [];
 
-      return {
-        barcode: row['Codebar']?.toString().trim(),
-        name: row['producto']?.toString().trim(),
+      // Ignorar filas sin código válido
+      if (!barcode && !idProducto) continue;
+
+      // Chequear si ya existe producto (por barcode o idProducto)
+      let productExists = false;
+      if (barcode && existingMap.has(barcode)) {
+        productExists = true;
+      } else if (idProducto && existingMap.has(idProducto)) {
+        productExists = true;
+      }
+
+      // Crear producto nuevo si no existe y hay idProducto válido
+      if (!productExists && idProducto) {
+        newProductsToInsert.push({
+          barcode: idProducto,
+          alternateBarcodes: barcodes,
+          name: row['producto']?.toString().trim() || "Sin nombre",
+          type: row['Rubro']?.toString().trim() || "medicamento",
+          currentPrice: Number(row['Precio']) || 0,
+        });
+
+        // Marcar como existente para no crear duplicados si se repite fila
+        existingMap.set(idProducto, true);
+      }
+
+      // Guardar fila formateada para importación
+      formattedRows.push({
+        barcode: barcode || idProducto,
+        name: row['producto']?.toString().trim() || "Sin nombre",
         stock: Number(row['Cantidad']) || 0,
-        category: row['Rubro']?.toString().trim() || '',
+        category: row['Rubro']?.toString().trim() || "",
         price: Number(row['Precio']) || 0,
         cost: Number(row['costo']) || 0,
-        lab: row['Laboratorio']?.toString().trim() || '',
+        lab: row['Laboratorio']?.toString().trim() || "",
         barcodes,
-      };
-    });
+      });
+    }
 
+    // Insertar productos nuevos en bulk si hay
+    let newProducts = [];
+    if (newProductsToInsert.length > 0) {
+      newProducts = await Product.insertMany(newProductsToInsert);
+    }
+
+    // Guardar la importación con las filas (stock, precio)
     const newImport = new StockImport({
-      user: req.user?._id,           // Si tenés auth, si no, omitilo
-      branch: req.body.branchId,     // O podés omitirlo si no usás sucursales
+      user: req.user?._id,
+      branch: req.body.branchId,
       rows: formattedRows,
     });
 
     await newImport.save();
 
-    res.status(201).json({
-      message: 'Importación de stock guardada correctamente',
+    return res.status(201).json({
+      message: "Importación de stock guardada correctamente",
       importId: newImport._id,
       totalRows: formattedRows.length,
+      newProducts, // <-- retorno para frontend
     });
   } catch (error) {
     console.error("Error al importar stock:", error);
-    res.status(500).json({ error: "Error al procesar el Excel de stock" });
+    return res.status(500).json({ error: "Error al procesar el Excel de stock" });
   }
 };
-
 export const compareStockImport = async (req, res) => {
   try {
     const { importId } = req.params;

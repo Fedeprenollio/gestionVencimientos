@@ -12,13 +12,17 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import axios from "axios";
 import CompareAndApplyStockImport from "./CompareAndApplyStockImport";
 import useBranchStore from "../../store/useBranchStore";
 import { useEffect } from "react";
-
 
 export default function UploadStockExcel() {
   const [file, setFile] = useState(null);
@@ -28,8 +32,8 @@ export default function UploadStockExcel() {
   // Zustand state
   const { branches, selectedBranchId, setSelectedBranchId, fetchBranches } =
     useBranchStore();
+  const [newProducts, setNewProducts] = useState([]);
 
-    
   useEffect(() => {
     fetchBranches();
   }, []);
@@ -56,7 +60,12 @@ export default function UploadStockExcel() {
     formData.append("branchId", branchId);
 
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/imports/import-stock`, formData);
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/imports/import-stock`,
+        formData
+      );
+      setNewProducts(res.data.newProducts || []);
+
       setMessage({
         type: "success",
         text: `Importación exitosa (${res.data.totalRows} filas). ID: ${res.data.importId}`,
@@ -121,8 +130,34 @@ export default function UploadStockExcel() {
 
         {message && <Alert severity={message.type}>{message.text}</Alert>}
       </Stack>
-      {/* <CompareAndApplyStockImport importId={"687128e916fc667f30603969"} /> */}
 
+      {newProducts.length > 0 && (
+        <Box mt={3}>
+          <Typography variant="subtitle1" gutterBottom>
+            Productos nuevos creados:
+          </Typography>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Nombre</TableCell>
+                <TableCell>Código</TableCell>
+                <TableCell>Precio</TableCell>
+                <TableCell>Stock</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {newProducts.map((prod, idx) => (
+                <TableRow key={idx}>
+                  <TableCell>{prod.name}</TableCell>
+                  <TableCell>{prod.barcode}</TableCell>
+                  <TableCell>${prod.price}</TableCell>
+                  <TableCell>{prod.stock}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
+      )}
     </Paper>
   );
 }

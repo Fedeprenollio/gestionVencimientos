@@ -716,6 +716,7 @@ export const updateProduct = async (req, res) => {
 // };
 
 export const importProducts = async (req, res) => {
+  console.log("EN REALIDAD USO ESTE CONTROLADOR")
   const products = req.body;
   console.log("products", products);
   if (!Array.isArray(products) || products.length === 0) {
