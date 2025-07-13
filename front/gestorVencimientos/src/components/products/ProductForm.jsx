@@ -110,10 +110,84 @@ export default function ProductForm() {
     }
   };
 
+  // const handleDetected = (code) => {
+  //   setBarcode(code);
+  //   setScanning(false);
+  //   handleSearch(code);
+  // };
+
+  function parseGS1Barcode(data) {
+    const result = {};
+
+    const aiPatterns = {
+      "01": { length: 14, field: "gtin" },
+      17: { length: 6, field: "expirationDate" },
+      10: { variable: true, field: "batchNumber" },
+      21: { variable: true, field: "serialNumber" },
+      90: { variable: true, field: "customCode" },
+    };
+
+    let i = 0;
+    while (i < data.length) {
+      const ai = data.substring(i, i + 2);
+      const config = aiPatterns[ai];
+
+      if (!config) break; // si no se reconoce, cortamos
+
+      i += 2;
+
+      if (config.variable) {
+        // Variable length: ends at next AI or end of string
+        let nextAI = data.substring(i).match(/\d{2}/);
+        let nextAIIndex = nextAI ? data.indexOf(nextAI[0], i) : data.length;
+        result[config.field] = data.substring(i, nextAIIndex);
+        i = nextAIIndex;
+      } else {
+        result[config.field] = data.substring(i, i + config.length);
+        i += config.length;
+      }
+    }
+
+    // Formateo especial para vencimiento: yymmdd => Date
+    if (result.expirationDate) {
+      const y = parseInt(result.expirationDate.slice(0, 2));
+      const m = parseInt(result.expirationDate.slice(2, 4));
+      const d = parseInt(result.expirationDate.slice(4, 6));
+      const fullYear = y >= 50 ? 1900 + y : 2000 + y;
+      result.expirationDate = new Date(fullYear, m - 1, d);
+    }
+
+    return result;
+  }
   const handleDetected = (code) => {
-    setBarcode(code);
     setScanning(false);
-    handleSearch(code);
+
+    // Si el código tiene más de 20 caracteres, probablemente sea un QR GS1
+    if (code.length > 20 && code.startsWith("01")) {
+      const parsed = parseGS1Barcode(code);
+
+      if (parsed.gtin) {
+        setBarcode(parsed.gtin);
+        handleSearch(parsed.gtin);
+      } else {
+        setBarcode(code);
+        handleSearch(code);
+      }
+
+      // Guardar datos del QR en el estado del producto (para luego usarlos en el formulario)
+      setProductInfo((prev) => ({
+        ...prev,
+        expirationDate: parsed.expirationDate || prev.expirationDate,
+        batchNumber: parsed.batchNumber,
+        serialNumber: parsed.serialNumber,
+        customCode: parsed.customCode,
+        gtin: parsed.gtin,
+      }));
+    } else {
+      // Código simple, como un EAN-13 de producto
+      setBarcode(code);
+      handleSearch(code);
+    }
   };
 
   const submit = async () => {
@@ -145,6 +219,8 @@ export default function ProductForm() {
         quantity: Number(quantity),
         branch,
         overstock,
+        batchNumber: productInfo.batchNumber,
+        serialNumber: productInfo.serialNumber,
       };
 
       const loteRes = await axios.post(
@@ -330,8 +406,7 @@ export default function ProductForm() {
           scanning={scanning}
           setScanning={setScanning}
           barcodeInputRef={barcodeInputRef}
-                  isAddMode = {false}
-
+          isAddMode={false}
         />
 
         {productExists && (
@@ -365,7 +440,6 @@ export default function ProductForm() {
             setNameResults={setNameResults}
             barcodeInputRef={barcodeInputRef}
             setProductExists={setProductExists}
-    
           />
         )}
 

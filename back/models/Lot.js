@@ -15,6 +15,10 @@ const lotSchema = new mongoose.Schema({
     ref: "Branch",
     required: true,
   },
+    // NUEVOS CAMPOS PARA TRAZABILIDAD
+  batchNumber: { type: String },     // Número de lote (puede venir del QR)
+  serialNumber: { type: String },    // Número de serie (puede venir del QR)
+  gtin: { type: String },            // Código de producto global (opcional)
 
   createdAt: { type: Date, default: Date.now },
   overstock: { type: Boolean },

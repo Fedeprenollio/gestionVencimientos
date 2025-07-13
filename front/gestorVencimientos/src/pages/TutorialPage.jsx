@@ -17,7 +17,7 @@ const sections = [
   { id: "productos", title: "Gestión de productos" },
   { id: "vencimientos", title: "Vencimientos" },
   { id: "stock", title: "Stock" },
-   { id: "list", title: "Listas" },
+  { id: "list", title: "Listas" },
   { id: "etiquetas", title: "Etiquetas y precios" },
   { id: "ventas", title: "Ventas y análisis" },
   { id: "sucursales", title: "Sucursales y usuarios" },
@@ -133,14 +133,17 @@ function renderSectionContent(id) {
             medicamento que vendemos en nuestra sucursal (con rotación) lo tiene
             otra sucursal como próximo a vencer o en sobre stock. Esto permite
             <strong> rotar productos que no se mueven</strong> y evitar
-            vencimientos. (Previamente hay que generar un excel con prodcutos a vencer  <Link
+            vencimientos. (Previamente hay que generar un excel con prodcutos a
+            vencer{" "}
+            <Link
               href="/expiring"
               underline="hover"
               target="_blank"
               rel="noopener"
             >
               Ver productos por vencer
-            </Link>  )
+            </Link>{" "}
+            )
             <br />
             <Link
               href="/lotes/cargar"
@@ -172,10 +175,16 @@ function renderSectionContent(id) {
       return (
         <ul style={{ paddingLeft: 16 }}>
           <li>
-            <strong>Listas de seguimiento de precios:</strong> permite generar listas por sector del local (ej: Desodorantes masculinos, Pastas dentales, etc).
-            Luego, al actualizar precios, el sistema te muestra qué productos tuvieron cambios desde el último etiquetado, ayudando a <strong>ahorrar tiempo</strong>. También genera un archivo <code>.txt</code> compatible con el sistema de etiquetas de Plex.
+            <strong>Listas de seguimiento de precios:</strong> permite generar
+            listas por sector del local (ej: Desodorantes masculinos, Pastas
+            dentales, etc). Luego, al actualizar precios, el sistema te muestra
+            qué productos tuvieron cambios desde el último etiquetado, ayudando
+            a <strong>ahorrar tiempo</strong>. También genera un archivo{" "}
+            <code>.txt</code> compatible con el sistema de etiquetas de Plex.
             <br />
-            Además, permite hacer seguimiento de ventas descargando movimientos desde Plex, para detectar <strong>productos sin rotación</strong> o con <strong>stock bajo</strong>.
+            Además, permite hacer seguimiento de ventas descargando movimientos
+            desde Plex, para detectar <strong>productos sin rotación</strong> o
+            con <strong>stock bajo</strong>.
             <br />
             <Link
               href="/lists"
@@ -188,10 +197,40 @@ function renderSectionContent(id) {
           </li>
 
           <li style={{ marginTop: 12 }}>
-            <strong>Listas de control de stock:</strong> útil cuando se solicita desde administración el stock actual de una línea de productos. 
+            <strong>Generador de etiquetas promocionales:</strong> ideal para
+            campañas como Dermaglós, Bagó, etc.
             <br />
-            Se puede generar una lista rápida, cargar productos escaneando o manualmente, y luego exportar un Excel para enviar.
-            También permite analizar ventas y stock de los productos cargados, como en el caso anterior.
+            Podés importar el archivo Excel enviado desde administración (con
+            columnas <em>Codebar</em>, <em>Unitario</em> y <em>Descuento</em>),
+            y el sistema carga automáticamente los productos con el descuento
+            correspondiente.
+            <br />
+            Hay dos tipos de etiquetas disponibles: <strong>
+              clásicas
+            </strong> y <strong>especiales</strong> (más grandes).
+            <br />
+            Si el archivo contiene muchos productos y sabés que no todos están
+            disponibles, podés subir un archivo de stock reciente generado desde
+            Plex (desde{" "}
+            <Link href="/products/import" target="_blank" rel="noopener">
+              Productos / Importar productos
+            </Link>
+            ) para que el sistema discrimine qué etiquetas generar{" "}
+            <strong>con stock</strong> y <strong>sin stock</strong>.
+            <br />
+            <Link href="/tags" underline="hover" target="_blank" rel="noopener">
+              Ir al generador de etiquetas
+            </Link>
+          </li>
+
+          <li style={{ marginTop: 12 }}>
+            <strong>Listas de control de stock:</strong> útil cuando se solicita
+            desde administración el stock actual de una línea de productos.
+            <br />
+            Se puede generar una lista rápida, cargar productos escaneando o
+            manualmente, y luego exportar un Excel para enviar. También permite
+            analizar ventas y stock de los productos cargados, como en el caso
+            anterior.
             <br />
             <Link
               href="/stock-count"
@@ -204,11 +243,14 @@ function renderSectionContent(id) {
           </li>
 
           <li style={{ marginTop: 12 }}>
-            <strong>Listas de devolución a droguerías:</strong> permite cargar productos próximos a vencer para devolución.
-            Se puede seleccionar un mes de vencimiento y escanear lo que se encuentra en góndola para validar si aún está presente.
+            <strong>Listas de devolución a droguerías:</strong> permite cargar
+            productos próximos a vencer para devolución. Se puede seleccionar un
+            mes de vencimiento y escanear lo que se encuentra en góndola para
+            validar si aún está presente.
             <br />
-            Si un producto no se encuentra, puede haberse vendido o estar mal ubicado.
-            En el futuro se incorporará análisis de ventas para asegurar un tratamiento adecuado.
+            Si un producto no se encuentra, puede haberse vendido o estar mal
+            ubicado. En el futuro se incorporará análisis de ventas para
+            asegurar un tratamiento adecuado.
             <br />
             <Link
               href="/lists/drug-returns"
@@ -232,7 +274,7 @@ function renderSectionContent(id) {
         </Typography>
       );
 
-    case "ventas":
+    // case "ventas":
       return (
         <Typography>
           - Subí un Excel con movimientos de venta.
@@ -244,17 +286,17 @@ function renderSectionContent(id) {
         </Typography>
       );
 
-    case "sucursales":
-      return (
-        <Typography>
-          - Cada usuario pertenece a una sucursal.
-          <br />
-          - El administrador puede ver todas.
-          <br />
-          - Los usuarios comunes ven sólo su sucursal.
-          <br />- Filtrá productos y movimientos por sucursal.
-        </Typography>
-      );
+    // case "sucursales":
+    //   return (
+    //     <Typography>
+    //       - Cada usuario pertenece a una sucursal.
+    //       <br />
+    //       - El administrador puede ver todas.
+    //       <br />
+    //       - Los usuarios comunes ven sólo su sucursal.
+    //       <br />- Filtrá productos y movimientos por sucursal.
+    //     </Typography>
+    //   );
 
     case "escaneo":
       return (
@@ -262,7 +304,7 @@ function renderSectionContent(id) {
           - Usá el escáner con cámara del celular o lector externo.
           <br />
           - Escaneá para buscar productos o agregarlos al sistema.
-          <br />- Compatible en formularios, etiquetas y recuento.
+          <br />- Compatible en formularios, etiquetas y recuento. (Apto Androide)
         </Typography>
       );
 

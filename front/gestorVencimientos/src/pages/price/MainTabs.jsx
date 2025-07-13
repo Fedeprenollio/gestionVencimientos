@@ -1,8 +1,9 @@
 // MainTabs.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Tabs, Tab } from "@mui/material";
 import ProductLabelManager from "./ProductLabelManager";
 import BranchListSelector from "../ProductList/ProductListList";
+import { useLocation } from "react-router-dom";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -18,10 +19,21 @@ function TabPanel(props) {
       {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
     </div>
   );
+
 }
 
 export default function MainTabs() {
-  const [tabIndex, setTabIndex] = useState(0);
+    const location = useLocation();
+  const query = new URLSearchParams(location.search);
+  const initialTab = parseInt(query.get("tab")) || 0;
+
+  const [tabIndex, setTabIndex] = useState(initialTab);
+
+    useEffect(() => {
+    const newTab = parseInt(query.get("tab"));
+    if (!isNaN(newTab)) setTabIndex(newTab);
+  }, [location.search]);
+
 
   return (
     <Box sx={{ width: "100%" }}>

@@ -1,5 +1,12 @@
 import React, { useRef } from "react";
-import { TextField, Button, Grid, Autocomplete, Box, Typography } from "@mui/material";
+import {
+  TextField,
+  Button,
+  Grid,
+  Autocomplete,
+  Box,
+  Typography,
+} from "@mui/material";
 import BarcodeScanner from "../barcodeScanner/BarcodeScanner";
 
 export default function BarcodeSearchSection({
@@ -14,11 +21,11 @@ export default function BarcodeSearchSection({
   scanning,
   setScanning,
   barcodeInputRef,
-  isAddMode 
+  isAddMode,
 }) {
-  
 
-console.log("isAddMode",isAddMode)
+
+  console.log("isAddMode", isAddMode);
 
   return (
     <Box
@@ -31,7 +38,8 @@ console.log("isAddMode",isAddMode)
       }}
     >
       <Typography variant="subtitle1" sx={{ mb: 2 }}>
-        Escaneá o ingresá un código de barras, o buscá el nombre del producto para verificar si ya existe.
+        Escaneá o ingresá un código de barras, o buscá el nombre del producto
+        para verificar si ya existe.
       </Typography>
 
       <form

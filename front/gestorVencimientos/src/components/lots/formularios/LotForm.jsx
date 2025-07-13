@@ -11,6 +11,7 @@ import {
   Checkbox,
   FormControlLabel,
 } from "@mui/material";
+import { useEffect } from "react";
 
 export default function LotForm({
   quantity,
@@ -28,65 +29,45 @@ export default function LotForm({
   setNameQuery,
   setNameResults,
   setProductExists,
-  setProductInfo
+  setProductInfo,
+  productInfo,
 }) {
+
+
+// dentro del componente
+useEffect(() => {
+  if (productInfo?.expirationDate instanceof Date && !isNaN(productInfo.expirationDate)) {
+    const year = productInfo.expirationDate.getFullYear().toString();
+    const month = String(productInfo.expirationDate.getMonth() + 1).padStart(2, "0");
+    setExpMonth(month);
+    setExpYear(year);
+  }
+}, [productInfo.expirationDate]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit();
 
+    // Limpiar campos de búsqueda
+    setBarcode("");
+    setNameQuery("");
+    setNameResults([]);
+    setProductExists(null);
+    setProductInfo({
+      id: "",
+      name: "",
+      type: "medicamento",
+    });
 
-
- // Limpiar campos de búsqueda
-  setBarcode("");
-  setNameQuery("");
-  setNameResults([]);
-   setProductExists(null);
-  setProductInfo({
-    id: "",
-    name: "",
-    type: "medicamento",
-  });
-
-  // Enfocar nuevamente
-  if (barcodeInputRef?.current) {
-    barcodeInputRef.current.focus();
-  }
-    setQuantity(0)
+    // Enfocar nuevamente
+    if (barcodeInputRef?.current) {
+      barcodeInputRef.current.focus();
+    }
+    setQuantity(0);
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
-      {/* Si el producto no existe, permitir crear */}
-      {/* {productExists === false && (
-        <>
-          <TextField
-            label="Nombre"
-            value={productInfo.name}
-            onChange={(e) =>
-              setProductInfo((p) => ({ ...p, name: e.target.value }))
-            }
-            fullWidth
-            required
-            sx={{ mb: 2 }}
-          />
-
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Tipo</InputLabel>
-            <Select
-              value={productInfo.type}
-              onChange={(e) =>
-                setProductInfo((p) => ({ ...p, type: e.target.value }))
-              }
-              label="Tipo"
-              required
-            >
-              <MenuItem value="medicamento">Medicamento</MenuItem>
-              <MenuItem value="perfumeria">Perfumería</MenuItem>
-            </Select>
-          </FormControl>
-        </>
-      )} */}
-
       {/* Expiración */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={6} minWidth={150}>
@@ -129,6 +110,25 @@ export default function LotForm({
             </Select>
           </FormControl>
         </Grid>
+        {productInfo?.batchNumber && (
+          <TextField
+            label="Lote"
+            value={productInfo.batchNumber}
+            InputProps={{ readOnly: true }}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+        )}
+
+        {productInfo?.serialNumber && (
+          <TextField
+            label="N° de Serie"
+            value={productInfo.serialNumber}
+            InputProps={{ readOnly: true }}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+        )}
 
         {/* Cantidad */}
         <TextField
@@ -141,20 +141,18 @@ export default function LotForm({
           sx={{ mb: 2 }}
         />
 
-         {/* OverStock */}
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={overstock}
-            onChange={(e) => setOverstock(e.target.checked)}
-          />
-        }
-        label="Marcar como OverStock"
-        sx={{ mb: 2 }}
-      />
+        {/* OverStock */}
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={overstock}
+              onChange={(e) => setOverstock(e.target.checked)}
+            />
+          }
+          label="Marcar como OverStock"
+          sx={{ mb: 2 }}
+        />
       </Grid>
-
-     
 
       <Button type="submit" variant="contained" fullWidth>
         Guardar
