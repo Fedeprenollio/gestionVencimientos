@@ -116,49 +116,51 @@ export default function ProductForm() {
   //   handleSearch(code);
   // };
 
-  function parseGS1Barcode(data) {
-    const result = {};
+ function parseGS1Barcode(data) {
+  const result = {};
+  let i = 0;
 
-    const aiPatterns = {
-      "01": { length: 14, field: "gtin" },
-      17: { length: 6, field: "expirationDate" },
-      10: { variable: true, field: "batchNumber" },
-      21: { variable: true, field: "serialNumber" },
-      90: { variable: true, field: "customCode" },
-    };
+  while (i < data.length) {
+    const ai = data.substring(i, i + 2);
 
-    let i = 0;
-    while (i < data.length) {
-      const ai = data.substring(i, i + 2);
-      const config = aiPatterns[ai];
-
-      if (!config) break; // si no se reconoce, cortamos
-
-      i += 2;
-
-      if (config.variable) {
-        // Variable length: ends at next AI or end of string
-        let nextAI = data.substring(i).match(/\d{2}/);
-        let nextAIIndex = nextAI ? data.indexOf(nextAI[0], i) : data.length;
-        result[config.field] = data.substring(i, nextAIIndex);
-        i = nextAIIndex;
-      } else {
-        result[config.field] = data.substring(i, i + config.length);
-        i += config.length;
-      }
+    switch (ai) {
+      case "01": // GTIN (14 dígitos fijos)
+        result.gtin = data.substring(i + 2, i + 16);
+        i += 16;
+        break;
+      case "17": // Fecha vencimiento (6 dígitos fijos)
+        const dateStr = data.substring(i + 2, i + 8);
+        const y = parseInt(dateStr.slice(0, 2), 10);
+        const m = parseInt(dateStr.slice(2, 4), 10);
+        const d = parseInt(dateStr.slice(4, 6), 10);
+        const fullYear = y >= 50 ? 1900 + y : 2000 + y;
+        result.expirationDate = new Date(fullYear, m - 1, d);
+        i += 8;
+        break;
+      case "10": // Lote (variable)
+        i += 2;
+        let lotEnd = data.indexOf("21", i); // buscar inicio del siguiente AI conocido
+        if (lotEnd === -1) lotEnd = data.length;
+        result.batchNumber = data.substring(i, lotEnd);
+        i = lotEnd;
+        break;
+      case "21": // Serie (variable)
+        i += 2;
+        let serieEnd = data.indexOf("17", i); // siguiente AI o final
+        if (serieEnd === -1) serieEnd = data.length;
+        result.serialNumber = data.substring(i, serieEnd);
+        i = serieEnd;
+        break;
+      default:
+        // Avanzamos si no reconocemos el AI (evitamos bucle infinito)
+        i += 1;
+        break;
     }
-
-    // Formateo especial para vencimiento: yymmdd => Date
-    if (result.expirationDate) {
-      const y = parseInt(result.expirationDate.slice(0, 2));
-      const m = parseInt(result.expirationDate.slice(2, 4));
-      const d = parseInt(result.expirationDate.slice(4, 6));
-      const fullYear = y >= 50 ? 1900 + y : 2000 + y;
-      result.expirationDate = new Date(fullYear, m - 1, d);
-    }
-
-    return result;
   }
+
+  return result;
+}
+
   const handleDetected = (code) => {
     setScanning(false);
 
