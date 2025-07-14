@@ -1,33 +1,41 @@
 function parseBarcode(data) {
-  const GS = String.fromCharCode(29); // Separador ASCII 29
   const result = {};
 
-  // Dividir el código por el carácter GS para obtener segmentos AI+valor
-  const segments = data.split(GS);
+  // Limpiar caracteres GS
+  data = data.replace(/\u001d/g, '');
 
-  for (const segment of segments) {
-    if (segment.startsWith("01")) {
-      // GTIN (14 dígitos)
-      result.gtin = segment.substring(2, 16);
-    } else if (segment.startsWith("17")) {
-      // Fecha vencimiento (6 dígitos YYMMDD)
-      const dateStr = segment.substring(2, 8);
+  let i = 0;
+
+  while (i < data.length) {
+    const ai = data.substring(i, i + 2);
+    i += 2;
+
+    if (ai === "01") {
+      result.gtin = data.substring(i, i + 14);
+      i += 14;
+    } else if (ai === "17") {
+      const dateStr = data.substring(i, i + 6);
       const y = parseInt(dateStr.slice(0, 2), 10);
       const m = parseInt(dateStr.slice(2, 4), 10);
       const d = parseInt(dateStr.slice(4, 6), 10);
       const fullYear = y >= 50 ? 1900 + y : 2000 + y;
       result.expirationDate = new Date(fullYear, m - 1, d);
-    } else if (segment.startsWith("10")) {
-      // Lote (variable hasta el siguiente GS)
-      result.batchNumber = segment.substring(2);
-    } else if (segment.startsWith("21")) {
-      // Número de serie (variable)
-      result.serialNumber = segment.substring(2);
-    } else if (segment.startsWith("90")) {
-      // Código personalizado (variable)
-      result.customCode = segment.substring(2);
+      i += 6;
+    } else if (ai === "10") {
+      let nextMatch = data.slice(i).match(/(21|17|01|90)/);
+      const end = nextMatch ? i + nextMatch.index : data.length;
+      result.batchNumber = data.substring(i, end);
+      i = end;
+    } else if (ai === "21") {
+      let nextMatch = data.slice(i).match(/(10|17|01|90)/);
+      const end = nextMatch ? i + nextMatch.index : data.length;
+      result.serialNumber = data.substring(i, end);
+      i = end;
+    } else if (ai === "90") {
+      result.customCode = data.slice(i);
+      break;
     } else {
-      // Puedes manejar otros AIs o ignorar
+      break;
     }
   }
 
