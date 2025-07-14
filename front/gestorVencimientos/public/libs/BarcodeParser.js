@@ -1,8 +1,14 @@
 // public/libs/BarcodeParser.js
-// Adaptación liviana del parser GS1 simple
+// Parser GS1 mejorado con limpieza de caracteres invisibles
 
 function parseBarcode(data) {
   const result = {};
+
+  // 🧼 Limpiar caracteres invisibles como separadores (GS -> \u001d)
+const GS = String.fromCharCode(29);
+data = data.split(GS).join("");
+
+
   let i = 0;
 
   while (i < data.length) {
@@ -34,9 +40,11 @@ function parseBarcode(data) {
       result.customCode = data.slice(i);
       break;
     } else {
+      // Si el AI no es reconocido, salimos
       break;
     }
   }
 
   return result;
 }
+

@@ -144,55 +144,57 @@ export default function ProductForm() {
   }
 //  const parsed = window.parseBarcode("010779083900026721Z4J0WX 1719123110GX4284");
 //       console.log("🧾 Código QR parseado:", parsed);
- const handleDetected = (code) => {
+
+const handleDetected = (code) => {
   setScanning(false);
 
-  // Intentamos parsear si es un QR GS1 (empieza con 01 y tiene buena longitud)
-  if (code.startsWith("01") && code.length > 20) {
-    const parsed = window.parseBarcode(code);
+  // 🧼 Siempre limpiar caracteres invisibles antes de parsear (por seguridad extra)
+  // ✅ Reemplazar carácter de control GS (ASCII 29)
+  const gs = String.fromCharCode(29);
+  const cleanCode = code.split(gs).join(""); // o .replaceAll(gs, "") si preferís
+
+
+  // Intentamos parsear si parece un código GS1
+  if (cleanCode.startsWith("01") && cleanCode.length > 20) {
+    const parsed = window.parseBarcode(cleanCode);
     console.log("🧾 Código QR parseado:", parsed);
 
     let gtin = parsed.gtin;
 
-    // 🧼 Normalizar GTIN: si tiene 14 dígitos y empieza con 0 o 1, quitar el primero
+    // 🧼 Normalizar GTIN (opcional, depende de tu base de datos)
     if (gtin?.length === 14 && (gtin.startsWith("0") || gtin.startsWith("1"))) {
       gtin = gtin.slice(1);
     }
 
-    // Setear GTIN como barcode
+    // Setear el código base (barcode)
     if (gtin) {
       setBarcode(gtin);
       handleSearch(gtin);
     } else {
-      setBarcode(code);
-      handleSearch(code);
+      setBarcode(cleanCode);
+      handleSearch(cleanCode);
     }
 
-    // Extraer mes y año de la fecha de vencimiento
-    let expMonth = "";
-    let expYear = "";
-    if (parsed.expirationDate) {
-      const date = new Date(parsed.expirationDate);
-      expMonth = String(date.getMonth() + 1).padStart(2, "0");
-      expYear = String(date.getFullYear());
+    // Extraer vencimiento como mes/año
+    if (parsed.expirationDate instanceof Date && !isNaN(parsed.expirationDate)) {
+      const date = parsed.expirationDate;
+      setExpMonth(String(date.getMonth() + 1).padStart(2, "0"));
+      setExpYear(String(date.getFullYear()));
     }
 
-    // Setear todos los datos parseados
+    // Setear los datos parseados
     setProductInfo((prev) => ({
       ...prev,
       expirationDate: parsed.expirationDate,
       batchNumber: parsed.batchNumber,
       serialNumber: parsed.serialNumber,
       customCode: parsed.customCode,
-      gtin: gtin,
+      gtin,
     }));
-
-    if (expMonth) setExpMonth(expMonth);
-    if (expYear) setExpYear(expYear);
   } else {
-    // Código común (ej: EAN-13), no QR
-    setBarcode(code);
-    handleSearch(code);
+    // Código común (EAN-13, manual, etc.)
+    setBarcode(cleanCode);
+    handleSearch(cleanCode);
   }
 };
 
