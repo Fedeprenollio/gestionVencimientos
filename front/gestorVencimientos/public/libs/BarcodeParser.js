@@ -87,68 +87,54 @@
 
 export function parseGS1Barcode(data) {
   const result = {};
-  const GS = String.fromCharCode(29); // Separador ASCII 29
-
-  const aiSpecs = {
-    "00": { length: 18, fixed: true }, // SSCC
-    "01": { length: 14, fixed: true }, // GTIN
-    "10": { length: null, fixed: false }, // Lote
-    "11": { length: 6, fixed: true }, // Fecha de producción
-    "15": { length: 6, fixed: true }, // Fecha de consumo recomendado
-    "17": { length: 6, fixed: true }, // Vencimiento
-    "20": { length: 2, fixed: true }, // Variedad interna
-    "21": { length: null, fixed: false }, // Serie
-    "240": { length: null, fixed: false }, // Código adicional
-    "90": { length: null, fixed: false }, // Código interno
-    // podés agregar más si querés
-  };
+  const GS = String.fromCharCode(29);
+  const cleaned = data.replace(/\x1D/g, GS); // aseguramos separadores visibles
 
   let i = 0;
-  const cleaned = data.replace(/\x1D/g, GS); // asegurar que los separadores sean GS (ASCII 29)
-
   while (i < cleaned.length) {
-    // Intenta detectar AI de 2 o 3 dígitos
+    // Leer 2 o 3 dígitos para AI
     let ai = cleaned.slice(i, i + 2);
-    if (!aiSpecs[ai] && i + 3 <= cleaned.length) {
+    let aiLength = 2;
+    if (!["00", "01", "10", "11", "15", "17", "20", "21", "90"].includes(ai)) {
       const ai3 = cleaned.slice(i, i + 3);
-      if (aiSpecs[ai3]) ai = ai3;
+      if (["240"].includes(ai3)) {
+        ai = ai3;
+        aiLength = 3;
+      } else {
+        // AI desconocido → salir
+        break;
+      }
     }
 
-    const spec = aiSpecs[ai];
+    i += aiLength;
 
-    if (!spec) {
-      // AI desconocido: intentar saltar 1 carácter
-      i++;
-      continue;
-    }
-
-    i += ai.length;
-
-    if (spec.fixed) {
-      const value = cleaned.slice(i, i + spec.length);
-      assignAI(result, ai, value);
-      i += spec.length;
+    // Obtener valor
+    let value = "";
+    if (["00", "01"].includes(ai)) {
+      value = cleaned.slice(i, i + 18); // SSCC
+      if (ai === "01") value = cleaned.slice(i, i + 14); // GTIN
+      i += value.length;
+    } else if (["11", "15", "17", "20"].includes(ai)) {
+      value = cleaned.slice(i, i + 6); // fechas y peso → fijos
+      i += 6;
     } else {
-      let end = cleaned.indexOf(GS, i);
-      if (end === -1) end = cleaned.length;
-
-      const value = cleaned.slice(i, end);
-      assignAI(result, ai, value);
-      i = end + 1; // saltar el separador
+      // Variables: cortar en GS o hasta fin
+      const nextGS = cleaned.indexOf(GS, i);
+      const end = nextGS === -1 ? cleaned.length : nextGS;
+      value = cleaned.slice(i, end);
+      i = nextGS === -1 ? cleaned.length : end + 1;
     }
+
+    assignAI(result, ai, value);
   }
 
   return result;
 }
 
-// 🎯 Asignar AI al resultado final con nombres legibles
 function assignAI(obj, ai, value) {
   switch (ai) {
     case "01":
       obj.gtin = value;
-      break;
-    case "10":
-      obj.batchNumber = value;
       break;
     case "17":
       { const y = parseInt(value.slice(0, 2), 10);
@@ -157,6 +143,9 @@ function assignAI(obj, ai, value) {
       const fullYear = y >= 50 ? 1900 + y : 2000 + y;
       obj.expirationDate = new Date(fullYear, m - 1, d);
       break; }
+    case "10":
+      obj.batchNumber = value;
+      break;
     case "21":
       obj.serialNumber = value;
       break;
