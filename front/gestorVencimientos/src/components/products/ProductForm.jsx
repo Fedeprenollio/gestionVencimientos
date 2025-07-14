@@ -27,7 +27,7 @@ import CreatedLotsTable from "../lots/CreatedLotsTable.jsx";
 import BarcodeSearchSection from "../lots/BarcodeSearchSection.jsx";
 import useSnackbar from "../../hooks/useSnackbar.js";
 import AppSnackbar from "../shared/AppSnackbar.jsx";
-import { parseBarcode, parseGS1Barcode } from "../../../public/libs/BarcodeParser.js";
+import { parseGS1Barcode } from "../../../utils/BarcodeParser.js";
 
 export default function ProductForm() {
   const [barcode, setBarcode] = useState("");
@@ -186,6 +186,15 @@ export default function ProductForm() {
 //     handleSearch(code);
 //   }
 // };
+
+
+useEffect(() => {
+ const prueba1 = parseGS1Barcode("01077980846867622135816181109805017260625")
+ console.log("prueba1",prueba1)
+  const prueba2 = parseGS1Barcode("010779534790067217270131216007202701000006026106007")
+ console.log("prueba2",prueba2)
+}, [])
+
 
 const handleDetected = (code) => {
   setScanning(false);
