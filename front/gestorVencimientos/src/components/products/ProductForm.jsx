@@ -148,41 +148,30 @@ export default function ProductForm() {
 const handleDetected = (code) => {
   setScanning(false);
 
-  // 🧼 Siempre limpiar caracteres invisibles antes de parsear (por seguridad extra)
-  // ✅ Reemplazar carácter de control GS (ASCII 29)
-  const gs = String.fromCharCode(29);
-  const cleanCode = code.split(gs).join(""); // o .replaceAll(gs, "") si preferís
-
-
-  // Intentamos parsear si parece un código GS1
-  if (cleanCode.startsWith("01") && cleanCode.length > 20) {
-    const parsed = window.parseBarcode(cleanCode);
+  if (code.startsWith("01") && code.length > 20) {
+    const parsed = window.parseBarcode(code);
     console.log("🧾 Código QR parseado:", parsed);
 
     let gtin = parsed.gtin;
 
-    // 🧼 Normalizar GTIN (opcional, depende de tu base de datos)
     if (gtin?.length === 14 && (gtin.startsWith("0") || gtin.startsWith("1"))) {
       gtin = gtin.slice(1);
     }
 
-    // Setear el código base (barcode)
     if (gtin) {
       setBarcode(gtin);
       handleSearch(gtin);
     } else {
-      setBarcode(cleanCode);
-      handleSearch(cleanCode);
+      setBarcode(code);
+      handleSearch(code);
     }
 
-    // Extraer vencimiento como mes/año
     if (parsed.expirationDate instanceof Date && !isNaN(parsed.expirationDate)) {
       const date = parsed.expirationDate;
       setExpMonth(String(date.getMonth() + 1).padStart(2, "0"));
       setExpYear(String(date.getFullYear()));
     }
 
-    // Setear los datos parseados
     setProductInfo((prev) => ({
       ...prev,
       expirationDate: parsed.expirationDate,
@@ -192,11 +181,11 @@ const handleDetected = (code) => {
       gtin,
     }));
   } else {
-    // Código común (EAN-13, manual, etc.)
-    setBarcode(cleanCode);
-    handleSearch(cleanCode);
+    setBarcode(code);
+    handleSearch(code);
   }
 };
+
 
 
   const submit = async () => {
