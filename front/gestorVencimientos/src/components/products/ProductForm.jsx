@@ -98,11 +98,12 @@ export default function ProductForm() {
         `${import.meta.env.VITE_API_URL}/products/${code}`
       );
       setProductExists(true);
-      setProductInfo({
-        id: res.data._id, // o productId si preferís
+      setProductInfo((prev) => ({
+        ...prev,
+        id: res.data._id,
         name: res.data.name,
         type: res.data.type,
-      });
+      }));
     } catch (err) {
       setProductExists(false);
       setProductInfo({ name: "", type: "medicamento", id: "" });
@@ -143,99 +144,98 @@ export default function ProductForm() {
 
   //   return result;
   // }
-//  const parsed = window.parseBarcode("010779083900026721Z4J0WX 1719123110GX4284");
-//       console.log("🧾 Código QR parseado:", parsed);
+  //  const parsed = window.parseBarcode("010779083900026721Z4J0WX 1719123110GX4284");
+  //       console.log("🧾 Código QR parseado:", parsed);
 
-// const handleDetected = (code) => {
-//   setScanning(false);
+  // const handleDetected = (code) => {
+  //   setScanning(false);
 
-//   if ( code.length > 20) {
-//     const parsed = window.parseBarcode(code);
-//     console.log("🧾 Código QR parseado:", parsed);
+  //   if ( code.length > 20) {
+  //     const parsed = window.parseBarcode(code);
+  //     console.log("🧾 Código QR parseado:", parsed);
 
-//     let gtin = parsed.gtin;
+  //     let gtin = parsed.gtin;
 
-//     if (gtin?.length === 14 && (gtin.startsWith("0") || gtin.startsWith("1"))) {
-//       gtin = gtin.slice(1);
-//     }
+  //     if (gtin?.length === 14 && (gtin.startsWith("0") || gtin.startsWith("1"))) {
+  //       gtin = gtin.slice(1);
+  //     }
 
-//     if (gtin) {
-//       setBarcode(gtin);
-//       handleSearch(gtin);
-//     } else {
-//       setBarcode(code);
-//       handleSearch(code);
-//     }
+  //     if (gtin) {
+  //       setBarcode(gtin);
+  //       handleSearch(gtin);
+  //     } else {
+  //       setBarcode(code);
+  //       handleSearch(code);
+  //     }
 
-//     if (parsed.expirationDate instanceof Date && !isNaN(parsed.expirationDate)) {
-//       const date = parsed.expirationDate;
-//       setExpMonth(String(date.getMonth() + 1).padStart(2, "0"));
-//       setExpYear(String(date.getFullYear()));
-//     }
+  //     if (parsed.expirationDate instanceof Date && !isNaN(parsed.expirationDate)) {
+  //       const date = parsed.expirationDate;
+  //       setExpMonth(String(date.getMonth() + 1).padStart(2, "0"));
+  //       setExpYear(String(date.getFullYear()));
+  //     }
 
-//     setProductInfo((prev) => ({
-//       ...prev,
-//       expirationDate: parsed.expirationDate,
-//       batchNumber: parsed.batchNumber,
-//       serialNumber: parsed.serialNumber,
-//       customCode: parsed.customCode,
-//       gtin,
-//     }));
-//   } else {
-//     setBarcode(code);
-//     handleSearch(code);
-//   }
-// };
+  //     setProductInfo((prev) => ({
+  //       ...prev,
+  //       expirationDate: parsed.expirationDate,
+  //       batchNumber: parsed.batchNumber,
+  //       serialNumber: parsed.serialNumber,
+  //       customCode: parsed.customCode,
+  //       gtin,
+  //     }));
+  //   } else {
+  //     setBarcode(code);
+  //     handleSearch(code);
+  //   }
+  // };
 
+  // useEffect(() => {
+  //  const prueba1 = parseGS1Barcode("01077980846867622135816181109805017260625")
+  //  console.log("prueba1",prueba1)
+  //   const prueba2 = parseGS1Barcode("010779534790067217270131216007202701000006026106007")
+  //  console.log("prueba2",prueba2)
+  // }, [])
 
-useEffect(() => {
- const prueba1 = parseGS1Barcode("01077980846867622135816181109805017260625")
- console.log("prueba1",prueba1)
-  const prueba2 = parseGS1Barcode("010779534790067217270131216007202701000006026106007")
- console.log("prueba2",prueba2)
-}, [])
+  const handleDetected = (code) => {
+    setScanning(false);
 
+    if (code.length > 20) {
+      const parsed = parseGS1Barcode(code);
+      console.log("🧾 Código QR parseado:", parsed);
 
-const handleDetected = (code) => {
-  setScanning(false);
+      let gtin = parsed.gtin;
+      if (gtin?.length === 14 && /^[01]/.test(gtin)) {
+        gtin = gtin.slice(1);
+      }
 
-  if (code.length > 20) {
-    const parsed = parseGS1Barcode(code);
-    console.log("🧾 Código QR parseado:", parsed);
+      if (gtin) {
+        setBarcode(gtin);
+        handleSearch(gtin);
+      } else {
+        setBarcode(code);
+        handleSearch(code);
+      }
 
-    let gtin = parsed.gtin;
-    if (gtin?.length === 14 && /^[01]/.test(gtin)) {
-      gtin = gtin.slice(1);
-    }
+      if (
+        parsed.expirationDate instanceof Date &&
+        !isNaN(parsed.expirationDate)
+      ) {
+        const date = parsed.expirationDate;
+        setExpMonth(String(date.getMonth() + 1).padStart(2, "0"));
+        setExpYear(String(date.getFullYear()));
+      }
 
-    if (gtin) {
-      setBarcode(gtin);
-      handleSearch(gtin);
+      setProductInfo((prev) => ({
+        ...prev,
+        expirationDate: parsed.expirationDate,
+        batchNumber: parsed.batchNumber,
+        serialNumber: parsed.serialNumber,
+        gtin,
+      }));
     } else {
       setBarcode(code);
       handleSearch(code);
     }
-
-    if (parsed.expirationDate instanceof Date && !isNaN(parsed.expirationDate)) {
-      const date = parsed.expirationDate;
-      setExpMonth(String(date.getMonth() + 1).padStart(2, "0"));
-      setExpYear(String(date.getFullYear()));
-    }
-
-    setProductInfo((prev) => ({
-      ...prev,
-      expirationDate: parsed.expirationDate,
-      batchNumber: parsed.batchNumber,
-      serialNumber: parsed.serialNumber,
-      gtin,
-    }));
-  } else {
-    setBarcode(code);
-    handleSearch(code);
-  }
-};
-
-
+  };
 
   const submit = async () => {
     try {
@@ -440,8 +440,6 @@ const handleDetected = (code) => {
           Agregar vencimientos
         </Typography>
         {/* 🔍 FORMULARIO DE BÚSQUEDA */}
-
-
 
         {productInfo?.gtin && (
           <Box
