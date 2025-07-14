@@ -27,6 +27,7 @@ import CreatedLotsTable from "../lots/CreatedLotsTable.jsx";
 import BarcodeSearchSection from "../lots/BarcodeSearchSection.jsx";
 import useSnackbar from "../../hooks/useSnackbar.js";
 import AppSnackbar from "../shared/AppSnackbar.jsx";
+import { parseBarcode } from "../../../public/libs/BarcodeParser.js";
 
 export default function ProductForm() {
   const [barcode, setBarcode] = useState("");
@@ -115,33 +116,33 @@ export default function ProductForm() {
   //   handleSearch(code);
   // };
 
-  function parseGS1Barcode(data) {
-    const result = {};
+  // function parseGS1Barcode(data) {
+  //   const result = {};
 
-    // Buscar GTIN (01) – 14 dígitos
-    const matchGTIN = data.match(/01(\d{14})/);
-    if (matchGTIN) result.gtin = matchGTIN[1];
+  //   // Buscar GTIN (01) – 14 dígitos
+  //   const matchGTIN = data.match(/01(\d{14})/);
+  //   if (matchGTIN) result.gtin = matchGTIN[1];
 
-    // Buscar Serie (21) – hasta encontrar otro AI (como 17, 10, espacio)
-    const matchSerie = data.match(/21([A-Z0-9]+?)(?=17|10|\s|$)/);
-    if (matchSerie) result.serialNumber = matchSerie[1];
+  //   // Buscar Serie (21) – hasta encontrar otro AI (como 17, 10, espacio)
+  //   const matchSerie = data.match(/21([A-Z0-9]+?)(?=17|10|\s|$)/);
+  //   if (matchSerie) result.serialNumber = matchSerie[1];
 
-    // Buscar vencimiento (17) – 6 dígitos (YYMMDD)
-    const matchExp = data.match(/17(\d{6})/);
-    if (matchExp) {
-      const y = parseInt(matchExp[1].slice(0, 2), 10);
-      const m = parseInt(matchExp[1].slice(2, 4), 10);
-      const d = parseInt(matchExp[1].slice(4, 6), 10);
-      const fullYear = y >= 50 ? 1900 + y : 2000 + y;
-      result.expirationDate = new Date(fullYear, m - 1, d);
-    }
+  //   // Buscar vencimiento (17) – 6 dígitos (YYMMDD)
+  //   const matchExp = data.match(/17(\d{6})/);
+  //   if (matchExp) {
+  //     const y = parseInt(matchExp[1].slice(0, 2), 10);
+  //     const m = parseInt(matchExp[1].slice(2, 4), 10);
+  //     const d = parseInt(matchExp[1].slice(4, 6), 10);
+  //     const fullYear = y >= 50 ? 1900 + y : 2000 + y;
+  //     result.expirationDate = new Date(fullYear, m - 1, d);
+  //   }
 
-    // Buscar lote (10) – hasta el final o hasta otro AI
-    const matchLote = data.match(/10([A-Z0-9]+?)(?=21|17|\s|$)/);
-    if (matchLote) result.batchNumber = matchLote[1];
+  //   // Buscar lote (10) – hasta el final o hasta otro AI
+  //   const matchLote = data.match(/10([A-Z0-9]+?)(?=21|17|\s|$)/);
+  //   if (matchLote) result.batchNumber = matchLote[1];
 
-    return result;
-  }
+  //   return result;
+  // }
 //  const parsed = window.parseBarcode("010779083900026721Z4J0WX 1719123110GX4284");
 //       console.log("🧾 Código QR parseado:", parsed);
 
@@ -190,7 +191,7 @@ const handleDetected = (code) => {
   setScanning(false);
 
   if (code.length > 20) {
-    const parsed = window.parseBarcode(code);
+    const parsed = parseBarcode(code);
     console.log("🧾 Código QR parseado:", parsed);
 
     let gtin = parsed.gtin;

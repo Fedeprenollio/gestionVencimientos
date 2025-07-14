@@ -34,7 +34,7 @@
 //   return result;
 // }
 
-function parseBarcode(raw) {
+ export function parseBarcode(raw) {
   const result = {};
   let pos = 0;
 
