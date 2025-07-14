@@ -27,7 +27,7 @@ import CreatedLotsTable from "../lots/CreatedLotsTable.jsx";
 import BarcodeSearchSection from "../lots/BarcodeSearchSection.jsx";
 import useSnackbar from "../../hooks/useSnackbar.js";
 import AppSnackbar from "../shared/AppSnackbar.jsx";
-import { parseBarcode } from "../../../public/libs/BarcodeParser.js";
+import { parseBarcode, parseGS1Barcode } from "../../../public/libs/BarcodeParser.js";
 
 export default function ProductForm() {
   const [barcode, setBarcode] = useState("");
@@ -191,7 +191,7 @@ const handleDetected = (code) => {
   setScanning(false);
 
   if (code.length > 20) {
-    const parsed = parseBarcode(code);
+    const parsed = parseGS1Barcode(code);
     console.log("🧾 Código QR parseado:", parsed);
 
     let gtin = parsed.gtin;
