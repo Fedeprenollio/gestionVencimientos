@@ -34,33 +34,53 @@
 //   return result;
 // }
 
-function parseBarcode(data) {
+function parseBarcode(raw) {
   const result = {};
+  let pos = 0;
 
-  // Normalizar posibles separadores (ASCII 29 → espacio)
-  data = data.replace(/\x1D/g, " ");
+  while (pos < raw.length) {
+    const ai = raw.substr(pos, 2);
 
-  // Extraer AI (01) – GTIN 14 dígitos
-  const matchGTIN = data.match(/01(\d{14})/);
-  if (matchGTIN) result.gtin = matchGTIN[1];
+    switch (ai) {
+      case "01": // GTIN (14)
+        result.gtin = raw.substr(pos + 2, 14);
+        pos += 16;
+        break;
 
-  // AI (17) – fecha vencimiento YYMMDD
-  const matchExp = data.match(/17(\d{6})/);
-  if (matchExp) {
-    const y = parseInt(matchExp[1].slice(0, 2), 10);
-    const m = parseInt(matchExp[1].slice(2, 4), 10);
-    const d = parseInt(matchExp[1].slice(4, 6), 10);
-    const year = y >= 50 ? 1900 + y : 2000 + y;
-    result.expirationDate = new Date(year, m - 1, d);
+      case "17": // Fecha vencimiento YYMMDD
+        { const dateStr = raw.substr(pos + 2, 6);
+        const y = parseInt(dateStr.slice(0, 2), 10);
+        const m = parseInt(dateStr.slice(2, 4), 10);
+        const d = parseInt(dateStr.slice(4, 6), 10);
+        const year = y >= 50 ? 1900 + y : 2000 + y;
+        result.expirationDate = new Date(year, m - 1, d);
+        pos += 8;
+        break; }
+
+      case "10": // Lote (variable, hasta que detecte otro AI o final)
+        { pos += 2;
+        let lote = "";
+        while (pos < raw.length && !/^\d{2}/.test(raw.substr(pos, 2))) {
+          lote += raw[pos++];
+        }
+        result.batchNumber = lote;
+        break; }
+
+      case "21": // Serie (variable, hasta que detecte otro AI o final)
+        { pos += 2;
+        let serie = "";
+        while (pos < raw.length && !/^\d{2}/.test(raw.substr(pos, 2))) {
+          serie += raw[pos++];
+        }
+        result.serialNumber = serie;
+        break; }
+
+      default:
+        // Si no se reconoce el AI, avanzar 1 para evitar bucle infinito
+        pos += 1;
+        break;
+    }
   }
-
-  // AI (10) – lote, termina cuando encuentra otro AI (2 dígitos)
-  const matchBatch = data.match(/10([^\s]{1,20}?)(?=\d{2}|$)/);
-  if (matchBatch) result.batchNumber = matchBatch[1];
-
-  // AI (21) – número de serie, termina cuando encuentra otro AI (opcional)
-  const matchSerie = data.match(/21([^\s]{1,20}?)(?=\d{2}|$)/);
-  if (matchSerie) result.serialNumber = matchSerie[1];
-
+  console.log("RESULTADITO",result)
   return result;
 }
