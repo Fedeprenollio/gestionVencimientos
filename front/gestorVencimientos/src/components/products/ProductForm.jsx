@@ -181,7 +181,6 @@ const handleDetected = (code) => {
       gtin,
     }));
   } else {
-    console.log("no tedecTA  QR")
     setBarcode(code);
     handleSearch(code);
   }
@@ -367,6 +366,7 @@ const handleDetected = (code) => {
       }}
     >
       <SucursalSelector branch={branch} onBranchChange={handleBranchChange} />
+      PRUEBA QR
       <Box
         sx={{
           width: "100%",
