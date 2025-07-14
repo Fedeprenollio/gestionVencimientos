@@ -67,8 +67,8 @@ export default function ExpiringProductList() {
     );
     setProducts(res.data);
   };
-  
-console.log("PRODUCTOS DEL FILTRO::::", products)
+
+  console.log("PRODUCTOS DEL FILTRO::::", products);
   const handleFilter = (newFilters) => {
     setFilters(newFilters);
     // fetchProducts(newFilters);
@@ -108,6 +108,9 @@ console.log("PRODUCTOS DEL FILTRO::::", products)
           productId: prod._id,
           lotId: lot._id,
           overstock: lot.overstock || false,
+          // NUEVOS CAMPOS 👇
+          batchNumber: lot.batchNumber || "",
+          serialNumber: lot.serialNumber || "",
         });
       });
     });
@@ -234,6 +237,8 @@ console.log("PRODUCTOS DEL FILTRO::::", products)
                 { id: "quantity", label: "Cantidad" },
                 { id: "expiration", label: "Vencimiento" },
                 { id: "created", label: "Creado" },
+                { id: "batchNumber", label: "Lote" }, // ✅ NUEVO
+                { id: "serialNumber", label: "N° Serie" }, // ✅ NUEVO
                 { id: "overstock", label: "SobreStock" }, // ✅ nueva columna
                 { id: "actions", label: "" },
               ].map((col) => (
@@ -309,9 +314,7 @@ console.log("PRODUCTOS DEL FILTRO::::", products)
               <TableRow key={`${row.productId}-${row.lotId}`}>
                 <TableCell>{row.productName}</TableCell>
                 <TableCell>{row.barcode}</TableCell>
-
                 <TableCell>{row.createdBy}</TableCell>
-
                 <TableCell>{row.branch}</TableCell>
                 <TableCell>{row.quantity}</TableCell>
                 <TableCell>
@@ -320,8 +323,9 @@ console.log("PRODUCTOS DEL FILTRO::::", products)
                 <TableCell>
                   {formatDateWhitDay(row.createdAt.toISOString())}
                 </TableCell>
+                <TableCell>{row.batchNumber || "-"}</TableCell> {/* NUEVO */}
+                <TableCell>{row.serialNumber || "-"}</TableCell> {/* NUEVO */}
                 <TableCell>{row.overstock ? "Sí" : "No"}</TableCell>
-
                 <TableCell>
                   <Tooltip title="Eliminar lote">
                     <IconButton

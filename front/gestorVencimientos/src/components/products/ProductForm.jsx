@@ -21,7 +21,6 @@ import {
   Dialog,
   DialogContent,
 } from "@mui/material";
-import { parseBarcode } from "gs1-barcode-parser";
 import SucursalSelector from "./SucursalSelector.jsx";
 import LotForm from "../lots/formularios/LotForm.jsx";
 import CreatedLotsTable from "../lots/CreatedLotsTable.jsx";
@@ -116,74 +115,88 @@ export default function ProductForm() {
   //   handleSearch(code);
   // };
 
- function parseGS1Barcode(data) {
-  const result = {};
+  function parseGS1Barcode(data) {
+    const result = {};
 
-  // Buscar GTIN (01) – 14 dígitos
-  const matchGTIN = data.match(/01(\d{14})/);
-  if (matchGTIN) result.gtin = matchGTIN[1];
+    // Buscar GTIN (01) – 14 dígitos
+    const matchGTIN = data.match(/01(\d{14})/);
+    if (matchGTIN) result.gtin = matchGTIN[1];
 
-  // Buscar Serie (21) – hasta encontrar otro AI (como 17, 10, espacio)
-  const matchSerie = data.match(/21([A-Z0-9]+?)(?=17|10|\s|$)/);
-  if (matchSerie) result.serialNumber = matchSerie[1];
+    // Buscar Serie (21) – hasta encontrar otro AI (como 17, 10, espacio)
+    const matchSerie = data.match(/21([A-Z0-9]+?)(?=17|10|\s|$)/);
+    if (matchSerie) result.serialNumber = matchSerie[1];
 
-  // Buscar vencimiento (17) – 6 dígitos (YYMMDD)
-  const matchExp = data.match(/17(\d{6})/);
-  if (matchExp) {
-    const y = parseInt(matchExp[1].slice(0, 2), 10);
-    const m = parseInt(matchExp[1].slice(2, 4), 10);
-    const d = parseInt(matchExp[1].slice(4, 6), 10);
-    const fullYear = y >= 50 ? 1900 + y : 2000 + y;
-    result.expirationDate = new Date(fullYear, m - 1, d);
+    // Buscar vencimiento (17) – 6 dígitos (YYMMDD)
+    const matchExp = data.match(/17(\d{6})/);
+    if (matchExp) {
+      const y = parseInt(matchExp[1].slice(0, 2), 10);
+      const m = parseInt(matchExp[1].slice(2, 4), 10);
+      const d = parseInt(matchExp[1].slice(4, 6), 10);
+      const fullYear = y >= 50 ? 1900 + y : 2000 + y;
+      result.expirationDate = new Date(fullYear, m - 1, d);
+    }
+
+    // Buscar lote (10) – hasta el final o hasta otro AI
+    const matchLote = data.match(/10([A-Z0-9]+?)(?=21|17|\s|$)/);
+    if (matchLote) result.batchNumber = matchLote[1];
+
+    return result;
   }
-
-  // Buscar lote (10) – hasta el final o hasta otro AI
-  const matchLote = data.match(/10([A-Z0-9]+?)(?=21|17|\s|$)/);
-  if (matchLote) result.batchNumber = matchLote[1];
-
-  return result;
-}
-
+//  const parsed = window.parseBarcode("010779083900026721Z4J0WX 1719123110GX4284");
+//       console.log("🧾 Código QR parseado:", parsed);
  const handleDetected = (code) => {
   setScanning(false);
 
-  let parsedData = {};
-  try {
-    const result = parseBarcode(code);
+  // Intentamos parsear si es un QR GS1 (empieza con 01 y tiene buena longitud)
+  if (code.startsWith("01") && code.length > 20) {
+    const parsed = window.parseBarcode(code);
+    console.log("🧾 Código QR parseado:", parsed);
 
-    parsedData.gtin = result["01"];
-    parsedData.expirationDate = result["17"];
-    parsedData.batchNumber = result["10"];
-    parsedData.serialNumber = result["21"];
-    parsedData.customCode = result["90"];
+    let gtin = parsed.gtin;
 
-    // Convertir fecha YYMMDD a Date si existe
-    if (parsedData.expirationDate) {
-      const y = parseInt(parsedData.expirationDate.slice(0, 2), 10);
-      const m = parseInt(parsedData.expirationDate.slice(2, 4), 10);
-      const d = parseInt(parsedData.expirationDate.slice(4, 6), 10);
-      const fullYear = y >= 50 ? 1900 + y : 2000 + y;
-      parsedData.expirationDate = new Date(fullYear, m - 1, d);
+    // 🧼 Normalizar GTIN: si tiene 14 dígitos y empieza con 0 o 1, quitar el primero
+    if (gtin?.length === 14 && (gtin.startsWith("0") || gtin.startsWith("1"))) {
+      gtin = gtin.slice(1);
     }
-  } catch (err) {
-    console.error("Error parseando código:", err);
-    parsedData = {};
+
+    // Setear GTIN como barcode
+    if (gtin) {
+      setBarcode(gtin);
+      handleSearch(gtin);
+    } else {
+      setBarcode(code);
+      handleSearch(code);
+    }
+
+    // Extraer mes y año de la fecha de vencimiento
+    let expMonth = "";
+    let expYear = "";
+    if (parsed.expirationDate) {
+      const date = new Date(parsed.expirationDate);
+      expMonth = String(date.getMonth() + 1).padStart(2, "0");
+      expYear = String(date.getFullYear());
+    }
+
+    // Setear todos los datos parseados
+    setProductInfo((prev) => ({
+      ...prev,
+      expirationDate: parsed.expirationDate,
+      batchNumber: parsed.batchNumber,
+      serialNumber: parsed.serialNumber,
+      customCode: parsed.customCode,
+      gtin: gtin,
+    }));
+
+    if (expMonth) setExpMonth(expMonth);
+    if (expYear) setExpYear(expYear);
+  } else {
+    // Código común (ej: EAN-13), no QR
+    setBarcode(code);
+    handleSearch(code);
   }
-
-  const gtin = parsedData.gtin || code;
-
-  setBarcode(gtin);
-  handleSearch(gtin);
-
-  setProductInfo((prev) => ({
-    ...prev,
-    expirationDate: parsedData.expirationDate || prev.expirationDate,
-    batchNumber: parsedData.batchNumber,
-    serialNumber: parsedData.serialNumber,
-    customCode: parsedData.customCode,
-    gtin: parsedData.gtin,
-  }));
 };
+
+
   const submit = async () => {
     try {
       let pid = productInfo.id;
@@ -386,6 +399,62 @@ export default function ProductForm() {
           Agregar vencimientos
         </Typography>
         {/* 🔍 FORMULARIO DE BÚSQUEDA */}
+
+
+
+        {productInfo?.gtin && (
+          <Box
+            sx={{
+              border: "1px solid #ccc",
+              borderRadius: 2,
+              p: 2,
+              mb: 2,
+              backgroundColor: "#f5f5f5",
+            }}
+          >
+            <Typography variant="subtitle1" gutterBottom>
+              Datos obtenidos del QR:
+            </Typography>
+
+            <Grid container spacing={1}>
+              <Grid item xs={12} sm={6}>
+                <Typography>
+                  <strong>GTIN:</strong> {productInfo.gtin}
+                </Typography>
+              </Grid>
+              {productInfo.expirationDate && (
+                <Grid item xs={12} sm={6}>
+                  <Typography>
+                    <strong>Vencimiento:</strong>{" "}
+                    {new Date(productInfo.expirationDate).toLocaleDateString()}
+                  </Typography>
+                </Grid>
+              )}
+              {productInfo.batchNumber && (
+                <Grid item xs={12} sm={6}>
+                  <Typography>
+                    <strong>Lote:</strong> {productInfo.batchNumber}
+                  </Typography>
+                </Grid>
+              )}
+              {productInfo.serialNumber && (
+                <Grid item xs={12} sm={6}>
+                  <Typography>
+                    <strong>N° de Serie:</strong> {productInfo.serialNumber}
+                  </Typography>
+                </Grid>
+              )}
+              {productInfo.customCode && (
+                <Grid item xs={12} sm={6}>
+                  <Typography>
+                    <strong>Código personalizado:</strong>{" "}
+                    {productInfo.customCode}
+                  </Typography>
+                </Grid>
+              )}
+            </Grid>
+          </Box>
+        )}
 
         <BarcodeSearchSection
           barcode={barcode}

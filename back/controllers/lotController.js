@@ -14,6 +14,8 @@ export const addLot = async (req, res) => {
     quantity,
     branch,
     overstock = false,
+    batchNumber,   // ✅ nuevo
+    serialNumber,  // ✅ nuevo
   } = req.body;
 
   if (!productId || !expirationDate || !quantity || !branch) {
@@ -60,6 +62,8 @@ export const addLot = async (req, res) => {
       branch,
       overstock: Boolean(overstock),
       createdBy: req.user._id,
+       batchNumber,     // ✅ incluir
+      serialNumber,    // ✅ incluir
     });
 
     await newLot.save();

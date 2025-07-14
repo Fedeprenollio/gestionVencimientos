@@ -29,7 +29,7 @@ import LotEditModal from "./LotEditModal";
 
 export default function CreatedLotsTable({ createdLots, onClear, onUpdate }) {
   const [editingLot, setEditingLot] = useState(null);
-console.log(createdLots)
+  console.log(createdLots);
   const handleDelete = async (lotId) => {
     const confirmDelete = confirm("¿Eliminar este lote de la lista?");
     if (!confirmDelete) return;
@@ -100,6 +100,8 @@ console.log(createdLots)
               <TableCell>Cantidad</TableCell>
               <TableCell>Sucursal</TableCell>
               <TableCell>Vencimiento</TableCell>
+              <TableCell>Lote</TableCell> {/* 👈 NUEVO */}
+              <TableCell>N° de Serie</TableCell> {/* 👈 NUEVO */}
               <TableCell>Sobrestock</TableCell>
               <TableCell>Usuario</TableCell>
               <TableCell>Acciones</TableCell>
@@ -116,6 +118,11 @@ console.log(createdLots)
                 <TableCell>
                   {dayjs(lot.expirationDate).format("MM/YYYY")}
                 </TableCell>
+
+                {/* 👇 NUEVOS CAMPOS */}
+                <TableCell>{lot.batchNumber || "-"}</TableCell>
+                <TableCell>{lot.serialNumber || "-"}</TableCell>
+
                 <TableCell>{lot.overstock ? "Sí" : "No"}</TableCell>
                 <TableCell>{lot.createdBy?.username || "?"}</TableCell>
                 <TableCell>

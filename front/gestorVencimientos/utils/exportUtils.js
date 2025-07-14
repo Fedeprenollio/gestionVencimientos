@@ -109,6 +109,8 @@ export function exportToExcelLots(lots) {
     Sucursal: lot.branch,
     Cantidad: lot.quantity,
     Vencimiento: formatDate(lot.expirationDate),
+     Lote: lot.batchNumber || "-",          // <-- aquí agrego lote
+    "N° Serie": lot.serialNumber || "-",  // <-- aquí agrego número de serie
     Usuario: lot.createdBy?.username|| "-",
     Carga: formatDateWhitDay(lot.createdAt || new Date()),
     SobreStock: lot.overstock ? "Sí" : "No",
