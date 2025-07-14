@@ -12,6 +12,8 @@ import stockCounterRouter from './routes/stockCountRoutes.js';
 import returnListRoutes from './routes/returnListRoutes.js';
 import routerStock from './routes/stockRoutes.js';
 import routerImportStock from "./routes/stockImportRoutes.js"
+
+
 const allowedOrigins = [
   'http://localhost:5173',
   'https://gestion-vencimientos.vercel.app'
@@ -50,6 +52,12 @@ app.use('/product-lists', productListRoutes);
 app.use('/stock-count', stockCounterRouter);
 app.use("/return-lists", returnListRoutes);
 app.use("/stock", routerStock);
+// app.post('/parse-barcode', (req, res) => {
+//   const code = req.body.code;
+//   const result = parseBarcode(code);
+//   console.log("result",result)
+//   res.json(result);
+// });
 
 
 

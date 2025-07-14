@@ -27,7 +27,6 @@ import CreatedLotsTable from "../lots/CreatedLotsTable.jsx";
 import BarcodeSearchSection from "../lots/BarcodeSearchSection.jsx";
 import useSnackbar from "../../hooks/useSnackbar.js";
 import AppSnackbar from "../shared/AppSnackbar.jsx";
-import gs1 from "gs1-barcode-parser";
 
 export default function ProductForm() {
   const [barcode, setBarcode] = useState("");
@@ -146,104 +145,56 @@ export default function ProductForm() {
   //  const parsed = window.parseBarcode("010779083900026721Z4J0WX 1719123110GX4284");
   //       console.log("🧾 Código QR parseado:", parsed);
 
-  // const handleDetected = (code) => {
-  //   setScanning(false);
-
-  //   if ( code.length > 20) {
-  //     const parsed = window.parseBarcode(code);
-  //     console.log("🧾 Código QR parseado:", parsed);
-
-  //     let gtin = parsed.gtin;
-
-  //     if (gtin?.length === 14 && (gtin.startsWith("0") || gtin.startsWith("1"))) {
-  //       gtin = gtin.slice(1);
-  //     }
-
-  //     if (gtin) {
-  //       setBarcode(gtin);
-  //       handleSearch(gtin);
-  //     } else {
-  //       setBarcode(code);
-  //       handleSearch(code);
-  //     }
-
-  //     if (parsed.expirationDate instanceof Date && !isNaN(parsed.expirationDate)) {
-  //       const date = parsed.expirationDate;
-  //       setExpMonth(String(date.getMonth() + 1).padStart(2, "0"));
-  //       setExpYear(String(date.getFullYear()));
-  //     }
-
-  //     setProductInfo((prev) => ({
-  //       ...prev,
-  //       expirationDate: parsed.expirationDate,
-  //       batchNumber: parsed.batchNumber,
-  //       serialNumber: parsed.serialNumber,
-  //       customCode: parsed.customCode,
-  //       gtin,
-  //     }));
-  //   } else {
-  //     console.log("no tedecTA  QR")
-  //     setBarcode(code);
-  //     handleSearch(code);
-  //   }
-  // };
-
-  const handleDetected = (rawCode) => {
+  const handleDetected = (code) => {
     setScanning(false);
 
-    if (rawCode.length > 20) {
-      // GS1 usa el separador ASCII 29 para separar campos
-      const parsedResult = gs1.parseBarcode(rawCode);
+    if ( code.length > 20) {
+      const parsed = window.parseBarcode(code);
+      console.log("🧾 Código QR parseado:", parsed);
 
-      console.log("🧾 Código GS1 parseado:", parsedResult.ais);
+      let gtin = parsed.gtin;
 
-      let gtin = "";
-      let batchNumber = "";
-      let serialNumber = "";
-      let expirationDate = null;
-
-      for (const item of parsedResult.ais) {
-        if (item.ai === "01") gtin = item.data;
-        if (item.ai === "10") batchNumber = item.data;
-        if (item.ai === "21") serialNumber = item.data;
-        if (item.ai === "17") {
-          const y = parseInt(item.data.slice(0, 2), 10);
-          const m = parseInt(item.data.slice(2, 4), 10);
-          const d = parseInt(item.data.slice(4, 6), 10);
-          expirationDate = new Date(y >= 50 ? 1900 + y : 2000 + y, m - 1, d);
-        }
-      }
-
-      // Normalización (si querés quitar el primer dígito si es 0 o 1)
-      if (gtin.length === 14 && /^[01]/.test(gtin)) {
+      if (gtin?.length === 14 && (gtin.startsWith("0") || gtin.startsWith("1"))) {
         gtin = gtin.slice(1);
       }
 
-      // Guardar todo
-      setBarcode(gtin);
-      handleSearch(gtin);
+      if (gtin) {
+        setBarcode(gtin);
+        handleSearch(gtin);
+      } else {
+        setBarcode(code);
+        handleSearch(code);
+      }
+
+      if (parsed.expirationDate instanceof Date && !isNaN(parsed.expirationDate)) {
+        const date = parsed.expirationDate;
+        setExpMonth(String(date.getMonth() + 1).padStart(2, "0"));
+        setExpYear(String(date.getFullYear()));
+      }
 
       setProductInfo((prev) => ({
         ...prev,
+        expirationDate: parsed.expirationDate,
+        batchNumber: parsed.batchNumber,
+        serialNumber: parsed.serialNumber,
+        customCode: parsed.customCode,
         gtin,
-        batchNumber,
-        serialNumber,
-        expirationDate,
       }));
-
-      if (expirationDate) {
-        setExpMonth(String(expirationDate.getMonth() + 1).padStart(2, "0"));
-        setExpYear(String(expirationDate.getFullYear()));
-      }
-    }else {
+    } else {
       console.log("no tedecTA  QR")
-      setBarcode(rawCode);
-      handleSearch(rawCode);
+      setBarcode(code);
+      handleSearch(code);
     }
   };
 
+
+
+ 
+
+
   const submit = async () => {
     try {
+      
       let pid = productInfo.id;
 
       // Si no existe el producto, crear primero
