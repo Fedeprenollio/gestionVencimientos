@@ -148,7 +148,7 @@ export default function ProductForm() {
 const handleDetected = (code) => {
   setScanning(false);
 
-  if (code.startsWith("01") && code.length > 20) {
+  if ( code.length > 20) {
     const parsed = window.parseBarcode(code);
     console.log("🧾 Código QR parseado:", parsed);
 
@@ -181,6 +181,7 @@ const handleDetected = (code) => {
       gtin,
     }));
   } else {
+    console.log("no tedecTA  QR")
     setBarcode(code);
     handleSearch(code);
   }
