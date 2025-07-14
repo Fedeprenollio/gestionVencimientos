@@ -21,7 +21,7 @@ import {
   Dialog,
   DialogContent,
 } from "@mui/material";
-
+import { parseBarcode } from "gs1-barcode-parser";
 import SucursalSelector from "./SucursalSelector.jsx";
 import LotForm from "../lots/formularios/LotForm.jsx";
 import CreatedLotsTable from "../lots/CreatedLotsTable.jsx";
@@ -118,80 +118,72 @@ export default function ProductForm() {
 
  function parseGS1Barcode(data) {
   const result = {};
-  let i = 0;
 
-  while (i < data.length) {
-    const ai = data.substring(i, i + 2);
+  // Buscar GTIN (01) – 14 dígitos
+  const matchGTIN = data.match(/01(\d{14})/);
+  if (matchGTIN) result.gtin = matchGTIN[1];
 
-    switch (ai) {
-      case "01": // GTIN (14 dígitos fijos)
-        result.gtin = data.substring(i + 2, i + 16);
-        i += 16;
-        break;
-      case "17": // Fecha vencimiento (6 dígitos fijos)
-        const dateStr = data.substring(i + 2, i + 8);
-        const y = parseInt(dateStr.slice(0, 2), 10);
-        const m = parseInt(dateStr.slice(2, 4), 10);
-        const d = parseInt(dateStr.slice(4, 6), 10);
-        const fullYear = y >= 50 ? 1900 + y : 2000 + y;
-        result.expirationDate = new Date(fullYear, m - 1, d);
-        i += 8;
-        break;
-      case "10": // Lote (variable)
-        i += 2;
-        let lotEnd = data.indexOf("21", i); // buscar inicio del siguiente AI conocido
-        if (lotEnd === -1) lotEnd = data.length;
-        result.batchNumber = data.substring(i, lotEnd);
-        i = lotEnd;
-        break;
-      case "21": // Serie (variable)
-        i += 2;
-        let serieEnd = data.indexOf("17", i); // siguiente AI o final
-        if (serieEnd === -1) serieEnd = data.length;
-        result.serialNumber = data.substring(i, serieEnd);
-        i = serieEnd;
-        break;
-      default:
-        // Avanzamos si no reconocemos el AI (evitamos bucle infinito)
-        i += 1;
-        break;
-    }
+  // Buscar Serie (21) – hasta encontrar otro AI (como 17, 10, espacio)
+  const matchSerie = data.match(/21([A-Z0-9]+?)(?=17|10|\s|$)/);
+  if (matchSerie) result.serialNumber = matchSerie[1];
+
+  // Buscar vencimiento (17) – 6 dígitos (YYMMDD)
+  const matchExp = data.match(/17(\d{6})/);
+  if (matchExp) {
+    const y = parseInt(matchExp[1].slice(0, 2), 10);
+    const m = parseInt(matchExp[1].slice(2, 4), 10);
+    const d = parseInt(matchExp[1].slice(4, 6), 10);
+    const fullYear = y >= 50 ? 1900 + y : 2000 + y;
+    result.expirationDate = new Date(fullYear, m - 1, d);
   }
+
+  // Buscar lote (10) – hasta el final o hasta otro AI
+  const matchLote = data.match(/10([A-Z0-9]+?)(?=21|17|\s|$)/);
+  if (matchLote) result.batchNumber = matchLote[1];
 
   return result;
 }
 
-  const handleDetected = (code) => {
-    setScanning(false);
+ const handleDetected = (code) => {
+  setScanning(false);
 
-    // Si el código tiene más de 20 caracteres, probablemente sea un QR GS1
-    if (code.length > 20 && code.startsWith("01")) {
-      const parsed = parseGS1Barcode(code);
+  let parsedData = {};
+  try {
+    const result = parseBarcode(code);
 
-      if (parsed.gtin) {
-        setBarcode(parsed.gtin);
-        handleSearch(parsed.gtin);
-      } else {
-        setBarcode(code);
-        handleSearch(code);
-      }
+    parsedData.gtin = result["01"];
+    parsedData.expirationDate = result["17"];
+    parsedData.batchNumber = result["10"];
+    parsedData.serialNumber = result["21"];
+    parsedData.customCode = result["90"];
 
-      // Guardar datos del QR en el estado del producto (para luego usarlos en el formulario)
-      setProductInfo((prev) => ({
-        ...prev,
-        expirationDate: parsed.expirationDate || prev.expirationDate,
-        batchNumber: parsed.batchNumber,
-        serialNumber: parsed.serialNumber,
-        customCode: parsed.customCode,
-        gtin: parsed.gtin,
-      }));
-    } else {
-      // Código simple, como un EAN-13 de producto
-      setBarcode(code);
-      handleSearch(code);
+    // Convertir fecha YYMMDD a Date si existe
+    if (parsedData.expirationDate) {
+      const y = parseInt(parsedData.expirationDate.slice(0, 2), 10);
+      const m = parseInt(parsedData.expirationDate.slice(2, 4), 10);
+      const d = parseInt(parsedData.expirationDate.slice(4, 6), 10);
+      const fullYear = y >= 50 ? 1900 + y : 2000 + y;
+      parsedData.expirationDate = new Date(fullYear, m - 1, d);
     }
-  };
+  } catch (err) {
+    console.error("Error parseando código:", err);
+    parsedData = {};
+  }
 
+  const gtin = parsedData.gtin || code;
+
+  setBarcode(gtin);
+  handleSearch(gtin);
+
+  setProductInfo((prev) => ({
+    ...prev,
+    expirationDate: parsedData.expirationDate || prev.expirationDate,
+    batchNumber: parsedData.batchNumber,
+    serialNumber: parsedData.serialNumber,
+    customCode: parsedData.customCode,
+    gtin: parsedData.gtin,
+  }));
+};
   const submit = async () => {
     try {
       let pid = productInfo.id;
