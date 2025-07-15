@@ -89,9 +89,10 @@ const exportToExcel = ({
     "Combinado"
   );
 
-  const fileName = `Devolucion_${returnList.branch || "sucursal"}_${
+  const fileName = `Devolucion_${returnList.name || returnList.branch}_${
     returnList.month
   }_${returnList.year}.xlsx`;
+
   XLSX.writeFile(wb, fileName);
 };
 
@@ -102,6 +103,17 @@ const fetchReturnLists = async ({ branch, month, year }) => {
   return res.data;
 };
 
+const removeScannedReturn = async ({ id, scannedReturnIndex }) => {
+  const res = await axios.patch(
+    `${import.meta.env.VITE_API_URL}/return-lists/${id}/remove-scanned-return`,
+    { scannedReturnIndex },
+    {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    }
+  );
+  return res.data; // ahora devuelve { scannedReturns, lots }
+};
+
 const fetchExpiringLots = async ({ branch, month, year }) => {
   const res = await axios.get(`${import.meta.env.VITE_API_URL}/lots/expiring`, {
     params: { branch, month, year },
@@ -109,10 +121,10 @@ const fetchExpiringLots = async ({ branch, month, year }) => {
   return res.data;
 };
 
-const createReturnList = async ({ branch, month, year }) => {
+const createReturnList = async ({ branch, month, year, name }) => {
   const res = await axios.post(
     `${import.meta.env.VITE_API_URL}/return-lists`,
-    { branch, month, year },
+    { branch, month, year, name },
     {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     }
@@ -147,6 +159,7 @@ export default function ReturnListManager({ branches }) {
       branch: "",
       year: dayjs().year(),
       month: dayjs().month() + 1,
+      name: "",
     },
   });
 
@@ -159,6 +172,9 @@ export default function ReturnListManager({ branches }) {
   const [originalScanned, setOriginalScanned] = useState([]);
   const [lastScannedCode, setLastScannedCode] = useState(null);
   const [lastScanTime, setLastScanTime] = useState(0);
+  const [pendingScan, setPendingScan] = useState(null); // para guardar el lote escaneado que espera datos
+  const [inputBatchNumber, setInputBatchNumber] = useState("");
+  const [inputSerialNumber, setInputSerialNumber] = useState("");
 
   const values = watch();
 
@@ -195,22 +211,40 @@ export default function ReturnListManager({ branches }) {
   };
 
   const onSelectReturnList = async (id) => {
-    try {
-      const data = await fetchReturnListById(id);
-      setReturnListId(id);
-      setScannedReturns(data.scannedReturns || []);
-      setOriginalScanned(data.scannedReturns || []);
-      setOriginalLots(data.lots || []);
-      setScannerStarted(false);
-    } catch (err) {
-      console.error("Error obteniendo la lista:", err);
-    }
-  };
+  try {
+    const data = await fetchReturnListById(id);
+    setReturnListId(id);
+    setScannedReturns(data.scannedReturns || []);
+    setOriginalScanned(data.scannedReturns || []);
+    setOriginalLots(data.lots || []); // Reemplazar completamente, no hacer merge
+    setScannerStarted(false);
+  } catch (err) {
+    console.error("Error obteniendo la lista:", err);
+  }
+};
+
 
   const getReturnedQuantityForLot = (loteId) =>
     scannedReturns
       .filter((r) => r.loteId === loteId)
       .reduce((acc, r) => acc + r.quantity, 0);
+
+  // const addReturnByBarcode = (barcode, qty) => {
+  //   const allLots = [...originalLots, ...expiringLots];
+  //   const lot = allLots.find(
+  //     (l) =>
+  //       l.productId?.barcode === barcode &&
+  //       l.quantity - getReturnedQuantityForLot(l._id) > 0
+  //   );
+  //   if (!lot) {
+  //     alert("No se encontró lote disponible para ese código");
+  //     return;
+  //   }
+  //   setScannedReturns((prev) => [
+  //     ...prev,
+  //     { barcode, quantity: qty, loteId: lot._id },
+  //   ]);
+  // };
 
   const addReturnByBarcode = (barcode, qty) => {
     const allLots = [...originalLots, ...expiringLots];
@@ -219,10 +253,19 @@ export default function ReturnListManager({ branches }) {
         l.productId?.barcode === barcode &&
         l.quantity - getReturnedQuantityForLot(l._id) > 0
     );
+
     if (!lot) {
       alert("No se encontró lote disponible para ese código");
       return;
     }
+
+    // Si el lote tiene número de serie o lote, pedimos al usuario que lo ingrese antes de confirmar
+    if (lot.batchNumber || lot.serialNumber) {
+      setPendingScan({ lot, barcode, quantity: qty });
+      return;
+    }
+
+    // Si no requiere lote/serie, se registra directamente
     setScannedReturns((prev) => [
       ...prev,
       { barcode, quantity: qty, loteId: lot._id },
@@ -240,8 +283,24 @@ export default function ReturnListManager({ branches }) {
     }
   };
 
-  const removeCode = (index) => {
-    setScannedReturns((prev) => prev.filter((_, i) => i !== index));
+  const removeCode = async (index) => {
+    if (!returnListId) return;
+
+    const confirm = window.confirm("¿Estás seguro de eliminar este escaneo?");
+    if (!confirm) return;
+
+    try {
+      const data = await removeScannedReturn({
+        id: returnListId,
+        scannedReturnIndex: index,
+      });
+
+      setScannedReturns(data.scannedReturns || []);
+      setOriginalLots(data.lots || []);
+    } catch (err) {
+      console.error("Error eliminando escaneo:", err);
+      alert("Error eliminando el escaneo. Intentá de nuevo.");
+    }
   };
 
   useEffect(() => {
@@ -277,18 +336,24 @@ export default function ReturnListManager({ branches }) {
     }
   }, [returnListId, scannerStarted, quantity, expiringLots]);
 
-  const onAddReturns = async () => {
-    try {
-      await mutationAddReturns.mutateAsync({
-        id: returnListId,
-        returns: scannedReturns,
-      });
-      alert("Lotes añadidos exitosamente");
-      setScannedReturns([]);
-    } catch (err) {
-      console.error("Error agregando lotes:", err);
-    }
-  };
+ const onAddReturns = async () => {
+  try {
+    await mutationAddReturns.mutateAsync({
+      id: returnListId,
+      returns: scannedReturns,
+    });
+    alert("Lotes añadidos exitosamente");
+
+    // Refrescá desde el backend
+    const data = await fetchReturnListById(returnListId);
+    console.log("FATA",data)
+    setScannedReturns(data.scannedReturns || []);
+    setOriginalLots(data.lots || []);
+  } catch (err) {
+    console.error("Error agregando lotes:", err);
+  }
+};
+
   {
     console.log("🧪 originalLots:", originalLots);
   }
@@ -341,12 +406,21 @@ export default function ReturnListManager({ branches }) {
           <Typography>Listas disponibles:</Typography>
           {returnLists.map((list) => (
             <Button key={list._id} onClick={() => onSelectReturnList(list._id)}>
-              Lista #{list._id.slice(-5)} -{" "}
+              {list.name} - {list.createdBy?.name}
               {list.createdBy?.name || list.createdBy?.fullname}
             </Button>
           ))}
         </>
       )}
+      <Grid item xs={12}>
+        <Controller
+          name="name"
+          control={control}
+          render={({ field }) => (
+            <TextField {...field} fullWidth label="Nombre de la devolución" />
+          )}
+        />
+      </Grid>
 
       <Button variant="contained" onClick={onCreateList} sx={{ mt: 2 }}>
         Crear nueva devolución
@@ -354,13 +428,22 @@ export default function ReturnListManager({ branches }) {
 
       {originalLots.length > 0 && (
         <Box mt={4}>
-          <Typography variant="h6">Lotes próximos a vencer</Typography>
+          <Typography variant="h6">
+            Lotes próximos a vencer (EN GRIS PRODUCTOS YA DEVUELVOS, EN VERDE
+            SIN DEVOLVER, EN ROJO PRODUCTOS CON UNIDADES PENDIENTES DE DEVOLVER)
+          </Typography>
           {originalLots.map((lot) => {
-            const returnedQty = getReturnedQuantityForLot(lot._id);
-            const remaining = Math.max(0, lot.quantity - returnedQty);
+            const alreadyScannedQty = scannedReturns
+              .filter((r) => r.loteId === lot._id)
+              .reduce((acc, r) => acc + r.quantity, 0);
+
+            const remaining = lot.remainingQuantity ?? (lot.quantity - alreadyScannedQty);
+
+
             const returnsForLot = scannedReturns.filter(
               (r) => r.loteId === lot._id
             );
+
             console.log("🧪 lot:", lot);
 
             return (
@@ -379,6 +462,10 @@ export default function ReturnListManager({ branches }) {
                 <Typography>
                   {remaining}u disponibles - Vence:{" "}
                   {dayjs(lot.expirationDate).format("DD/MM/YYYY")}
+                </Typography>
+                <Typography>
+                  Lote: {lot.batchNumber || "-"} - N° Serie:{" "}
+                  {lot.serialNumber || "-"}
                 </Typography>
                 {returnsForLot.length > 0 && (
                   <Box sx={{ mt: 1, p: 1, backgroundColor: "lightcoral" }}>
@@ -422,6 +509,84 @@ export default function ReturnListManager({ branches }) {
             </Grid>
           </Grid>
           <Box id="reader" sx={{ mt: 2 }} />
+          {pendingScan && (
+            <Paper sx={{ mt: 2, p: 2, border: "2px dashed orange" }}>
+              <Typography variant="subtitle1">
+                Ingresar datos para producto:{" "}
+                <strong>{pendingScan.lot?.productId?.name}</strong>
+              </Typography>
+
+              {pendingScan.lot?.batchNumber && (
+                <TextField
+                  label="Lote"
+                  fullWidth
+                  sx={{ my: 1 }}
+                  value={inputBatchNumber}
+                  onChange={(e) => setInputBatchNumber(e.target.value)}
+                />
+              )}
+
+              {pendingScan.lot?.serialNumber && (
+                <TextField
+                  label="Número de Serie"
+                  fullWidth
+                  sx={{ my: 1 }}
+                  value={inputSerialNumber}
+                  onChange={(e) => setInputSerialNumber(e.target.value)}
+                />
+              )}
+
+              <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={() => {
+                    const { lot, barcode, quantity } = pendingScan;
+
+                    // Validar si necesita lote o número de serie
+                    if (lot.batchNumber && !inputBatchNumber.trim()) {
+                      alert("Por favor ingresá el número de lote.");
+                      return;
+                    }
+
+                    if (lot.serialNumber && !inputSerialNumber.trim()) {
+                      alert("Por favor ingresá el número de serie.");
+                      return;
+                    }
+
+                    setScannedReturns((prev) => [
+                      ...prev,
+                      {
+                        barcode,
+                        quantity,
+                        loteId: lot._id,
+                        batchNumber: inputBatchNumber.trim(),
+                        serialNumber: inputSerialNumber.trim(),
+                      },
+                    ]);
+                    setPendingScan(null);
+                    setInputBatchNumber("");
+                    setInputSerialNumber("");
+                  }}
+                >
+                  Confirmar
+                </Button>
+
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() => {
+                    setPendingScan(null);
+                    setInputBatchNumber("");
+                    setInputSerialNumber("");
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </Box>
+            </Paper>
+          )}
+
           {scannedReturns.length > 0 && (
             <Paper sx={{ mt: 2, p: 2 }}>
               <Typography variant="h6">
@@ -429,10 +594,10 @@ export default function ReturnListManager({ branches }) {
               </Typography>
               <List dense>
                 {scannedReturns.map((item, idx) => {
-                  const lote = [...originalLots, ...expiringLots].find(
-                    (l) =>
-                      String(l._id) === String(item.loteId._id || item.loteId)
-                  );
+                 const lote = originalLots.find(
+  (l) => String(l._id) === String(item.loteId._id || item.loteId)
+);
+
                   console.log("🔍 lote encontrado:", lote);
 
                   const nombre = lote?.productId?.name || "Desconocido";
@@ -447,7 +612,16 @@ export default function ReturnListManager({ branches }) {
                         </IconButton>
                       }
                     >
-                      {nombre} - {item.barcode} - {item.quantity} unidad(es)
+                      <Box>
+                        <Typography variant="body1">
+                          {nombre} - {item.barcode} - {item.quantity} unidad(es)
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Lote: {item.batchNumber || lote?.batchNumber || "-"} |
+                          N° Serie:{" "}
+                          {item.serialNumber || lote?.serialNumber || "-"}
+                        </Typography>
+                      </Box>
                     </ListItem>
                   );
                 })}

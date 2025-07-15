@@ -509,14 +509,6 @@ export const getExpiringProducts = async (req, res) => {
       filter.overstock = { $ne: true };
     } // si es "only", ya está cubierto con "true"
 
-    // if (barcodes) {
-    //   const barcodeList = barcodes.split(",").map((b) => b.trim());
-    //   const products = await Product.find({
-    //     barcode: { $in: barcodeList },
-    //   }).select("_id");
-    //   const ids = products.map((p) => p._id);
-    //   filter.productId = { $in: ids };
-    // }
     if (barcodes) {
       const barcodeList = barcodes.split(",").map((b) => b.trim());
       const products = await Product.find({
@@ -562,6 +554,8 @@ export const getExpiringProducts = async (req, res) => {
         createdAt: lot.createdAt,
         overstock: lot.overstock === true,
         createdBy: lot.createdBy || null,
+        batchNumber: lot.batchNumber || null,
+        serialNumber: lot.serialNumber || null,
       });
     }
 
@@ -716,7 +710,7 @@ export const updateProduct = async (req, res) => {
 // };
 
 export const importProducts = async (req, res) => {
-  console.log("EN REALIDAD USO ESTE CONTROLADOR")
+  console.log("EN REALIDAD USO ESTE CONTROLADOR");
   const products = req.body;
   console.log("products", products);
   if (!Array.isArray(products) || products.length === 0) {

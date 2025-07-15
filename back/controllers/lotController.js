@@ -4,6 +4,7 @@ import Lot from "../models/Lot.js";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
+import ReturnList from "../models/ReturnList.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -14,9 +15,11 @@ export const addLot = async (req, res) => {
     quantity,
     branch,
     overstock = false,
-    batchNumber,   // ✅ nuevo
-    serialNumber,  // ✅ nuevo
+    batchNumber, // ✅ nuevo
+    serialNumber, // ✅ nuevo
   } = req.body;
+  console.log("batchNumber", batchNumber);
+  console.log("serialNumber", serialNumber);
 
   if (!productId || !expirationDate || !quantity || !branch) {
     return res
@@ -62,8 +65,8 @@ export const addLot = async (req, res) => {
       branch,
       overstock: Boolean(overstock),
       createdBy: req.user._id,
-       batchNumber,     // ✅ incluir
-      serialNumber,    // ✅ incluir
+      batchNumber, // ✅ incluir
+      serialNumber, // ✅ incluir
     });
 
     await newLot.save();
@@ -155,23 +158,22 @@ export const getExpiringLots = async (req, res) => {
     // res.json(filteredLots);
 
     const lots = await Lot.find(filter).populate([
-  { path: "productId", select: "name barcode type" },
-  { path: "createdBy", select: "fullname username" },
-  { path: "branch", select: "name" },
-]);
+      { path: "productId", select: "name barcode type" },
+      { path: "createdBy", select: "fullname username" },
+      { path: "branch", select: "name" },
+    ]);
 
-const filteredLots = type
-  ? lots.filter((lot) => lot.productId?.type === type)
-  : lots;
+    const filteredLots = type
+      ? lots.filter((lot) => lot.productId?.type === type)
+      : lots;
 
-const plainLots = filteredLots.map((lot) => {
-  const l = lot.toObject();
-  l.branch = l.branch?.name || null;
-  return l;
-});
+    const plainLots = filteredLots.map((lot) => {
+      const l = lot.toObject();
+      l.branch = l.branch?.name || null;
+      return l;
+    });
 
-res.json(plainLots);
-
+    res.json(plainLots);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error al obtener lotes" });
@@ -188,7 +190,6 @@ export const getLotsByProductId = async (req, res) => {
     //   })
     //   .populate("createdBy", "username");
 
-
     // const lots = await Lot.find({ productId })
     //   .sort({ expirationDate: 1 })
     //   .populate([
@@ -200,20 +201,19 @@ export const getLotsByProductId = async (req, res) => {
 
     // res.json(lots);
     const lots = await Lot.find({ productId })
-  .sort({ expirationDate: 1 })
-  .populate([
-    { path: "createdBy", select: "username" },
-    { path: "branch", select: "name" },
-  ]);
+      .sort({ expirationDate: 1 })
+      .populate([
+        { path: "createdBy", select: "username" },
+        { path: "branch", select: "name" },
+      ]);
 
-const plainLots = lots.map((lot) => {
-  const l = lot.toObject();
-  l.branch = l.branch?.name || null;
-  return l;
-});
+    const plainLots = lots.map((lot) => {
+      const l = lot.toObject();
+      l.branch = l.branch?.name || null;
+      return l;
+    });
 
-res.json(plainLots);
-
+    res.json(plainLots);
   } catch (err) {
     console.error("Error al obtener lotes por producto:", err);
     res.status(500).json({ message: "Error del servidor" });
@@ -263,24 +263,21 @@ export const updateLot = async (req, res) => {
 
     // res.json({ message: "Lote actualizado", lot: populatedLot });
 
-await lot.populate([
-  { path: "productId", select: "name barcode type" },
-  { path: "createdBy", select: "fullname username" },
-  { path: "branch", select: "name" },
-]);
+    await lot.populate([
+      { path: "productId", select: "name barcode type" },
+      { path: "createdBy", select: "fullname username" },
+      { path: "branch", select: "name" },
+    ]);
 
-const plainLot = lot.toObject();
-plainLot.branch = plainLot.branch?.name || null;
+    const plainLot = lot.toObject();
+    plainLot.branch = plainLot.branch?.name || null;
 
-res.json({ message: "Lote actualizado", lot: plainLot });
-
-
+    res.json({ message: "Lote actualizado", lot: plainLot });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error al actualizar el lote" });
   }
 };
-
 
 // GET /lots/expiring
 export const getExpiringLotsFlat = async (req, res) => {
@@ -298,7 +295,9 @@ export const getExpiringLotsFlat = async (req, res) => {
       monthNumber < 0 ||
       monthNumber > 11
     ) {
-      return res.status(400).json({ message: "Parámetros de año o mes inválidos" });
+      return res
+        .status(400)
+        .json({ message: "Parámetros de año o mes inválidos" });
     }
 
     const fromDate = new Date(yearNumber, monthNumber, 1);
@@ -317,19 +316,42 @@ export const getExpiringLotsFlat = async (req, res) => {
       .populate("branch", "name")
       .lean();
 
-    const response = lots.map((lot) => ({
-      _id: lot._id,
-      expirationDate: lot.expirationDate,
-      quantity: lot.quantity,
-      branch: lot.branch?.name || "",
-      createdAt: lot.createdAt,
-      overstock: lot.overstock === true,
-      productId: {
-        _id: lot.productId?._id,
-        name: lot.productId?.name,
-        barcode: lot.productId?.barcode,
+    // 🧠 Paso nuevo: buscar devoluciones de todos los lotes
+    const devoluciones = await ReturnList.aggregate([
+      { $unwind: "$scannedReturns" },
+      {
+        $group: {
+          _id: "$scannedReturns.loteId",
+          totalDevuelto: { $sum: "$scannedReturns.quantity" },
+        },
       },
-    }));
+    ]);
+
+    const mapaDevoluciones = devoluciones.reduce((acc, d) => {
+      acc[d._id.toString()] = d.totalDevuelto;
+      return acc;
+    }, {});
+
+    const response = lots.map((lot) => {
+      const devueltas = mapaDevoluciones[lot._id.toString()] || 0;
+      return {
+        _id: lot._id,
+        expirationDate: lot.expirationDate,
+        quantity: lot.quantity,
+        devueltas,
+        remainingQuantity: Math.max(0, lot.quantity - devueltas),
+        branch: lot.branch?.name || "",
+        createdAt: lot.createdAt,
+        overstock: lot.overstock === true,
+        productId: {
+          _id: lot.productId?._id,
+          name: lot.productId?.name,
+          barcode: lot.productId?.barcode,
+        },
+        batchNumber: lot.batchNumber || null,
+        serialNumber: lot.serialNumber || null,
+      };
+    });
 
     res.json(response);
   } catch (err) {

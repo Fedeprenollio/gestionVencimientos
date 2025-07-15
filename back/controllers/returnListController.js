@@ -3,7 +3,7 @@ import Product from "../models/Product.js";
 import ReturnList from "../models/ReturnList.js";
 
 export const createReturnList = async (req, res) => {
-  const { branch, month, year, lotIds } = req.body;
+  const { branch, month, year, lotIds, name } = req.body;
   const userId = req.user._id;
 
   if (!branch || !month || !year) {
@@ -15,10 +15,11 @@ export const createReturnList = async (req, res) => {
   try {
     const newList = await ReturnList.create({
       branch,
-      // createdBy: userId,
+      createdBy: userId,
       month,
       year,
       lots: lotIds || [],
+      name,
     });
 
     res.status(201).json(newList);
@@ -31,8 +32,6 @@ export const createReturnList = async (req, res) => {
 export const addLotsToReturnList = async (req, res) => {
   const { id } = req.params;
   const { returns } = req.body; // [{ barcode, quantity }]
-  // const userId = req.user._id; // Asumido desde middleware auth
-
   try {
     const list = await ReturnList.findById(id);
     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
@@ -43,69 +42,75 @@ export const addLotsToReturnList = async (req, res) => {
     for (const { barcode, quantity } of returns) {
       let qtyToDeduct = quantity;
 
-      // Buscar producto por barcode
       const product = await Product.findOne({ barcode });
-      if (!product) {
-        console.warn(`Producto no encontrado para barcode ${barcode}`);
-        continue;
-      }
+      if (!product) continue;
 
-      // Buscar lotes con stock en la sucursal ordenados por fecha de vencimiento asc
       const candidateLots = await Lot.find({
         productId: product._id,
         branch: list.branch,
-        quantity: { $gt: 0 },
       }).sort({ expirationDate: 1 });
 
       for (const lot of candidateLots) {
         if (qtyToDeduct <= 0) break;
 
-        const deduct = Math.min(lot.quantity, qtyToDeduct);
-        lot.quantity -= deduct;
+        // 🔍 Calcular cuánto ya fue devuelto de este lote
+        const totalPrevReturns = await ReturnList.aggregate([
+          { $unwind: "$scannedReturns" },
+          {
+            $match: {
+              "scannedReturns.loteId": lot._id,
+            },
+          },
+          {
+            $group: {
+              _id: "$scannedReturns.loteId",
+              total: { $sum: "$scannedReturns.quantity" },
+            },
+          },
+        ]);
 
-        await lot.save();
+        const alreadyReturned = totalPrevReturns[0]?.total || 0;
+        const remaining = Math.max(0, lot.quantity - alreadyReturned);
 
-        addedLotsSet.add(lot._id.toString());
+        if (remaining <= 0) continue;
 
-        // Guardar la devolución en scannedReturns para el historial
+        const deduct = Math.min(remaining, qtyToDeduct);
+
         scannedReturnsToAdd.push({
           barcode,
           quantity: deduct,
           loteId: lot._id,
           scannedAt: new Date(),
-          // userId,
         });
 
+        addedLotsSet.add(lot._id.toString());
         qtyToDeduct -= deduct;
       }
 
       if (qtyToDeduct > 0) {
         console.warn(
-          `No se pudo deducir toda la cantidad para producto ${barcode}, falta ${qtyToDeduct} unidades`
+          `No se pudo deducir toda la cantidad para ${barcode}, faltan ${qtyToDeduct} unidades`
         );
-        // Opcional: podrías enviar esto al frontend para mostrar alerta
       }
     }
 
-    // Actualizar lotes en la lista (sin duplicados)
     await ReturnList.findByIdAndUpdate(id, {
       $addToSet: { lots: { $each: Array.from(addedLotsSet) } },
       $push: { scannedReturns: { $each: scannedReturnsToAdd } },
     });
-    const addedLots = await Lot.find({ _id: { $in: Array.from(addedLotsSet) } })
-      .populate("productId", "name barcode") // solo traés el nombre y código de barras
-      .lean();
+
+    const addedLots = await Lot.find({
+      _id: { $in: Array.from(addedLotsSet) },
+    }).populate("productId", "name barcode");
+
     res.json({
-      message: "Lotes y devoluciones actualizados correctamente",
-      // addedLots: Array.from(addedLotsSet),
+      message: "Devoluciones registradas correctamente",
       addedLots,
       addedReturnsCount: scannedReturnsToAdd.length,
     });
   } catch (err) {
-    console.error("Error al actualizar lotes y devoluciones:", err);
-    res
-      .status(500)
-      .json({ message: "Error al actualizar lotes y devoluciones" });
+    console.error("Error al registrar devoluciones:", err);
+    res.status(500).json({ message: "Error al registrar devoluciones" });
   }
 };
 
@@ -192,10 +197,36 @@ export const getReturnLists = async (req, res) => {
           select: "name barcode",
         },
       })
+      .populate({
+        path: "scannedReturns.loteId", // si querés que venga el lote con producto también
+        populate: {
+          path: "productId",
+          select: "name barcode",
+        },
+      })
       .lean();
+
+    // Calcular remainingQuantity para cada lote dentro de cada lista
+    for (const list of lists) {
+      if (list?.lots && list?.scannedReturns) {
+        list.lots = list.lots.map((lot) => {
+          const totalReturned = list.scannedReturns
+            .filter(
+              (r) => String(r.loteId?._id || r.loteId) === String(lot._id)
+            )
+            .reduce((acc, r) => acc + r.quantity, 0);
+
+          return {
+            ...lot,
+            remainingQuantity: Math.max(0, lot.quantity - totalReturned),
+          };
+        });
+      }
+    }
 
     res.json(lists);
   } catch (error) {
+    console.error("Error al obtener listas:", error);
     res.status(500).json({ message: "Error al obtener listas" });
   }
 };
@@ -204,7 +235,7 @@ export const getReturnListById = async (req, res) => {
   const { id } = req.params;
 
   try {
-   const list = await ReturnList.findById(id)
+    const list = await ReturnList.findById(id)
       .populate("createdBy", "fullname username")
       .populate({
         path: "lots",
@@ -225,10 +256,67 @@ export const getReturnListById = async (req, res) => {
     console.log("LISTA", list);
 
     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+    if (list?.lots && list?.scannedReturns) {
+      list.lots = list.lots.map((lot) => {
+        const totalReturned = list.scannedReturns
+          .filter((r) => String(r.loteId?._id || r.loteId) === String(lot._id))
+          .reduce((acc, r) => acc + r.quantity, 0);
+
+        return {
+          ...lot,
+          remainingQuantity: Math.max(0, lot.quantity - totalReturned),
+        };
+      });
+    }
 
     res.json(list);
   } catch (error) {
     console.error("Error al obtener lista por ID:", error);
     res.status(500).json({ message: "Error al obtener la lista" });
+  }
+};
+
+// PATCH /return-lists/:id/remove-scanned-return
+export const removeScannedReturn = async (req, res) => {
+  const { id } = req.params;
+  const { scannedReturnIndex } = req.body;
+
+  try {
+    const list = await ReturnList.findById(id);
+    if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+    if (
+      scannedReturnIndex < 0 ||
+      scannedReturnIndex >= list.scannedReturns.length
+    ) {
+      return res.status(400).json({ message: "Índice inválido" });
+    }
+
+    // Eliminar escaneo
+    list.scannedReturns.splice(scannedReturnIndex, 1);
+    await list.save();
+
+    // Reunimos todos los loteIds aún usados
+    const loteIds = [
+      ...new Set(list.scannedReturns.map((r) => String(r.loteId))),
+    ];
+
+    // Sumamos los lotes originales que ya estaban guardados en la lista (opcional)
+    const extraLots = list.lots.map((id) => String(id));
+    const allLotIds = [...new Set([...loteIds, ...extraLots])];
+
+    // Buscar los lotes
+    const lots = await Lot.find({ _id: { $in: allLotIds } }).populate(
+      "productId"
+    );
+
+    res.json({
+      message: "Escaneo eliminado correctamente",
+      scannedReturns: list.scannedReturns,
+      lots,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error al eliminar escaneo" });
   }
 };

@@ -65,6 +65,7 @@ export default function ExpiringProductList() {
     const res = await axios.get(
       `${import.meta.env.VITE_API_URL}/products?${params}`
     );
+    console.log("RES:DATA", res.data)
     setProducts(res.data);
   };
 

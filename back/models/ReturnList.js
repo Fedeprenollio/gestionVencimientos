@@ -12,6 +12,7 @@ const scannedReturnSchema = new mongoose.Schema({
 
 const returnListSchema = new mongoose.Schema({
   branch: { type: mongoose.Schema.Types.ObjectId, ref: "Branch", required: true },
+  name: { type: String, required: false, trim: true },
   month: Number,
   year: Number,
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

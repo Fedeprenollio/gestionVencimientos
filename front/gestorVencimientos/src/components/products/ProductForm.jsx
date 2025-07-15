@@ -92,6 +92,7 @@ export default function ProductForm() {
   };
 
   const handleSearch = async (code) => {
+    
     console.log("handleSearch", code);
     try {
       const res = await axios.get(
@@ -415,7 +416,6 @@ export default function ProductForm() {
       }}
     >
       <SucursalSelector branch={branch} onBranchChange={handleBranchChange} />
-      PRUEBA QR
       <Box
         sx={{
           width: "100%",
