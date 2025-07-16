@@ -152,6 +152,15 @@ const fetchReturnListById = async (id) => {
   );
   return res.data;
 };
+const fetchReturnsSummary = async ({ branch, month, year }) => {
+  const res = await axios.get(
+    `${import.meta.env.VITE_API_URL}/return-lists/summary`,
+    {
+      params: { branch, month, year },
+    }
+  );
+  return res.data;
+};
 
 export default function ReturnListManager({ branches }) {
   const { control, watch, handleSubmit } = useForm({
@@ -178,6 +187,23 @@ export default function ReturnListManager({ branches }) {
 
   const values = watch();
 
+  useEffect(() => {
+  // Limpiar datos viejos al cambiar filtros para evitar mostrar info de meses anteriores
+  setOriginalLots([]);
+  setOriginalScanned([]);
+  setScannedReturns([]);
+  setReturnListId(null); // Opcional: resetear lista seleccionada
+  setScannerStarted(false);
+}, [values.branch, values.month, values.year]);
+
+
+
+  const { data: returnSummary = [] } = useQuery({
+    queryKey: ["returnSummary", values],
+    queryFn: () => fetchReturnsSummary(values),
+    enabled: !!values.branch && !!values.month && !!values.year,
+  });
+
   const { data: expiringLots = [] } = useQuery({
     queryKey: ["expiringLots", values],
     queryFn: () => fetchExpiringLots(values),
@@ -197,9 +223,9 @@ export default function ReturnListManager({ branches }) {
     if (expiringLots.length > 0) setOriginalLots(expiringLots);
   }, [expiringLots]);
 
-  useEffect(() => {
-    if (scannedReturns.length > 0) setOriginalScanned(scannedReturns);
-  }, [scannedReturns]);
+  // useEffect(() => {
+  //   if (scannedReturns.length > 0) setOriginalScanned(scannedReturns);
+  // }, [scannedReturns]);
 
   const onCreateList = async () => {
     try {
@@ -211,18 +237,17 @@ export default function ReturnListManager({ branches }) {
   };
 
   const onSelectReturnList = async (id) => {
-  try {
-    const data = await fetchReturnListById(id);
-    setReturnListId(id);
-    setScannedReturns(data.scannedReturns || []);
-    setOriginalScanned(data.scannedReturns || []);
-    setOriginalLots(data.lots || []); // Reemplazar completamente, no hacer merge
-    setScannerStarted(false);
-  } catch (err) {
-    console.error("Error obteniendo la lista:", err);
-  }
-};
-
+    try {
+      const data = await fetchReturnListById(id);
+      setReturnListId(id);
+      setScannedReturns(data.scannedReturns || []);
+      setOriginalScanned(data.scannedReturns || []);
+      setOriginalLots(expiringLots); // Mantené los productos originales del mes/sucursal
+      setScannerStarted(false);
+    } catch (err) {
+      console.error("Error obteniendo la lista:", err);
+    }
+  };
 
   const getReturnedQuantityForLot = (loteId) =>
     scannedReturns
@@ -283,25 +308,46 @@ export default function ReturnListManager({ branches }) {
     }
   };
 
-  const removeCode = async (index) => {
-    if (!returnListId) return;
+const removeCode = async (index) => {
+  if (!returnListId) {
+    // No hay lista activa, solo estado local
+    setScannedReturns((prev) => prev.filter((_, i) => i !== index));
+    return;
+  }
 
-    const confirm = window.confirm("¿Estás seguro de eliminar este escaneo?");
-    if (!confirm) return;
+  // Determinar si el escaneo a eliminar está confirmado o es nuevo
+  const itemToRemove = scannedReturns[index];
+  const isConfirmed = originalScanned.some(
+    (osr) =>
+      String(osr.loteId._id || osr.loteId) === String(itemToRemove.loteId._id || itemToRemove.loteId) &&
+      osr.quantity === itemToRemove.quantity &&
+      osr.barcode === itemToRemove.barcode
+  );
 
-    try {
-      const data = await removeScannedReturn({
-        id: returnListId,
-        scannedReturnIndex: index,
-      });
+  if (!isConfirmed) {
+    // Es un escaneo nuevo sin confirmar, elimino solo localmente
+    setScannedReturns((prev) => prev.filter((_, i) => i !== index));
+    return;
+  }
 
-      setScannedReturns(data.scannedReturns || []);
-      setOriginalLots(data.lots || []);
-    } catch (err) {
-      console.error("Error eliminando escaneo:", err);
-      alert("Error eliminando el escaneo. Intentá de nuevo.");
-    }
-  };
+  // Si es confirmado, confirmo que quiero eliminarlo
+  const confirmDelete = window.confirm("¿Estás seguro de eliminar este escaneo confirmado?");
+  if (!confirmDelete) return;
+
+  try {
+    const data = await removeScannedReturn({
+      id: returnListId,
+      scannedReturnIndex: index,
+    });
+
+    setScannedReturns(data.scannedReturns || []);
+    setOriginalLots(data.lots || []);
+  } catch (err) {
+    console.error("Error eliminando escaneo:", err);
+    alert("Error eliminando el escaneo. Intentá de nuevo.");
+  }
+};
+
 
   useEffect(() => {
     if (returnListId && !scannerStarted) {
@@ -336,28 +382,54 @@ export default function ReturnListManager({ branches }) {
     }
   }, [returnListId, scannerStarted, quantity, expiringLots]);
 
- const onAddReturns = async () => {
-  try {
-    await mutationAddReturns.mutateAsync({
-      id: returnListId,
-      returns: scannedReturns,
-    });
-    alert("Lotes añadidos exitosamente");
+  const onAddReturns = async () => {
+    try {
+      // Filtrar escaneos nuevos (que aún no estaban confirmados antes)
+      const newReturns = scannedReturns.filter((sr) => {
+        return !originalScanned.some(
+          (osr) =>
+            String(osr.loteId._id || osr.loteId) ===
+              String(sr.loteId._id || sr.loteId) &&
+            osr.quantity === sr.quantity &&
+            osr.barcode === sr.barcode
+        );
+      });
 
-    // Refrescá desde el backend
-    const data = await fetchReturnListById(returnListId);
-    console.log("FATA",data)
-    setScannedReturns(data.scannedReturns || []);
-    setOriginalLots(data.lots || []);
-  } catch (err) {
-    console.error("Error agregando lotes:", err);
+      if (newReturns.length === 0) {
+        alert("No hay nuevos escaneos para confirmar.");
+        return;
+      }
+
+      await mutationAddReturns.mutateAsync({
+        id: returnListId,
+        returns: newReturns,
+      });
+
+      alert("Lotes añadidos exitosamente");
+
+      // Actualizar el estado completo con los datos más recientes del backend
+      const data = await fetchReturnListById(returnListId);
+      setScannedReturns(data.scannedReturns || []);
+      setOriginalScanned(data.scannedReturns || []);
+      setOriginalLots(data.lots || []);
+    } catch (err) {
+      console.error("Error agregando lotes:", err);
+    }
+  };
+
+  
+  const newCount = scannedReturns.filter(
+  (sr) =>
+    !originalScanned.some(
+      (osr) =>
+        String(osr.loteId._id || osr.loteId) === String(sr.loteId._id || sr.loteId) &&
+        osr.quantity === sr.quantity &&
+        osr.barcode === sr.barcode
+    )
+).length;
+{
+    console.log("🧪 newCount:", newCount);
   }
-};
-
-  {
-    console.log("🧪 originalLots:", originalLots);
-  }
-
   return (
     <Box p={3}>
       <Typography variant="h5">Gestión de Devoluciones</Typography>
@@ -433,18 +505,40 @@ export default function ReturnListManager({ branches }) {
             SIN DEVOLVER, EN ROJO PRODUCTOS CON UNIDADES PENDIENTES DE DEVOLVER)
           </Typography>
           {originalLots.map((lot) => {
-            const alreadyScannedQty = scannedReturns
-              .filter((r) => r.loteId === lot._id)
+            const returnedInThisList = scannedReturns
+              .filter(
+                (r) => String(r.loteId._id || r.loteId) === String(lot._id)
+              )
               .reduce((acc, r) => acc + r.quantity, 0);
 
-            const remaining = lot.remainingQuantity ?? (lot.quantity - alreadyScannedQty);
-
-
-            const returnsForLot = scannedReturns.filter(
-              (r) => r.loteId === lot._id
+            const remainingInThisList = Math.max(
+              0,
+              lot.quantity - returnedInThisList
             );
 
-            console.log("🧪 lot:", lot);
+            const totalReturned = originalScanned
+              .filter(
+                (r) => String(r.loteId._id || r.loteId) === String(lot._id)
+              )
+              .reduce((acc, r) => acc + r.quantity, 0);
+
+            const quantityReturnedGlobal =
+              returnSummary.find((s) => s.loteId === lot._id)
+                ?.quantityReturned || 0;
+
+            const remainingGlobal = Math.max(
+              0,
+              lot.quantity - quantityReturnedGlobal
+            );
+
+            const totalRemaining = Math.max(
+              0,
+              lot.quantity - quantityReturnedGlobal
+            );
+
+            const returnsForLot = scannedReturns.filter(
+              (r) => String(r.loteId._id || r.loteId) === String(lot._id)
+            );
 
             return (
               <Paper
@@ -452,21 +546,38 @@ export default function ReturnListManager({ branches }) {
                 sx={{
                   p: 2,
                   mb: 2,
-                  backgroundColor: remaining > 0 ? "lightgreen" : "lightgray",
+                  backgroundColor:
+                    remainingGlobal === 0
+                      ? "lightgray"
+                      : remainingGlobal === lot.quantity
+                      ? "lightgreen"
+                      : "lightcoral",
                 }}
               >
                 <Typography fontWeight="bold">
                   {lot.productId?.name || "Sin nombre"} -{" "}
                   {lot.productId?.barcode || "Sin código"}
                 </Typography>
+
                 <Typography>
-                  {remaining}u disponibles - Vence:{" "}
-                  {dayjs(lot.expirationDate).format("DD/MM/YYYY")}
+                  Unidades restantes <strong>en esta lista</strong>:{" "}
+                  {remainingInThisList} u.
                 </Typography>
                 <Typography>
-                  Lote: {lot.batchNumber || "-"} - N° Serie:{" "}
-                  {lot.serialNumber || "-"}
+                  Unidades restantes <strong>totales</strong> (en todas las
+                  listas): {totalRemaining} u.
                 </Typography>
+
+                <Typography>
+                  Vence: {dayjs(lot.expirationDate).format("DD/MM/YYYY")}
+                </Typography>
+                {(lot.batchNumber || lot?.batchNumber ) && (
+  <Typography variant="body2" color="text.secondary">
+    Lote: {lot?.batchNumber || "-"} | N° Serie: {lot.serialNumber  || "-"}
+  </Typography>
+)}
+
+
                 {returnsForLot.length > 0 && (
                   <Box sx={{ mt: 1, p: 1, backgroundColor: "lightcoral" }}>
                     <Typography variant="subtitle2">Devoluciones:</Typography>
@@ -592,20 +703,37 @@ export default function ReturnListManager({ branches }) {
               <Typography variant="h6">
                 Devoluciones escaneadas ({scannedReturns.length})
               </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Nuevas devoluciones sin confirmar: {newCount}
+              </Typography>
+
               <List dense>
                 {scannedReturns.map((item, idx) => {
-                 const lote = originalLots.find(
-  (l) => String(l._id) === String(item.loteId._id || item.loteId)
-);
+                  const lote = originalLots.find(
+                    (l) =>
+                      String(l._id) === String(item.loteId._id || item.loteId)
+                  );
 
                   console.log("🔍 lote encontrado:", lote);
 
                   const nombre = lote?.productId?.name || "Desconocido";
                   console.log("🔍 buscando lote para:", item.loteId);
+                  const isNew = !originalScanned.some(
+                    (osr) =>
+                      String(osr.loteId._id || osr.loteId) ===
+                        String(item.loteId._id || item.loteId) &&
+                      osr.quantity === item.quantity &&
+                      osr.barcode === item.barcode
+                  );
 
                   return (
                     <ListItem
                       key={idx}
+                      sx={{
+                        backgroundColor: isNew ? "#e3f2fd" : "transparent", // celeste claro si es nuevo
+                        borderRadius: 1,
+                        mb: 1,
+                      }}
                       secondaryAction={
                         <IconButton edge="end" onClick={() => removeCode(idx)}>
                           <DeleteIcon />
@@ -615,6 +743,22 @@ export default function ReturnListManager({ branches }) {
                       <Box>
                         <Typography variant="body1">
                           {nombre} - {item.barcode} - {item.quantity} unidad(es)
+                          {isNew && (
+                            <Typography
+                              component="span"
+                              sx={{
+                                ml: 1,
+                                color: "white",
+                                backgroundColor: "#42a5f5",
+                                px: 1,
+                                py: 0.2,
+                                borderRadius: 1,
+                                fontSize: "0.75rem",
+                              }}
+                            >
+                              NUEVO
+                            </Typography>
+                          )}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Lote: {item.batchNumber || lote?.batchNumber || "-"} |

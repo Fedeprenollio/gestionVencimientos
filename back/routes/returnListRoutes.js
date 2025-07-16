@@ -6,10 +6,12 @@ import {
   getReturnLists,
   getReturnListById,
   removeScannedReturn,
+  getReturnsSummary,
 } from "../controllers/returnListController.js";
 import { authenticate } from "../middlewares/auth.js";
 
 const returnListRoutes = express.Router();
+returnListRoutes.get("/summary", getReturnsSummary);
 returnListRoutes.get("/:id", getReturnListById);
 returnListRoutes.get("/", getReturnLists );
 returnListRoutes.get("/branch", getReturnListsByBranch);

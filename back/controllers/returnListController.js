@@ -320,3 +320,39 @@ export const removeScannedReturn = async (req, res) => {
     res.status(500).json({ message: "Error al eliminar escaneo" });
   }
 };
+
+
+export const getReturnsSummary = async (req, res) => {
+  try {
+    const { branch, month, year } = req.query;
+console.log("branch",branch)
+    if (!branch || !month || !year) {
+      return res.status(400).json({ message: "Faltan parámetros" });
+    }
+
+    const lists = await ReturnList.find({
+      branch,
+      month: Number(month),
+      year: Number(year),
+    });
+
+    const summaryMap = {};
+
+    lists.forEach((list) => {
+      list.scannedReturns.forEach((r) => {
+        const loteId = r.loteId._id?.toString?.() || r.loteId.toString();
+        summaryMap[loteId] = (summaryMap[loteId] || 0) + r.quantity;
+      });
+    });
+
+    const result = Object.entries(summaryMap).map(([loteId, quantityReturned]) => ({
+      loteId,
+      quantityReturned,
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error en getReturnsSummary:", err);
+    res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
