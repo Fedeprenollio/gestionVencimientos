@@ -300,17 +300,17 @@ export default function UploadPricesMultiple() {
 
   return (
     <Box p={3}>
-      <Box display="flex" alignItems="center" mb={3} gap={1}>
+      {/* <Box display="flex" alignItems="center" mb={3} gap={1}>
         <UploadFileIcon color="primary" fontSize="large" />
         <Typography variant="h5" color="primary" fontWeight="bold">
           Subir precios a {selectedListIds.length} lista
           {selectedListIds.length > 1 ? "s" : ""}
         </Typography>
-      </Box>
+      </Box> */}
 
-      <SucursalSelector />
+      {/* <SucursalSelector /> */}
 
-      <Box mb={3}>
+      {/* <Box mb={3}>
         <Typography variant="body1" color="text.secondary">
           El archivo Excel debe tener las siguientes columnas:
         </Typography>
@@ -325,9 +325,9 @@ export default function UploadPricesMultiple() {
             <b>Cantidad</b>: stock actualizado
           </li>
         </ul>
-      </Box>
+      </Box> */}
 
-      <Paper
+      {/* <Paper
         variant="outlined"
         sx={{
           border: "2px dashed",
@@ -383,7 +383,7 @@ export default function UploadPricesMultiple() {
             )}
           </Button>
         </Box>
-      </Paper>
+      </Paper> */}
 
       {result && (
         <Alert severity="success" icon={<DoneOutlineIcon />} sx={{ mb: 3 }}>
@@ -440,7 +440,7 @@ export default function UploadPricesMultiple() {
       {/* ✅ Nueva sección */}
       <Box mt={4}>
         <Typography variant="h6" gutterBottom>
-          O bien, actualizar listas desde una importación previa de stock
+         Actualizar listas desde una importación previa de stock
         </Typography>
         
         <UpdateFromImportForm data={result}  setResult={setResult}/>

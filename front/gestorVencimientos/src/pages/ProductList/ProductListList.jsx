@@ -23,14 +23,14 @@ export default function BranchListSelector() {
   const [selectedLists, setSelectedLists] = useState([]);
   const navigate = useNavigate();
   const [selectedBranch, setSelectedBranch] = useState(() => {
-  return localStorage.getItem("lastSelectedBranch") || "";
-});
+    return localStorage.getItem("lastSelectedBranch") || "";
+  });
 
-useEffect(() => {
-  if (selectedBranch) {
-    localStorage.setItem("lastSelectedBranch", selectedBranch);
-  }
-}, [selectedBranch]);
+  useEffect(() => {
+    if (selectedBranch) {
+      localStorage.setItem("lastSelectedBranch", selectedBranch);
+    }
+  }, [selectedBranch]);
 
   const toggleListSelection = (listId) => {
     setSelectedLists((prev) =>
@@ -111,6 +111,19 @@ useEffect(() => {
       >
         Crear nueva lista para esta sucursal
       </Button>
+      <Button
+        variant="contained"
+         sx={{ mb: 2 }}
+        color="success"
+        // disabled={selectedLists.length === 0}
+        onClick={() =>
+          navigate("/lists/upload-prices-multiple", {
+            state: { selectedListIds: selectedLists },
+          })
+        }
+      >
+        Actualizar precios de listas seleccionadas
+      </Button>
 
       {loadingLists ? (
         <CircularProgress />
@@ -134,10 +147,10 @@ useEffect(() => {
               <Box display="flex" flexDirection="column" gap={1}>
                 {/* Encabezado: checkbox + nombre */}
                 <Box display="flex" alignItems="center" gap={1}>
-                  <Checkbox
+                  {/* <Checkbox
                     checked={selectedLists.includes(list._id)}
                     onChange={() => toggleListSelection(list._id)}
-                  />
+                  /> */}
                   <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
                     {list.name}
                   </Typography>
@@ -162,7 +175,9 @@ useEffect(() => {
                   <Button
                     variant="outlined"
                     size="small"
-                    onClick={() => navigate(`/lists/${list._id}/analyze-sales?type=list`)}
+                    onClick={() =>
+                      navigate(`/lists/${list._id}/analyze-sales?type=list`)
+                    }
                   >
                     Analizar ventas
                   </Button>
@@ -200,18 +215,6 @@ useEffect(() => {
           ))}
         </List>
       )}
-      <Button
-        variant="contained"
-        color="success"
-        disabled={selectedLists.length === 0}
-        onClick={() =>
-          navigate("/lists/upload-prices-multiple", {
-            state: { selectedListIds: selectedLists },
-          })
-        }
-      >
-        Actualizar precios de listas seleccionadas
-      </Button>
 
       {/* <ProductLabelManager /> */}
     </Box>
