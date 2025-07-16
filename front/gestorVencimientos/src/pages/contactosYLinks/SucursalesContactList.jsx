@@ -17,41 +17,41 @@ import StorefrontIcon from "@mui/icons-material/Storefront";
 
 const sucursales = {
   "Cruz del Eje": [
-    { nombre: "Eva Perón 1646", tel: ["03549 - 423387"] },
-    { nombre: "Sarmiento 315", tel: ["03549 - 15591831"] },
+    { nombre: "Farmacia Rivadavia – Eva Perón 1646", tel: ["03549 - 423387"] },
+    { nombre: "Farmacia Del Sanatorio – Sarmiento 315", tel: ["03549 - 15591831"] },
   ],
   "Capilla del Monte": [
-    { nombre: "Diag. Bs. As. 118", tel: ["03549 - 423387", "489852"] },
+    { nombre: "Farmacia Capilla del Monte – Diagonal Buenos Aires 118", tel: ["489852"] },
   ],
   "La Cumbre": [
-    { nombre: "Belgrano 232", tel: ["03548 - 451245"] },
-    { nombre: "25 de Mayo 272", tel: ["03548 - 451083"] },
+    { nombre: "Farmacia La Cumbre – Belgrano 232", tel: ["03548 - 451245"] },
+    { nombre: "Farmacia 25 de Mayo – 25 de Mayo 272", tel: ["03548 - 451083"] },
   ],
   "La Falda": [
-    { nombre: "Av. Edén 101", tel: ["03548 - 422101"] },
-    { nombre: "Av. Edén 299", tel: ["03548 - 422526"] },
-    { nombre: "Av. Edén 370", tel: ["03548 - 426479"] },
-    { nombre: "Av. Edén 604", tel: ["03548 - 422732"] },
-    { nombre: "9 de Julio", tel: ["03548 - 423795"] },
-    { nombre: "Av. Kennedy 166", tel: ["03548 - 425766"] },
-    { nombre: "España 103", tel: ["03548 - 423276"] },
-    { nombre: "Sarmiento 346", tel: ["03548 - 425376"] },
-    { nombre: "Av. Buenos Aires 887", tel: ["03548 - 536591"] },
+    { nombre: "Farmacia La Falda – Av. Edén 101", tel: ["03548 - 422101"] },
+    { nombre: "Farmacia  Edén – Av. Edén 299", tel: ["03548 - 422526"] },
+    { nombre: "Farmacia Del Super – Av. Edén 370", tel: ["03548 - 426479"] },
+    { nombre: "Farmacia Avenida – Av. Edén 604", tel: ["03548 - 422732"] },
+    { nombre: "Farmacia 9 de Julio – 9 de Julio", tel: ["03548 - 423795"] },
+    { nombre: "Farmacia Americana – Av. Kennedy 166", tel: ["03548 - 425766"] },
+    { nombre: "Farmacia Margiotta – España 103", tel: ["03548 - 423276"] },
+    { nombre: "Farmacia Sarmiento – Sarmiento 346", tel: ["03548 - 425376"] },
+    { nombre: "Farmacia La Merced – Av. Buenos Aires 887", tel: ["03548 - 536591"] },
   ],
   "Cosquín": [
-    { nombre: "Av. San Martín 1125", tel: ["0354 - 1452777"] },
-    { nombre: "Pte. Perón 803", tel: ["0354 - 1450916"] },
+    { nombre: "Farmacia Del Super – Av. San Martín 1125", tel: ["03541 - 452777"] },
+    { nombre: "Farmacia Cosquin – Presidente Perón 803", tel: ["03541 - 450916"] },
   ],
   "Villa Allende": [
-    { nombre: "Av. Goycoechea 557", tel: ["0351 - 152027852"] },
+    { nombre: "Farmacia Milovich – Av. Goycoechea 557", tel: ["0351 - 152027852"] },
   ],
   "Córdoba": [
-    { nombre: "Dean Funes 1226", tel: ["0351 - 4276081", "0351 - 4276085"] },
-    { nombre: "Buenos Aires 128", tel: ["03548 - 15568786"] },
-    { nombre: "27 de Abril 668", tel: ["0351 - 155950231"] },
+    { nombre: "Farmacia Del Prado – Dean Funes 1226", tel: ["0351 - 4276081", "0351 - 4276085"] },
+    { nombre: "Farmacia Buenos Aires – Buenos Aires 128", tel: ["03548 - 15568786"] },
+    { nombre: "Farmacia 27 de Abril – 27 de Abril 668", tel: ["0351 - 155950231"] },
   ],
-  "Farm (Villa Giardino)": [
-    { nombre: "", tel: ["491175", "03548 - 584705"] },
+  "Villa Giardino": [
+    { nombre: "Farmacia Villa Giardino – Sucursal central", tel: ["491175", "03548 - 584705"] },
   ],
 };
 
