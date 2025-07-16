@@ -458,7 +458,7 @@ export default function Navbar({ currentUser, onToggleTheme, mode, onChangeUser 
       submenu: [
         { label: "Buscar stock en sucursales", to: "/stock-search" },
         { label: "Ventas sin stock", to: "/stock/stockAnalysiss" },
-         { label: "Dashboard Inventario", to: "/InventoryDashboard" },
+         { label: "Dashboard Inventario.", to: "/InventoryDashboard" },  
       ],
     },
     {
