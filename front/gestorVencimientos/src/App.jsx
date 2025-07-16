@@ -49,6 +49,7 @@ import SucursalesContactList from "./pages/contactosYLinks/SucursalesContactList
 import ImportarStock from "./pages/importar/ImportarStock.jsx";
 import HistorialStock from "./pages/importar/HistorialStock.jsx";
 import TutorialPage from "./pages/TutorialPage.jsx";
+import InventoryDashboard from "./pages/inventory/InventoryDashboard.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -181,6 +182,9 @@ function App() {
               <Route path="/importar-productos" element={<ImportProducts />} />
               <Route path="/importar-stock" element={<ImportarStock />} />
               <Route path="/historial-stock" element={<HistorialStock />} />
+
+              <Route path="/InventoryDashboard" element={<InventoryDashboard />} />
+
 
               {/* <Route
                 path="/lists/drug-returns"

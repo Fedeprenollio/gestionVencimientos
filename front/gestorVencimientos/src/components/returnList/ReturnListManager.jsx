@@ -188,15 +188,13 @@ export default function ReturnListManager({ branches }) {
   const values = watch();
 
   useEffect(() => {
-  // Limpiar datos viejos al cambiar filtros para evitar mostrar info de meses anteriores
-  setOriginalLots([]);
-  setOriginalScanned([]);
-  setScannedReturns([]);
-  setReturnListId(null); // Opcional: resetear lista seleccionada
-  setScannerStarted(false);
-}, [values.branch, values.month, values.year]);
-
-
+    // Limpiar datos viejos al cambiar filtros para evitar mostrar info de meses anteriores
+    setOriginalLots([]);
+    setOriginalScanned([]);
+    setScannedReturns([]);
+    setReturnListId(null); // Opcional: resetear lista seleccionada
+    setScannerStarted(false);
+  }, [values.branch, values.month, values.year]);
 
   const { data: returnSummary = [] } = useQuery({
     queryKey: ["returnSummary", values],
@@ -308,46 +306,48 @@ export default function ReturnListManager({ branches }) {
     }
   };
 
-const removeCode = async (index) => {
-  if (!returnListId) {
-    // No hay lista activa, solo estado local
-    setScannedReturns((prev) => prev.filter((_, i) => i !== index));
-    return;
-  }
+  const removeCode = async (index) => {
+    if (!returnListId) {
+      // No hay lista activa, solo estado local
+      setScannedReturns((prev) => prev.filter((_, i) => i !== index));
+      return;
+    }
 
-  // Determinar si el escaneo a eliminar está confirmado o es nuevo
-  const itemToRemove = scannedReturns[index];
-  const isConfirmed = originalScanned.some(
-    (osr) =>
-      String(osr.loteId._id || osr.loteId) === String(itemToRemove.loteId._id || itemToRemove.loteId) &&
-      osr.quantity === itemToRemove.quantity &&
-      osr.barcode === itemToRemove.barcode
-  );
+    // Determinar si el escaneo a eliminar está confirmado o es nuevo
+    const itemToRemove = scannedReturns[index];
+    const isConfirmed = originalScanned.some(
+      (osr) =>
+        String(osr.loteId._id || osr.loteId) ===
+          String(itemToRemove.loteId._id || itemToRemove.loteId) &&
+        osr.quantity === itemToRemove.quantity &&
+        osr.barcode === itemToRemove.barcode
+    );
 
-  if (!isConfirmed) {
-    // Es un escaneo nuevo sin confirmar, elimino solo localmente
-    setScannedReturns((prev) => prev.filter((_, i) => i !== index));
-    return;
-  }
+    if (!isConfirmed) {
+      // Es un escaneo nuevo sin confirmar, elimino solo localmente
+      setScannedReturns((prev) => prev.filter((_, i) => i !== index));
+      return;
+    }
 
-  // Si es confirmado, confirmo que quiero eliminarlo
-  const confirmDelete = window.confirm("¿Estás seguro de eliminar este escaneo confirmado?");
-  if (!confirmDelete) return;
+    // Si es confirmado, confirmo que quiero eliminarlo
+    const confirmDelete = window.confirm(
+      "¿Estás seguro de eliminar este escaneo confirmado?"
+    );
+    if (!confirmDelete) return;
 
-  try {
-    const data = await removeScannedReturn({
-      id: returnListId,
-      scannedReturnIndex: index,
-    });
+    try {
+      const data = await removeScannedReturn({
+        id: returnListId,
+        scannedReturnIndex: index,
+      });
 
-    setScannedReturns(data.scannedReturns || []);
-    setOriginalLots(data.lots || []);
-  } catch (err) {
-    console.error("Error eliminando escaneo:", err);
-    alert("Error eliminando el escaneo. Intentá de nuevo.");
-  }
-};
-
+      setScannedReturns(data.scannedReturns || []);
+      setOriginalLots(data.lots || []);
+    } catch (err) {
+      console.error("Error eliminando escaneo:", err);
+      alert("Error eliminando el escaneo. Intentá de nuevo.");
+    }
+  };
 
   useEffect(() => {
     if (returnListId && !scannerStarted) {
@@ -417,17 +417,17 @@ const removeCode = async (index) => {
     }
   };
 
-  
   const newCount = scannedReturns.filter(
-  (sr) =>
-    !originalScanned.some(
-      (osr) =>
-        String(osr.loteId._id || osr.loteId) === String(sr.loteId._id || sr.loteId) &&
-        osr.quantity === sr.quantity &&
-        osr.barcode === sr.barcode
-    )
-).length;
-{
+    (sr) =>
+      !originalScanned.some(
+        (osr) =>
+          String(osr.loteId._id || osr.loteId) ===
+            String(sr.loteId._id || sr.loteId) &&
+          osr.quantity === sr.quantity &&
+          osr.barcode === sr.barcode
+      )
+  ).length;
+  {
     console.log("🧪 newCount:", newCount);
   }
   return (
@@ -571,12 +571,12 @@ const removeCode = async (index) => {
                 <Typography>
                   Vence: {dayjs(lot.expirationDate).format("DD/MM/YYYY")}
                 </Typography>
-                {(lot.batchNumber || lot?.batchNumber ) && (
-  <Typography variant="body2" color="text.secondary">
-    Lote: {lot?.batchNumber || "-"} | N° Serie: {lot.serialNumber  || "-"}
-  </Typography>
-)}
-
+                {(lot.batchNumber || lot?.batchNumber) && (
+                  <Typography variant="body2" color="text.secondary">
+                    Lote: {lot?.batchNumber || "-"} | N° Serie:{" "}
+                    {lot.serialNumber || "-"}
+                  </Typography>
+                )}
 
                 {returnsForLot.length > 0 && (
                   <Box sx={{ mt: 1, p: 1, backgroundColor: "lightcoral" }}>

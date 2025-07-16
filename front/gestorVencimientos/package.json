@@ -24,6 +24,7 @@
     "file-saver": "^2.0.5",
     "gs1-barcode-parser": "^1.0.1",
     "html5-qrcode": "^2.3.8",
+    "idb": "^8.0.3",
     "jsbarcode": "^3.12.1",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
