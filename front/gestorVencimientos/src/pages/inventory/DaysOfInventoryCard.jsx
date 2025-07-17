@@ -1,31 +1,56 @@
 import React, { useMemo, useState } from "react";
-import { Box, Typography, Paper, Chip, Tabs, Tab } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Paper,
+  Chip,
+  Tabs,
+  Tab,
+  Autocomplete,
+  TextField,
+  Checkbox,
+  Button,
+} from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
+import WarningIcon from "@mui/icons-material/Warning";
 
 import ErrorIcon from "@mui/icons-material/Error";
-import WarningIcon from "@mui/icons-material/WarningAmber";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
+import ReportProblemIcon from "@mui/icons-material/ReportProblem";
+import ListSubheader from "@mui/material/ListSubheader";
 
+import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
+import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import {
   agruparVentas,
   calcularDSIPorProducto,
 } from "../../../utils/calculations";
-
-function getDSIColor(dsi) {
-  if (dsi === Infinity || dsi > 180) return "error";
-  if (dsi > 60) return "warning";
-  return "success";
-}
+import { exportToExcel } from "./exporttoexcel";
 
 function getDSILabel(dsi) {
-  if (dsi === Infinity) return "∞";
-  return `${dsi.toFixed(0)} días`;
+  if (dsi === Infinity) return "Sin consumo";
+  if (dsi <= 20) return "Muy bajo";
+  if (dsi <= 60) return "Bajo";
+  if (dsi <= 180) return "Medio";
+  return "Alto";
+}
+
+function getDSIColor(dsi) {
+  if (dsi === Infinity) return "error";
+  if (dsi <= 20) return "warning";
+  if (dsi <= 60) return "success";
+  if (dsi <= 180) return "secondary";
+  return "error";
 }
 
 function getDSIIcon(dsi) {
-  if (dsi === Infinity || dsi > 180) return <ErrorIcon />;
-  if (dsi > 60) return <WarningIcon />;
-  return <CheckCircleIcon />;
+  if (dsi === Infinity) return <ReportProblemIcon />;
+  if (dsi <= 20) return <PriorityHighIcon />;
+  if (dsi <= 60) return <CheckCircleIcon />;
+  if (dsi <= 180) return <AccessTimeIcon />;
+  return <WarningIcon />;
 }
 
 function getColumns() {
@@ -40,22 +65,45 @@ function getColumns() {
       field: "dsi",
       headerName: "DSI",
       width: 160,
-      renderCell: (params) => (
-        <Chip
-          label={getDSILabel(params.value)}
-          color={getDSIColor(params.value)}
-          icon={getDSIIcon(params.value)}
-          variant="outlined"
-          size="small"
-        />
-      ),
+      renderCell: (params) => renderDSI(params.value),
     },
   ];
+}
+function renderDSI(dsi) {
+  if (dsi === Infinity) {
+    return (
+      <Typography>
+        ∞ <ReportProblemIcon />
+      </Typography>
+    );
+  }
+
+  let icon = null;
+  let color = "";
+
+  if (dsi < 30) {
+    icon = <WarningIcon sx={{ color: "error.main", fontSize: 20 }} />;
+    color = "error.main";
+  } else if (dsi < 90) {
+    icon = <AccessTimeIcon sx={{ color: "warning.main", fontSize: 20 }} />;
+    color = "warning.main";
+  } else {
+    icon = <CheckCircleIcon sx={{ color: "success.main", fontSize: 20 }} />;
+    color = "success.main";
+  }
+
+  return (
+    <Box display="flex" alignItems="center" gap={1}>
+      <Typography sx={{ color, fontWeight: 600 }}>{Math.round(dsi)}</Typography>
+      {icon}
+    </Box>
+  );
 }
 
 export default function DaysOfInventoryCard({ movimientos, stock, filters }) {
   const [tab, setTab] = useState(0);
-
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [inputValue, setInputValue] = useState("");
   const dsiResultado = useMemo(() => {
     if (!movimientos?.length || !stock?.length) return [];
 
@@ -90,6 +138,37 @@ export default function DaysOfInventoryCard({ movimientos, stock, filters }) {
     return dsi;
   }, [movimientos, stock, filters]);
 
+  const productoOptions = useMemo(
+    () =>
+      [...new Set(dsiResultado.map((item) => item.producto))]
+        .sort((a, b) => a.localeCompare(b))
+        .map((producto) => ({ title: producto })), // transformás cada string a objeto
+    [dsiResultado]
+  );
+  const [lastValidOptions, setLastValidOptions] = useState(productoOptions);
+
+  // Filtrar opciones solo cuando hay al menos 3 letras
+  const filteredOptions = useMemo(() => {
+    if (inputValue.length < 3) return lastValidOptions;
+
+    const filtered = productoOptions.filter((option) =>
+      option.title.toLowerCase().includes(inputValue.toLowerCase())
+    );
+
+    setLastValidOptions(filtered);
+    return filtered;
+  }, [inputValue, productoOptions]);
+
+  // Agregamos la opción "Seleccionar todos" al inicio
+  const optionsWithSelectAll = [{ title: "__selectAll__" }, ...filteredOptions];
+
+  const filterBySelected = (list) =>
+    selectedProducts.length === 0
+      ? list
+      : list.filter((item) =>
+          selectedProducts.some((prod) => prod.title === item.producto)
+        );
+
   const promedio =
     dsiResultado.length > 0
       ? dsiResultado.reduce(
@@ -97,32 +176,36 @@ export default function DaysOfInventoryCard({ movimientos, stock, filters }) {
           0
         ) / dsiResultado.length
       : 0;
-
-  const rojos = dsiResultado.filter(
-    (row) => row.dsi === Infinity || row.dsi > 180
+  const muyBajo = dsiResultado.filter((row) => row.dsi <= 20);
+  const bajo = dsiResultado.filter((row) => row.dsi > 20 && row.dsi <= 60);
+  const medio = dsiResultado.filter((row) => row.dsi > 60 && row.dsi <= 180);
+  const alto = dsiResultado.filter(
+    (row) => row.dsi > 180 || row.dsi === Infinity
   );
-  const amarillos = dsiResultado.filter(
-    (row) => row.dsi > 60 && row.dsi <= 180
-  );
-  const verdes = dsiResultado.filter((row) => row.dsi <= 60);
-
   const tabData = [
     {
-      label: "🔴 Alto (Sobrestock)",
-      data: rojos,
-      icon: <ErrorIcon />,
+      label: "🟠 Muy Bajo (Reponer)",
+      data: filterBySelected(muyBajo),
+      icon: <PriorityHighIcon />,
     },
     {
-      label: "🟡 Medio (Revisar)",
-      data: amarillos,
-      icon: <WarningIcon />,
-    },
-    {
-      label: "🟢 Bajo (Buena rotación)",
-      data: verdes,
+      label: "🟢 Bajo (OK)",
+      data: filterBySelected(bajo),
       icon: <CheckCircleIcon />,
     },
+    {
+      label: "🟡 Medio",
+      data: filterBySelected(medio),
+      icon: <AccessTimeIcon />,
+    },
+    {
+      label: "🔴 Alto",
+      data: filterBySelected(alto),
+      icon: <WarningIcon />,
+    },
   ];
+  const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
+  const checkedIcon = <CheckBoxIcon fontSize="small" />;
 
   return (
     <Box>
@@ -135,6 +218,155 @@ export default function DaysOfInventoryCard({ movimientos, stock, filters }) {
           Calculado sobre {dsiResultado.length} productos con stock y/o ventas.
         </Typography>
       </Paper>
+
+      <Autocomplete
+        multiple
+        disableCloseOnSelect
+        options={optionsWithSelectAll}
+        getOptionLabel={(option) =>
+          option.title === "__selectAll__" ? "" : option.title
+        }
+        isOptionEqualToValue={(option, value) => option.title === value.title}
+        value={selectedProducts}
+        inputValue={inputValue}
+        onInputChange={(e, val) => setInputValue(val)}
+        onChange={(event, newValue) => {
+          // Detectar si se clickeó la opción "Seleccionar todos"
+          const last = newValue[newValue.length - 1];
+          if (last?.title === "__selectAll__") {
+            setSelectedProducts(filteredOptions);
+          } else {
+            setSelectedProducts(newValue);
+          }
+        }}
+        renderOption={(props, option, { selected }) => {
+          if (option.title === "__selectAll__") {
+            return (
+              <ListSubheader
+                key="select-all"
+                {...props}
+                sx={{ cursor: "pointer" }}
+              >
+                <Checkbox
+                  indeterminate={
+                    selectedProducts.length > 0 &&
+                    selectedProducts.length < filteredOptions.length
+                  }
+                  checked={
+                    filteredOptions.length > 0 &&
+                    selectedProducts.length === filteredOptions.length
+                  }
+                  tabIndex={-1}
+                  disableRipple
+                  sx={{ marginRight: 1 }}
+                />
+                Seleccionar todos
+              </ListSubheader>
+            );
+          }
+
+          const { key, ...optionProps } = props;
+          return (
+            <li key={key} {...optionProps}>
+              <Checkbox
+                icon={icon}
+                checkedIcon={checkedIcon}
+                style={{ marginRight: 8 }}
+                checked={selected}
+              />
+              {option.title}
+            </li>
+          );
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Seleccionar productos"
+            placeholder="Ej: amoxi, ibu..."
+            helperText={
+              inputValue.length < 3
+                ? "Escribí al menos 3 letras para refinar la búsqueda"
+                : ""
+            }
+          />
+        )}
+      />
+
+      {/* <Autocomplete
+        multiple
+        disableCloseOnSelect
+        options={filteredOptions}
+        getOptionLabel={(option) => option.title}
+        isOptionEqualToValue={(option, value) => option.title === value.title}
+        value={selectedProducts}
+        inputValue={inputValue}
+        onInputChange={(e, val) => setInputValue(val)}
+        onChange={(event, newValue) => setSelectedProducts(newValue)}
+        renderOption={(props, option, { selected }) => {
+          const { key, ...optionProps } = props;
+          return (
+            <li key={key} {...optionProps}>
+              <Checkbox
+                icon={icon}
+                checkedIcon={checkedIcon}
+                style={{ marginRight: 8 }}
+                checked={selected}
+              />
+              {option.title}
+            </li>
+          );
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Seleccionar productos"
+            placeholder="Ej: amoxi, ibu..."
+            helperText={
+              inputValue.length < 3
+                ? "Escribí al menos 3 letras para refinar la búsqueda"
+                : ""
+            }
+          />
+        )}
+      /> */}
+      <Box display="flex" gap={2} my={2}>
+        {/* <Button
+          variant="outlined"
+          onClick={() => setSelectedProducts(filteredOptions)}
+          disabled={filteredOptions.length === 0}
+        >
+          Seleccionar todos
+        </Button> */}
+
+        <Button
+          variant="contained"
+          color="success"
+          onClick={() =>
+            exportToExcel({
+              modo: "todos",
+              dsiResultado, // <-- este es el bueno
+              selectedProducts,
+            })
+          }
+          disabled={dsiResultado.length === 0}
+        >
+          Exportar todos
+        </Button>
+
+        <Button
+          variant="contained"
+          onClick={() =>
+            exportToExcel({
+              modo: "seleccion",
+              dsiResultado,
+              selectedProducts,
+            })
+          }
+          disabled={selectedProducts.length === 0}
+        >
+          Exportar seleccionados
+        </Button>
+      </Box>
 
       <Tabs
         value={tab}
@@ -171,4 +403,3 @@ export default function DaysOfInventoryCard({ movimientos, stock, filters }) {
     </Box>
   );
 }
-
