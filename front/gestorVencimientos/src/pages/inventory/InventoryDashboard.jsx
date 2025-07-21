@@ -15,8 +15,10 @@ import {
 } from "@mui/material";
 import ExcelUploader from "../../components/ExcelUploader";
 import {
+  agruparRecepcionesDesdeSucursales,
   agruparVentas,
   calcularDSIPorProducto,
+  listarProductosRecibidos,
 } from "../../../utils/calculations";
 import InventoryIndicators from "./InventoryIndicators";
 import { clearMovimientos, getMovimientos } from "../../../utils/indexedDB";
@@ -91,6 +93,19 @@ const barcodesKey = useMemo(() => {
   ]);
 
   const procesarDatos = () => {
+
+//CALCULO DE RECEPCION DE OTRAS SUCURALES
+  const recepcionesPorProducto = agruparRecepcionesDesdeSucursales(movimientos);
+  console.log("recepcionesPorProducto",recepcionesPorProducto)
+  const productosRecibidos = listarProductosRecibidos(recepcionesPorProducto, stock);
+
+  const setProductosRecibidos = useInventoryStore.getState().setProductosRecibidos;
+  setProductosRecibidos(productosRecibidos);
+
+
+//CALCULO DE DIAS DE INVATIO Y PERDIDAS PROYECTADAS
+
+
     console.log("usarTodosLosProductos",usarTodosLosProductos)
     let stockFiltrado =
       usarTodosLosProductos || productsFromSelectedLists.length === 0

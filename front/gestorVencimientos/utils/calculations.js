@@ -116,3 +116,43 @@ export function calcularDSIPorProducto(stockList, ventasPorProducto) {
 
   return resultado;
 }
+
+export function agruparRecepcionesDesdeSucursales(movimientos) {
+  const recepcionesPorProducto = {};
+
+  for (const mov of movimientos) {
+    const id = mov.IDProducto;
+    const cantidad = parseFloat(mov.Cantidad || 0);
+    const operacion = mov.Operacion;
+     const codebar = mov.IDProducto;
+
+    if (typeof operacion === "string") {
+      const esRecepcion = /pedidos\s*recepcion/i.test(operacion);
+      if (esRecepcion && !isNaN(cantidad)) {
+        console.log("esRecepcion",esRecepcion)
+        recepcionesPorProducto[id] =
+          (recepcionesPorProducto[id] || 0) + Math.abs(cantidad);
+      }
+    }
+  }
+
+  return recepcionesPorProducto;
+}
+
+export function listarProductosRecibidos(recepcionesPorProducto, stock) {
+  const normalizeId = (id) => String(id).trim();
+
+  return Object.entries(recepcionesPorProducto).map(([IDProducto, cantidad]) => {
+    const productoEnStock = stock.find(
+      (item) => normalizeId(item.IDProducto) === normalizeId(IDProducto)
+    );
+    return {
+      IDProducto,
+      cantidad,
+      nombre: productoEnStock ? productoEnStock.producto || "Desconocido" : "Desconocido",
+      codebar: productoEnStock ? productoEnStock.Codebar || "" : "",
+    };
+  });
+}
+
+

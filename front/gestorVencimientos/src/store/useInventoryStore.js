@@ -7,13 +7,11 @@ const useInventoryStore = create((set) => ({
   setIndicatorsData: ({ dsiData, stockNormalizado, unidadesPerdidas }) =>
     set({ dsiData, stockNormalizado, unidadesPerdidas }),
 
+  usarTodosLosProductos: false,
+  setUsarTodosLosProductos: (flag) => set({ usarTodosLosProductos: flag }),
 
-usarTodosLosProductos: false,
-setUsarTodosLosProductos: (flag) => set({ usarTodosLosProductos: flag }),
-
-}
-
-
-));
+   productosRecibidos: [],
+  setProductosRecibidos: (data) => set({ productosRecibidos: data }),
+}));
 
 export default useInventoryStore;

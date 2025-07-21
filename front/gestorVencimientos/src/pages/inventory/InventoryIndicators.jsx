@@ -12,6 +12,7 @@ import DaysOfInventoryCard from "./DaysOfInventoryCard";
 import ProjectedLossCard from "./ProjectedLossCard";
 import HelpDialog from "./HelpDialog";
 import useInventoryStore from "../../store/useInventoryStore";
+import ProductosRecibidosCard from "./ProductosRecibidosCard";
 
 export default function InventoryIndicators({
   movimientos,
@@ -65,6 +66,7 @@ export default function InventoryIndicators({
       <Tabs value={tab} onChange={(e, newTab) => setTab(newTab)} sx={{ mb: 2 }}>
         <Tab label="📦 Días de Inventario" />
         <Tab label="💸 Pérdidas proyectadas" />
+         <Tab label="💸 Pedidos a sucursales" />
       </Tabs>
       <HelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
       <Box hidden={tab !== 0}>
@@ -80,6 +82,11 @@ export default function InventoryIndicators({
       <Box hidden={tab !== 1}>
         {tab === 1 && <ProjectedLossCard  />}
       </Box>
+<Box hidden={tab !== 2}>
+        {tab === 2 && <ProductosRecibidosCard  />}
+      </Box>
+
+      
     </div>
   );
 }

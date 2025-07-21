@@ -1,7 +1,6 @@
 import { Button } from "@mui/material";
 import * as XLSX from "xlsx";
 import { saveMovimientos } from "../../utils/indexedDB";
-const productosExcluir = ["ROLLOS FISCALES NUEVOS", "VOLIGOMA", "RESMA"];
 
 export default function ExcelUploader({ label, onDataParsed, tipo, onMetaParsed }) {
   const handleFileUpload = (e) => {
