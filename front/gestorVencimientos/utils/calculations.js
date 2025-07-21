@@ -85,7 +85,6 @@ function convertirExcelDateToJSDate(excelDate) {
 
 export function calcularDSIPorProducto(stockList, ventasPorProducto) {
   const resultado = [];
-
   for (const item of stockList) {
     const id = item.IDProducto;
     const stockActual = parseFloat(item.Cantidad || 0);

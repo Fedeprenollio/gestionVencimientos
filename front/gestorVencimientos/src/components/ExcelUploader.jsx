@@ -8,7 +8,7 @@ export default function ExcelUploader({ label, onDataParsed, tipo, onMetaParsed 
     const file = e.target.files[0];
     const reader = new FileReader();
 
-  const productosExcluir = ["ROLLOS FISCALES NUEVOS ", "VOLIGOMA ", "RESMA "];
+  const productosExcluir = ["ROLLOS FISCALES NUEVOS ", "VOLIGOMA ", "RESMA ","CINTEX MOSTRADOR ","BOBINA PAPEL ESENCIA 40 CM PAP", "BOBINA PAPEL ESENCIA 40 CM PAP "];
 
 reader.onload = async (evt) => {
   const data = new Uint8Array(evt.target.result);

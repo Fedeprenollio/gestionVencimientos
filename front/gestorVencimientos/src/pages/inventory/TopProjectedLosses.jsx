@@ -6,51 +6,45 @@ function getColumns() {
   return [
     { field: "producto", headerName: "Producto", flex: 1 },
     { field: "stock", headerName: "Stock", width: 100 },
+    { field: "ventasAnuales", headerName: "Ventas Anuales", width: 100 },
+    {
+      field: "unidadesPerdidas",
+      headerName: "Unidades sin vender",
+      width: 150,
+    },
     {
       field: "costo",
       headerName: "Costo Unitario",
       width: 130,
-    //   valueFormatter: ({ value }) =>
-    //     value === undefined || value === null ? "-" : `$${value.toFixed(2)}`,
     },
     {
       field: "perdidaProyectada",
       headerName: "Pérdida Proyectada",
       width: 160,
-    //   valueFormatter: ({ value }) => {
-    //     console.log("valueFormatter value:", value);
-    //     const num = Number(value);
-    //     if (isNaN(num)) return "-";
-    //     return `$${num.toFixed(2)}`;
-    //   },
     },
     {
       field: "dsi",
       headerName: "DSI",
       width: 100,
-    //   valueFormatter: ({ value }) => {
-    //     if (value === Infinity) return "∞";
-    //     if (typeof value === "number") return value.toFixed(0);
-    //     return "-";
-    //   },
     },
   ];
 }
 
 export default function TopProjectedLosses({ dsiData }) {
-
   const productosConPerdida = React.useMemo(() => {
     if (!dsiData) return [];
     return dsiData
       .filter((p) => p.dsi === Infinity || p.dsi > 180)
       .map((p) => ({
         ...p,
-        perdidaProyectada: Number(p.stock) * Number(p.costo || 0),
+        perdidaProyectada: Number(p.unidadesPerdidas) * Number(p.costo || 0),
+        unidadesPerdidas: p.unidadesPerdidas.toFixed(0) ?? Number(p.stock),
+        ventasAnuales: p.ventasAnuales,
       }))
       .sort((a, b) => b.perdidaProyectada - a.perdidaProyectada)
       .slice(0, 300);
   }, [dsiData]);
-  console.log(productosConPerdida[0]);
+  console.log("dsiData", dsiData);
 
   return (
     <Box mt={3}>

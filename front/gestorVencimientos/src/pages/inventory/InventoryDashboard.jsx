@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Typography,
@@ -14,23 +14,24 @@ import {
   Divider,
 } from "@mui/material";
 import ExcelUploader from "../../components/ExcelUploader";
-
-import ErrorIcon from "@mui/icons-material/Error";
-import WarningIcon from "@mui/icons-material/WarningAmber";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import {
   agruparVentas,
   calcularDSIPorProducto,
 } from "../../../utils/calculations";
 import InventoryIndicators from "./InventoryIndicators";
 import { clearMovimientos, getMovimientos } from "../../../utils/indexedDB";
+import SucursalSelector from "../../components/SucursalSelector";
+import ProductListSelector from "../../components/ProductListSelector";
+import useProductListStore from "../../store/useProductListStore";
+import useInventoryStore from "../../store/useInventoryStore";
 
 export default function InventoryDashboard() {
+  const { productsFromSelectedLists,usarTodosLosProductos } = useProductListStore();
+  const { setIndicatorsData } = useInventoryStore();
   const [movimientos, setMovimientos] = useState([]);
   const [movimientosMeta, setMovimientosMeta] = useState(null);
   const [stock, setStock] = useState([]);
   const [stockMeta, setStockMeta] = useState(null);
-
   const [dsiResultado, setDsiResultado] = useState([]);
   const [ventas, setVentas] = useState({});
   const [filters, setFilters] = useState({
@@ -42,7 +43,6 @@ export default function InventoryDashboard() {
   const handleSetMovimientos = (data) => {
     setMovimientos(data);
   };
-  useEffect(() => {}, []);
 
   const handleSetStock = (data) => {
     setStock(data);
@@ -74,17 +74,56 @@ export default function InventoryDashboard() {
     const savedStockMeta = localStorage.getItem("stock_meta");
     if (savedStockMeta) setStockMeta(JSON.parse(savedStockMeta));
   }, []);
-
+const barcodesKey = useMemo(() => {
+  return productsFromSelectedLists.map((p) => p.barcode).sort().join(",");
+}, [productsFromSelectedLists]);
   useEffect(() => {
-  const datosListos = stock.length > 0 && movimientos.length > 0;
-  if (datosListos) {
-    procesarDatos();
-  }
-}, [stock, movimientos]); // 🔁 se recalcula cada vez que se cargan
+    const datosListos = stock.length > 0 && movimientos.length > 0;
+    if (datosListos) {
+      procesarDatos();
+    }
+  }, [
+    stock,
+    movimientos,
+    filters,
+    barcodesKey,
+    usarTodosLosProductos
+  ]);
 
   const procesarDatos = () => {
+    console.log("usarTodosLosProductos",usarTodosLosProductos)
+    let stockFiltrado =
+      usarTodosLosProductos || productsFromSelectedLists.length === 0
+        ? stock
+        : stock.filter((item) =>
+            productsFromSelectedLists.some(
+              (p) => p.barcode === String(item.Codebar).trim()
+            )
+          );
+    if (filters.excluirStockNegativo) {
+      stockFiltrado = stockFiltrado.filter(
+        (item) => parseFloat(item.Cantidad) >= 0
+      );
+    }
+
+    if (filters.excluirSinStock) {
+      stockFiltrado = stockFiltrado.filter(
+        (item) => parseFloat(item.Cantidad) > 0
+      );
+    }
+
+    if (filters.excluirSinVentas) {
+      const ventasIds = Object.keys(agruparVentas(movimientos));
+      stockFiltrado = stockFiltrado.filter((item) =>
+        ventasIds.includes(String(item.IDProducto))
+      );
+    }
+
     const ventasPorProducto = agruparVentas(movimientos);
-    const resultadoDSI = calcularDSIPorProducto(stock, ventasPorProducto);
+    const resultadoDSI = calcularDSIPorProducto(
+      stockFiltrado,
+      ventasPorProducto
+    );
 
     resultadoDSI.sort((a, b) => {
       if (a.dsi === Infinity) return -1;
@@ -92,17 +131,36 @@ export default function InventoryDashboard() {
       return b.dsi - a.dsi;
     });
 
-    setDsiResultado(resultadoDSI);
-    setVentas(ventasPorProducto); // <-- nuevo
+    const productosCriticos = resultadoDSI
+      .filter((item) => item.dsi >= 365 && item.stock > 0 && item.costo > 0)
+      .map((item) => {
+        const unidadesPerdidas = Math.max(0, item.stock - item.ventasAnuales);
+        const perdidaProyectada = unidadesPerdidas * item.costo;
+        return { ...item, unidadesPerdidas, perdidaProyectada };
+      });
+
+    const stockNormalizado = resultadoDSI.map((item) => ({
+      IDProducto: item.IDProducto,
+      normalizado: item.ventasAnuales > 0 ? item.stock / item.ventasAnuales : 0,
+    }));
+
+  
+    setIndicatorsData({
+      dsiData: resultadoDSI,
+      stockNormalizado,
+      unidadesPerdidas: productosCriticos,
+    });
+
+    setVentas(ventasPorProducto);
   };
-  console.log("dsiResultado", dsiResultado);
 
   return (
     <Box p={3}>
       <Typography variant="h4" gutterBottom>
         Dashboard de Inventario
       </Typography>
-
+      <SucursalSelector />
+      <ProductListSelector />
       <Stack direction="row" spacing={2} mb={3}>
         <ExcelUploader
           label="📥 Cargar movimientos"
@@ -156,11 +214,9 @@ export default function InventoryDashboard() {
           {new Date(stockMeta.uploadDate).toLocaleString()}
         </Typography>
       )}
+
       <InventoryIndicators
-        movimientos={movimientos}
-        stock={stock}
         ventas={ventas}
-        dsiData={dsiResultado}
         filters={filters}
         setFilters={setFilters}
       />

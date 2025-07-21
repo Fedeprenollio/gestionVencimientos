@@ -11,17 +11,18 @@ import React, { useState } from "react";
 import DaysOfInventoryCard from "./DaysOfInventoryCard";
 import ProjectedLossCard from "./ProjectedLossCard";
 import HelpDialog from "./HelpDialog";
+import useInventoryStore from "../../store/useInventoryStore";
 
 export default function InventoryIndicators({
   movimientos,
   stock,
-  dsiData,
+  // dsiData,
   setFilters,
   filters,
 }) {
+    // const { filters, setFilters } = useInventoryStore();
   const [tab, setTab] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
-
   const handleChange = (key) => (event) =>
     setFilters((prev) => ({ ...prev, [key]: event.target.checked }));
 
@@ -77,7 +78,7 @@ export default function InventoryIndicators({
       </Box>
 
       <Box hidden={tab !== 1}>
-        {tab === 1 && <ProjectedLossCard data={dsiData} />}
+        {tab === 1 && <ProjectedLossCard  />}
       </Box>
     </div>
   );

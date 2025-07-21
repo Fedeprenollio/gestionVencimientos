@@ -1796,3 +1796,34 @@ export const updateTagDate = async (req, res) => {
     res.status(500).json({ message: "Error al actualizar la fecha" });
   }
 };
+
+
+// controllers/productListController.js
+export const getProductsFromLists = async (req, res) => {
+  try {
+    const { listIds } = req.body;
+
+    if (!Array.isArray(listIds) || listIds.length === 0) {
+      return res.status(400).json({ error: "Debes enviar al menos un ID de lista" });
+    }
+
+    const lists = await ProductList.find({
+      _id: { $in: listIds },
+    }).populate("products.product");
+
+    // Extraer todos los productos (el documento completo del producto)
+    const allProducts = lists.flatMap((list) =>
+      list.products.map((p) => p.product)
+    );
+
+    // Eliminar duplicados (por si un producto está en más de una lista)
+    const uniqueProducts = Array.from(
+      new Map(allProducts.map((p) => [p._id.toString(), p])).values()
+    );
+
+    res.json(uniqueProducts);
+  } catch (error) {
+    console.error("Error al obtener productos:", error);
+    res.status(500).json({ error: "Error al obtener productos" });
+  }
+};

@@ -28,6 +28,7 @@ import {
   calcularDSIPorProducto,
 } from "../../../utils/calculations";
 import { exportToExcel } from "./exporttoexcel";
+import useInventoryStore from "../../store/useInventoryStore";
 
 function getDSILabel(dsi) {
   if (dsi === Infinity) return "Sin consumo";
@@ -100,43 +101,21 @@ function renderDSI(dsi) {
   );
 }
 
-export default function DaysOfInventoryCard({ movimientos, stock, filters }) {
+export default function DaysOfInventoryCard({ movimientos,
+  //  stock,
+    //filters //
+  }) {
+    const { dsiData, stockNormalizado: stock, unidadesPerdidas } = useInventoryStore();
+
   const [tab, setTab] = useState(0);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [inputValue, setInputValue] = useState("");
-  const dsiResultado = useMemo(() => {
-    if (!movimientos?.length || !stock?.length) return [];
-
-    // Paso 1: Agrupar ventas
-    const ventas = agruparVentas(movimientos);
-
-    // Paso 2: Filtrar stock según opciones
-    let stockFiltrado = [...stock];
-
-    if (filters?.excluirStockNegativo) {
-      stockFiltrado = stockFiltrado.filter((item) => item.Cantidad >= 0);
-    }
-
-    // Paso 3: Calcular DSI
-    let dsi = calcularDSIPorProducto(stockFiltrado, ventas);
-
-    // Paso 4: Aplicar filtros adicionales
-    if (filters?.excluirSinVentas) {
-      dsi = dsi.filter((item) => item.ventasAnuales > 0);
-    }
-    if (filters?.excluirSinStock) {
-      dsi = dsi.filter((item) => item.stock > 0);
-    }
-
-    // Paso 5: Ordenar por DSI
-    dsi.sort((a, b) => {
-      if (a.dsi === Infinity) return -1;
-      if (b.dsi === Infinity) return 1;
-      return b.dsi - a.dsi;
-    });
-
-    return dsi;
-  }, [movimientos, stock, filters]);
+const dsiResultado = useMemo(() => {
+  if (!dsiData?.length) return [];
+  
+  // Ya está filtrado y ordenado en el padre
+  return dsiData;
+}, [dsiData]);
 
   const productoOptions = useMemo(
     () =>

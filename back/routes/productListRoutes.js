@@ -19,6 +19,7 @@ import {
   addMultipleProductsToList,
   removeMultipleProductsFromList,
   updateTagDate,
+  getProductsFromLists,
 } from '../controllers/productListController.js';
 import { comparePricesByDateSeparateCollections } from '../controllers/historyPruceController.js';
 import ProductList from '../models/ProductList.js';
@@ -29,6 +30,8 @@ const productListRoutes = express.Router();
 productListRoutes.post('/', createProductList);
 productListRoutes.get('/:id', getProductListById); // <-- NUEVA RUTA
 productListRoutes.get('/branch/:branchId', getProductListsByBranch);
+productListRoutes.post('/products', getProductsFromLists); //<-- me trae todos los productos de las listas seleccionadas
+
 productListRoutes.put('/:listId/add/:productId', addProductToList);
 //CARGA MULTIPLE A LIST
 productListRoutes.post('/:listId/add-multiple', addMultipleProductsToList);
