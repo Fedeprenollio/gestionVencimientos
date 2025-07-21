@@ -12,6 +12,9 @@ const useInventoryStore = create((set) => ({
 
    productosRecibidos: [],
   setProductosRecibidos: (data) => set({ productosRecibidos: data }),
+
+  devolucionesPorVencimiento: [],
+  setDevolucionesPorVencimiento: (data) => set({ devolucionesPorVencimiento: data }),
 }));
 
 export default useInventoryStore;

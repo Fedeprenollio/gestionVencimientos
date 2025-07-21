@@ -19,6 +19,7 @@ import {
   agruparVentas,
   calcularDSIPorProducto,
   listarProductosRecibidos,
+  mapearDevolucionesConProductos,
 } from "../../../utils/calculations";
 import InventoryIndicators from "./InventoryIndicators";
 import { clearMovimientos, getMovimientos } from "../../../utils/indexedDB";
@@ -29,7 +30,8 @@ import useInventoryStore from "../../store/useInventoryStore";
 
 export default function InventoryDashboard() {
   const { productsFromSelectedLists,usarTodosLosProductos } = useProductListStore();
-  const { setIndicatorsData } = useInventoryStore();
+  const { setIndicatorsData,setDevolucionesPorVencimiento } = useInventoryStore();
+
   const [movimientos, setMovimientos] = useState([]);
   const [movimientosMeta, setMovimientosMeta] = useState(null);
   const [stock, setStock] = useState([]);
@@ -93,6 +95,11 @@ const barcodesKey = useMemo(() => {
   ]);
 
   const procesarDatos = () => {
+//CALCULO VENCIDOS
+
+const devoluciones = mapearDevolucionesConProductos(movimientos, stock);
+setDevolucionesPorVencimiento(devoluciones);
+
 
 //CALCULO DE RECEPCION DE OTRAS SUCURALES
   const recepcionesPorProducto = agruparRecepcionesDesdeSucursales(movimientos);

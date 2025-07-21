@@ -13,6 +13,7 @@ import ProjectedLossCard from "./ProjectedLossCard";
 import HelpDialog from "./HelpDialog";
 import useInventoryStore from "../../store/useInventoryStore";
 import ProductosRecibidosCard from "./ProductosRecibidosCard";
+import ProductosDevueltosVencimientoCard from "./ProductosDevueltosVencimientoCard";
 
 export default function InventoryIndicators({
   movimientos,
@@ -21,7 +22,7 @@ export default function InventoryIndicators({
   setFilters,
   filters,
 }) {
-    // const { filters, setFilters } = useInventoryStore();
+  // const { filters, setFilters } = useInventoryStore();
   const [tab, setTab] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   const handleChange = (key) => (event) =>
@@ -66,7 +67,8 @@ export default function InventoryIndicators({
       <Tabs value={tab} onChange={(e, newTab) => setTab(newTab)} sx={{ mb: 2 }}>
         <Tab label="📦 Días de Inventario" />
         <Tab label="💸 Pérdidas proyectadas" />
-         <Tab label="💸 Pedidos a sucursales" />
+        <Tab label="💸 Pedidos a sucursales" />
+        <Tab label="💸 Devolucion vencimientos" />
       </Tabs>
       <HelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
       <Box hidden={tab !== 0}>
@@ -79,14 +81,11 @@ export default function InventoryIndicators({
         )}
       </Box>
 
-      <Box hidden={tab !== 1}>
-        {tab === 1 && <ProjectedLossCard  />}
+      <Box hidden={tab !== 1}>{tab === 1 && <ProjectedLossCard />}</Box>
+      <Box hidden={tab !== 2}>{tab === 2 && <ProductosRecibidosCard />}</Box>
+      <Box hidden={tab !== 3}>
+        {tab === 3 && <ProductosDevueltosVencimientoCard />}
       </Box>
-<Box hidden={tab !== 2}>
-        {tab === 2 && <ProductosRecibidosCard  />}
-      </Box>
-
-      
     </div>
   );
 }

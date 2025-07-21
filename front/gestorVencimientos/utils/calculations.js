@@ -156,3 +156,63 @@ export function listarProductosRecibidos(recepcionesPorProducto, stock) {
 }
 
 
+export function calcularDevolucionesPorVencimiento(movimientos) {
+  const devolucionesPorProducto = {};
+
+  for (const mov of movimientos) {
+    const id = mov.IDProducto;
+    const cantidad = parseFloat(mov.Cantidad || 0);
+    const operacion = mov.Operacion?.toLowerCase() || "";
+
+    const esDevolucion =
+      operacion.includes("baja de stock - vencido") ||
+      operacion.includes("devolucion por vencimiento");
+
+    if (esDevolucion && !isNaN(cantidad)) {
+      devolucionesPorProducto[id] =
+        (devolucionesPorProducto[id] || 0) + Math.abs(cantidad);
+    }
+  }
+
+  return devolucionesPorProducto;
+}
+
+
+// export function mapearDevolucionesConProductos(movimientos, productos) {
+//   console.log("productos", productos);
+//   const resumen = calcularDevolucionesPorVencimiento(movimientos);
+
+//   return Object.entries(resumen).map(([id, cantidad]) => {
+//    const producto = productos.find((p) => String(p.IDProducto) === String(id)) || {};
+
+//     return {
+//       IDProducto: id,
+//       nombre: producto.producto || "(Sin nombre)", // <- Aquí el cambio
+//       codebar: producto.Codebar || "-", // Asegurate de respetar mayúsculas/minúsculas
+//       cantidad,
+//     };
+//   });
+// }
+
+export function mapearDevolucionesConProductos(movimientos, productos) {
+  const resumen = calcularDevolucionesPorVencimiento(movimientos);
+
+  return Object.entries(resumen).map(([id, cantidad]) => {
+    const producto = productos.find((p) => String(p.IDProducto) === String(id)) || {};
+
+    // Precio unitario: puede ser producto.Precio, producto.Unitario o 0 si no existe
+    const precioUnitario = producto.Precio || producto.Unitario || 0;
+
+    // Calcular pérdida total
+    const perdidaTotal = precioUnitario * cantidad;
+
+    return {
+      IDProducto: id,
+      nombre: producto.producto || "(Sin nombre)",
+      codebar: producto.Codebar || "-",
+      cantidad,
+      precioUnitario,
+      perdidaTotal,
+    };
+  });
+}
