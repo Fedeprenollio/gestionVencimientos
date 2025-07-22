@@ -147,7 +147,7 @@ export function exportToExcelLots(lots) {
  */
 export const exportToTXT = (codes = [], filename = "codigos_exportados.txt") => {
   if (!Array.isArray(codes) || codes.length === 0) {
-    console.warn("No hay códigos para exportar");
+   window.alert("No hay códigos válidos para exportar");
     return;
   }
 
