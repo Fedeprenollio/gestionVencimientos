@@ -14,6 +14,8 @@ import HelpDialog from "./HelpDialog";
 import useInventoryStore from "../../store/useInventoryStore";
 import ProductosRecibidosCard from "./ProductosRecibidosCard";
 import ProductosDevueltosVencimientoCard from "./ProductosDevueltosVencimientoCard";
+import MovimientoLentoDataGrid from "./MovimientoLentoDataGrid";
+import ProductosPerdieronRotacionGrid from "./ProductosPerdieronRotacionGrid";
 
 export default function InventoryIndicators({
   movimientos,
@@ -69,6 +71,9 @@ export default function InventoryIndicators({
         <Tab label="💸 Pérdidas proyectadas" />
         <Tab label="💸 Pedidos a sucursales" />
         <Tab label="💸 Devolucion vencimientos" />
+        <Tab label="💸 Lenta rotacion" />
+        <Tab label="💸 Perdida de rotacion" />
+        
       </Tabs>
       <HelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
       <Box hidden={tab !== 0}>
@@ -86,6 +91,11 @@ export default function InventoryIndicators({
       <Box hidden={tab !== 3}>
         {tab === 3 && <ProductosDevueltosVencimientoCard />}
       </Box>
+      <Box hidden={tab !== 4}>{tab === 4 && <MovimientoLentoDataGrid />}</Box>
+      <Box hidden={tab !== 5}>{tab === 5 && <ProductosPerdieronRotacionGrid  stock={stock} movimientos={movimientos} />}</Box>
+
+
+      
     </div>
   );
 }

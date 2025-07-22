@@ -10,11 +10,20 @@ const useInventoryStore = create((set) => ({
   usarTodosLosProductos: false,
   setUsarTodosLosProductos: (flag) => set({ usarTodosLosProductos: flag }),
 
-   productosRecibidos: [],
+  productosRecibidos: [],
   setProductosRecibidos: (data) => set({ productosRecibidos: data }),
 
   devolucionesPorVencimiento: [],
-  setDevolucionesPorVencimiento: (data) => set({ devolucionesPorVencimiento: data }),
+  setDevolucionesPorVencimiento: (data) =>
+    set({ devolucionesPorVencimiento: data }),
+
+  movimientoLento: [],
+  setMovimientoLento: (data) => set({ movimientoLento: data }),
+
+
+  movimientoPerdido: [],
+setMovimientoPerdido: (data) => set({ movimientoPerdido: data }),
+
 }));
 
 export default useInventoryStore;

@@ -18,6 +18,8 @@ import {
   agruparRecepcionesDesdeSucursales,
   agruparVentas,
   calcularDSIPorProducto,
+  calcularProductosDeMovimientoLento,
+  detectarProductosQuePerdieronRotacion,
   listarProductosRecibidos,
   mapearDevolucionesConProductos,
 } from "../../../utils/calculations";
@@ -29,8 +31,14 @@ import useProductListStore from "../../store/useProductListStore";
 import useInventoryStore from "../../store/useInventoryStore";
 
 export default function InventoryDashboard() {
-  const { productsFromSelectedLists,usarTodosLosProductos } = useProductListStore();
-  const { setIndicatorsData,setDevolucionesPorVencimiento } = useInventoryStore();
+  const { productsFromSelectedLists, usarTodosLosProductos } =
+    useProductListStore();
+  const {
+    setIndicatorsData,
+    setDevolucionesPorVencimiento,
+    setMovimientoLento,
+    movimientoPerdido, setMovimientoPerdido
+  } = useInventoryStore();
 
   const [movimientos, setMovimientos] = useState([]);
   const [movimientosMeta, setMovimientosMeta] = useState(null);
@@ -78,42 +86,24 @@ export default function InventoryDashboard() {
     const savedStockMeta = localStorage.getItem("stock_meta");
     if (savedStockMeta) setStockMeta(JSON.parse(savedStockMeta));
   }, []);
-const barcodesKey = useMemo(() => {
-  return productsFromSelectedLists.map((p) => p.barcode).sort().join(",");
-}, [productsFromSelectedLists]);
+  const barcodesKey = useMemo(() => {
+    return productsFromSelectedLists
+      .map((p) => p.barcode)
+      .sort()
+      .join(",");
+  }, [productsFromSelectedLists]);
+
   useEffect(() => {
     const datosListos = stock.length > 0 && movimientos.length > 0;
     if (datosListos) {
       procesarDatos();
     }
-  }, [
-    stock,
-    movimientos,
-    filters,
-    barcodesKey,
-    usarTodosLosProductos
-  ]);
+  }, [stock, movimientos, filters, barcodesKey, usarTodosLosProductos]);
 
   const procesarDatos = () => {
-//CALCULO VENCIDOS
+    //CALCULO DE DIAS DE INVATIO Y PERDIDAS PROYECTADAS
 
-const devoluciones = mapearDevolucionesConProductos(movimientos, stock);
-setDevolucionesPorVencimiento(devoluciones);
-
-
-//CALCULO DE RECEPCION DE OTRAS SUCURALES
-  const recepcionesPorProducto = agruparRecepcionesDesdeSucursales(movimientos);
-  console.log("recepcionesPorProducto",recepcionesPorProducto)
-  const productosRecibidos = listarProductosRecibidos(recepcionesPorProducto, stock);
-
-  const setProductosRecibidos = useInventoryStore.getState().setProductosRecibidos;
-  setProductosRecibidos(productosRecibidos);
-
-
-//CALCULO DE DIAS DE INVATIO Y PERDIDAS PROYECTADAS
-
-
-    console.log("usarTodosLosProductos",usarTodosLosProductos)
+    console.log("usarTodosLosProductos", usarTodosLosProductos);
     let stockFiltrado =
       usarTodosLosProductos || productsFromSelectedLists.length === 0
         ? stock
@@ -166,7 +156,6 @@ setDevolucionesPorVencimiento(devoluciones);
       normalizado: item.ventasAnuales > 0 ? item.stock / item.ventasAnuales : 0,
     }));
 
-  
     setIndicatorsData({
       dsiData: resultadoDSI,
       stockNormalizado,
@@ -174,6 +163,36 @@ setDevolucionesPorVencimiento(devoluciones);
     });
 
     setVentas(ventasPorProducto);
+
+
+    //CALCULO DE MOVIMIENO PERDIDO
+     const data = detectarProductosQuePerdieronRotacion(movimientos, stockFiltrado);
+      console.log("DATA",data)
+      setMovimientoPerdido(data);
+
+    //CALCULAR MOVIMIENTO LENTO
+    const productosLentos = calcularProductosDeMovimientoLento(
+      movimientos,
+      stockFiltrado
+    );
+    setMovimientoLento(productosLentos);
+
+    //CALCULO VENCIDOS
+
+    const devoluciones = mapearDevolucionesConProductos(movimientos, stockFiltrado);
+    setDevolucionesPorVencimiento(devoluciones);
+
+    //CALCULO DE RECEPCION DE OTRAS SUCURALES
+    const recepcionesPorProducto =
+      agruparRecepcionesDesdeSucursales(movimientos);
+    const productosRecibidos = listarProductosRecibidos(
+      recepcionesPorProducto,
+      stockFiltrado
+    );
+
+    const setProductosRecibidos =
+      useInventoryStore.getState().setProductosRecibidos;
+    setProductosRecibidos(productosRecibidos);
   };
 
   return (
@@ -241,6 +260,8 @@ setDevolucionesPorVencimiento(devoluciones);
         ventas={ventas}
         filters={filters}
         setFilters={setFilters}
+        movimientos={movimientos}
+        stock={stock}
       />
     </Box>
   );
