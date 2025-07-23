@@ -1,7 +1,7 @@
 // routes/stockImportRoutes.js
 import express from "express";
 import multer from "multer";
-import { applyStockImport, compareStockImport, importStock, listStockImports } from "../controllers/stockImportController.js";
+import { applyStockImport, compareStockImport, importStock, listStockImports, updateAlternateBarcodesFromExcel } from "../controllers/stockImportController.js";
 import StockImport from "../models/StockImport.js";
 import { applyImportToBarcodes, updateFromImport, updateFromStockImport } from "../controllers/productList/updateFromStockImport.js";
 
@@ -10,6 +10,9 @@ const upload = multer(); // Para leer el buffer
 
 router.get("/compare-stock/:importId", compareStockImport);
 router.post("/import-stock", upload.single("file"), importStock);
+
+router.post("/productos/actualizar-codigos", upload.single("file"), updateAlternateBarcodesFromExcel);
+
 router.get("/", listStockImports);
 // router.post("/apply-to-lists", applyStockImport);
 router.post("/apply-to-lists", updateFromStockImport);

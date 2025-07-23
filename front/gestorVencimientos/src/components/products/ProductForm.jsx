@@ -66,9 +66,10 @@ export default function ProductForm() {
     setCreatedLots([]);
     localStorage.removeItem("lotes_jornada");
   };
-
+console.log("nameQuery",nameQuery)
   // Buscar productos por nombre
   useEffect(() => {
+    console.log("BUSCA?")
     if (nameQuery.length < 2) return;
 
     const delayDebounce = setTimeout(async () => {
@@ -93,7 +94,6 @@ export default function ProductForm() {
 
   const handleSearch = async (code) => {
     
-    console.log("handleSearch", code);
     try {
       const res = await axios.get(
         `${import.meta.env.VITE_API_URL}/products/${code}`
@@ -112,89 +112,7 @@ export default function ProductForm() {
     }
   };
 
-  // const handleDetected = (code) => {
-  //   setBarcode(code);
-  //   setScanning(false);
-  //   handleSearch(code);
-  // };
-
-  // function parseGS1Barcode(data) {
-  //   const result = {};
-
-  //   // Buscar GTIN (01) – 14 dígitos
-  //   const matchGTIN = data.match(/01(\d{14})/);
-  //   if (matchGTIN) result.gtin = matchGTIN[1];
-
-  //   // Buscar Serie (21) – hasta encontrar otro AI (como 17, 10, espacio)
-  //   const matchSerie = data.match(/21([A-Z0-9]+?)(?=17|10|\s|$)/);
-  //   if (matchSerie) result.serialNumber = matchSerie[1];
-
-  //   // Buscar vencimiento (17) – 6 dígitos (YYMMDD)
-  //   const matchExp = data.match(/17(\d{6})/);
-  //   if (matchExp) {
-  //     const y = parseInt(matchExp[1].slice(0, 2), 10);
-  //     const m = parseInt(matchExp[1].slice(2, 4), 10);
-  //     const d = parseInt(matchExp[1].slice(4, 6), 10);
-  //     const fullYear = y >= 50 ? 1900 + y : 2000 + y;
-  //     result.expirationDate = new Date(fullYear, m - 1, d);
-  //   }
-
-  //   // Buscar lote (10) – hasta el final o hasta otro AI
-  //   const matchLote = data.match(/10([A-Z0-9]+?)(?=21|17|\s|$)/);
-  //   if (matchLote) result.batchNumber = matchLote[1];
-
-  //   return result;
-  // }
-  //  const parsed = window.parseBarcode("010779083900026721Z4J0WX 1719123110GX4284");
-  //       console.log("🧾 Código QR parseado:", parsed);
-
-  // const handleDetected = (code) => {
-  //   setScanning(false);
-
-  //   if ( code.length > 20) {
-  //     const parsed = window.parseBarcode(code);
-  //     console.log("🧾 Código QR parseado:", parsed);
-
-  //     let gtin = parsed.gtin;
-
-  //     if (gtin?.length === 14 && (gtin.startsWith("0") || gtin.startsWith("1"))) {
-  //       gtin = gtin.slice(1);
-  //     }
-
-  //     if (gtin) {
-  //       setBarcode(gtin);
-  //       handleSearch(gtin);
-  //     } else {
-  //       setBarcode(code);
-  //       handleSearch(code);
-  //     }
-
-  //     if (parsed.expirationDate instanceof Date && !isNaN(parsed.expirationDate)) {
-  //       const date = parsed.expirationDate;
-  //       setExpMonth(String(date.getMonth() + 1).padStart(2, "0"));
-  //       setExpYear(String(date.getFullYear()));
-  //     }
-
-  //     setProductInfo((prev) => ({
-  //       ...prev,
-  //       expirationDate: parsed.expirationDate,
-  //       batchNumber: parsed.batchNumber,
-  //       serialNumber: parsed.serialNumber,
-  //       customCode: parsed.customCode,
-  //       gtin,
-  //     }));
-  //   } else {
-  //     setBarcode(code);
-  //     handleSearch(code);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //  const prueba1 = parseGS1Barcode("01077980846867622135816181109805017260625")
-  //  console.log("prueba1",prueba1)
-  //   const prueba2 = parseGS1Barcode("010779534790067217270131216007202701000006026106007")
-  //  console.log("prueba2",prueba2)
-  // }, [])
+ 
 
   const handleDetected = (code) => {
     setScanning(false);
@@ -334,7 +252,7 @@ export default function ProductForm() {
     localStorage.setItem("selectedBranch", value);
   };
 
-  // const submit = async (e) => {
+
   //   // e.preventDefault();
 
   //   let productId = productInfo.id;
@@ -405,7 +323,6 @@ export default function ProductForm() {
   //     alert(err.response?.data?.message || "Error");
   //   }
   // };
-  console.log("createdLots", createdLots);
   return (
     <Box
       sx={{

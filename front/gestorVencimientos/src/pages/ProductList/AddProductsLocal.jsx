@@ -28,6 +28,7 @@ import {
 import BarcodeSearchSection from "../../components/lots/BarcodeSearchSection";
 import ProductCreateModal from "../../components/products/formularios/ProductCreateModal";
 import { exportToTXT } from "../../../utils/exportUtils";
+import axios from "axios";
 
 export default function AddProductsLocal() {
   const { listId } = useParams();
@@ -154,31 +155,6 @@ export default function AddProductsLocal() {
       .filter((code) => code.length > 0);
   };
 
-  // const handleBulkAdd = async () => {
-  //   setLoadingBulk(true);
-  //   const codes = parseBarcodes(bulkAddInput);
-  //   const existingCodes = new Set(
-  //     list.products.map((p) => p.product?.barcode?.trim()).filter(Boolean)
-  //   );
-
-  //   try {
-  //     for (const code of codes) {
-  //       const results = await fetchProducts(code);
-  //       const product = results?.[0];
-  //       if (product && !existingCodes.has(product.barcode)) {
-  //         await addProductToList(listId, product._id);
-  //       }
-  //     }
-  //     showFeedback("Códigos agregados correctamente");
-  //     setBulkAddInput("");
-  //     loadList();
-  //   } catch (err) {
-  //     console.error(err);
-  //     showFeedback("Error al agregar productos", "error");
-  //   } finally {
-  //     setLoadingBulk(false);
-  //   }
-  // };
 
   const handleBulkAdd = async () => {
     setLoadingBulk(true);
@@ -208,35 +184,6 @@ export default function AddProductsLocal() {
     }
   };
 
-  // const handleBulkRemove = async () => {
-  //   if (!window.confirm("¿Estás seguro que querés eliminar estos productos?"))
-  //     return;
-  //   setLoadingBulk(true);
-  //   const codesToRemove = parseBarcodes(bulkRemoveInput);
-  //   const codeToProductMap = {};
-  //   list.products.forEach((p) => {
-  //     if (p.product?.barcode) {
-  //       codeToProductMap[p.product.barcode.trim()] = p.product._id;
-  //     }
-  //   });
-
-  //   try {
-  //     for (const code of codesToRemove) {
-  //       const productId = codeToProductMap[code];
-  //       if (productId) {
-  //         await removeProductFromList(listId, productId);
-  //       }
-  //     }
-  //     showFeedback("Productos eliminados correctamente");
-  //     setBulkRemoveInput("");
-  //     loadList();
-  //   } catch (err) {
-  //     console.error(err);
-  //     showFeedback("Error al eliminar productos", "error");
-  //   } finally {
-  //     setLoadingBulk(false);
-  //   }
-  // };
 
   const handleBulkRemove = async () => {
     if (!window.confirm("¿Estás seguro que querés eliminar estos productos?"))
@@ -293,8 +240,26 @@ export default function AddProductsLocal() {
     }
   };
 
-  if (!list) return <CircularProgress />;
+    useEffect(() => {
+      console.log("BUSCA?")
+      if (nameQuery.length < 2) return;
+  
+      const delayDebounce = setTimeout(async () => {
+        try {
+          const res = await axios.get(
+            `${import.meta.env.VITE_API_URL}/products/search?name=${nameQuery}`
+          );
+          setNameResults(res.data);
+        } catch (err) {
+          console.error("Error buscando por nombre:", err);
+        }
+      }, 300);
+  
+      return () => clearTimeout(delayDebounce);
+    }, [nameQuery])
 
+  if (!list) return <CircularProgress />;
+console.log("Y aca llega¡ namequery",nameQuery)
   return (
     <Box p={3}>
       <Typography variant="h6">
@@ -321,6 +286,7 @@ export default function AddProductsLocal() {
         barcode={barcode}
         setBarcode={setBarcode}
         setNameQuery={setNameQuery}
+        nameQuery={nameQuery}
         nameResults={nameResults}
         setProductExists={setProductExists}
         handleSearch={handleSearch}

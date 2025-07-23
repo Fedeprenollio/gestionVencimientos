@@ -22,10 +22,9 @@ export default function BarcodeSearchSection({
   setScanning,
   barcodeInputRef,
   isAddMode,
-}) {
+  }) {
 
-
-  console.log("isAddMode", isAddMode);
+console.log("LLEGA?")
 
   return (
     <Box

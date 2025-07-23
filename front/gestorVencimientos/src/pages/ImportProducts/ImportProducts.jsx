@@ -30,7 +30,6 @@ export default function ImportProducts({ onImport }) {
     // Importador de ejemplo si no se pasa por props
     console.warn("No se pasó onImport, usando comportamiento por defecto");
     const defaultImport = async (products) => {
-      console.log("PRODUCOTS", products);
       try {
         await axios.post(
           `${import.meta.env.VITE_API_URL}/products/import`,
@@ -146,7 +145,6 @@ export default function ImportProducts({ onImport }) {
     console.log("toImport", toImport);
     onImport(toImport);
   };
-  console.log("Products", products);
 
   return (
     <Box p={2}>

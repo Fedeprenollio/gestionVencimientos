@@ -391,3 +391,58 @@ export const applyStockImport = async (req, res) => {
   }
 };
 
+export const updateAlternateBarcodesFromExcel = async (req, res) => {
+  try {
+    const fileBuffer = req.file?.buffer;
+
+    if (!fileBuffer) {
+      return res.status(400).json({ error: "No se recibió archivo" });
+    }
+
+    const parsedRows = parseExcelBuffer(fileBuffer);
+
+    const bulkOps = [];
+
+    for (const row of parsedRows) {
+      const barcode = row["Codebar"]?.toString().trim();
+      const codigosBarraStr = row["CodigosBarra"]?.toString().trim();
+
+      // Omitimos si no hay barcode o no hay códigos alternativos
+      if (!barcode || !codigosBarraStr) continue;
+
+      const codigosBarra = codigosBarraStr
+        .split("-")
+        .map((code) => code.trim())
+        .filter((code) => code !== "");
+
+      if (codigosBarra.length === 0) continue;
+
+      bulkOps.push({
+        updateOne: {
+          filter: { barcode },
+          update: {
+            $set: {
+              alternateBarcodes: codigosBarra,
+            },
+          },
+        },
+      });
+    }
+
+    if (bulkOps.length === 0) {
+      return res.status(400).json({ message: "No se encontraron filas válidas para actualizar." });
+    }
+
+    const result = await Product.bulkWrite(bulkOps);
+
+    return res.status(200).json({
+      message: "Productos actualizados correctamente.",
+      totalFilasExcel: parsedRows.length,
+      totalActualizados: result.modifiedCount,
+      encontrados: result.matchedCount,
+    });
+  } catch (error) {
+    console.error("Error al actualizar alternateBarcodes:", error);
+    return res.status(500).json({ error: "Error al procesar el Excel" });
+  }
+};
