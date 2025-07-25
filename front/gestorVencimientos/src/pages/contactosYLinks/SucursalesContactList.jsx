@@ -31,11 +31,11 @@ const sucursales = {
     { nombre: "Farmacia La Falda – Av. Edén 101", tel: ["03548 - 422101"] },
     { nombre: "Farmacia  Edén – Av. Edén 299", tel: ["03548 - 422526"] },
     { nombre: "Farmacia Del Super – Av. Edén 370", tel: ["03548 - 426479"] },
-    { nombre: "Farmacia Avenida – Av. Edén 604", tel: ["03548 - 422732"] },
-    { nombre: "Farmacia 9 de Julio – 9 de Julio", tel: ["03548 - 423795"] },
-    { nombre: "Farmacia Americana – Av. Kennedy 166", tel: ["03548 - 425766"] },
-    { nombre: "Farmacia Margiotta – España 103", tel: ["03548 - 423276"] },
-    { nombre: "Farmacia Sarmiento – Sarmiento 346", tel: ["03548 - 425376"] },
+    { nombre: "Farmacia Avenida – Av. Edén 604", tel: ["03548 - 421732"] },
+    { nombre: "Farmacia 9 de Julio – 9 de Julio", tel: ["03548 - 425739"] },
+    { nombre: "Farmacia Americana – Av. Kennedy 166", tel: ["03548 - 422360"] },
+    { nombre: "Farmacia Margiotta – España 103", tel: ["03548 - 423576"] },
+    { nombre: "Farmacia Sarmiento – Sarmiento 346", tel: ["03548 - 422957"] },
     { nombre: "Farmacia La Merced – Av. Buenos Aires 887", tel: ["03548 - 536591"] },
   ],
   "Cosquín": [
@@ -46,12 +46,12 @@ const sucursales = {
     { nombre: "Farmacia Milovich – Av. Goycoechea 557", tel: ["0351 - 152027852"] },
   ],
   "Córdoba": [
-    { nombre: "Farmacia Del Prado – Dean Funes 1226", tel: ["0351 - 4276081", "0351 - 4276085"] },
-    { nombre: "Farmacia Buenos Aires – Buenos Aires 128", tel: ["03548 - 15568786"] },
+    { nombre: "Farmacia Del Prado – Dean Funes 1226", tel: ["0351 - 4276081"] },
+    { nombre: "Farmacia Buenos Aires – Buenos Aires 128", tel: ["03548 - 15568876"] },
     { nombre: "Farmacia 27 de Abril – 27 de Abril 668", tel: ["0351 - 155950231"] },
   ],
   "Villa Giardino": [
-    { nombre: "Farmacia Villa Giardino – Sucursal central", tel: ["491175", "03548 - 584705"] },
+    { nombre: "Farmacia Villa Giardino – Sucursal central", tel: ["491175", "03548 - 584755"] },
   ],
 };
 
