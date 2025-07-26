@@ -481,7 +481,7 @@ export default function Navbar({ currentUser, onToggleTheme, mode, onChangeUser 
     },
     {
       label: "Usuarios",
-      submenu: [{ label: "Crear usuario", to: "/users/create" }],
+      submenu: [{ label: "Crear usuario", to: "/users/create" },{ label: "Ventas por usuario", to: "/users/ventas" } ],
     },
     {
       label: "Links Útiles",

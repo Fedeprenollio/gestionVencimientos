@@ -20,6 +20,7 @@
     "@tanstack/react-query": "^5.81.5",
     "@zxing/browser": "^0.1.5",
     "axios": "^1.10.0",
+    "date-fns": "4.1.0",
     "dayjs": "^1.11.13",
     "file-saver": "^2.0.5",
     "gs1-barcode-parser": "^1.0.1",
@@ -36,6 +37,7 @@
     "react-to-print": "^3.1.1",
     "react-window": "^1.8.11",
     "react-zxing": "^2.1.0",
+    "recharts": "3.1.0",
     "xlsx": "^0.18.5",
     "yup": "^1.6.1",
     "zustand": "^5.0.6"

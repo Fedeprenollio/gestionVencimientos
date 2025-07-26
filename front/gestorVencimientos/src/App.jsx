@@ -50,6 +50,7 @@ import ImportarStock from "./pages/importar/ImportarStock.jsx";
 import HistorialStock from "./pages/importar/HistorialStock.jsx";
 import TutorialPage from "./pages/TutorialPage.jsx";
 import InventoryDashboard from "./pages/inventory/InventoryDashboard.jsx";
+import VentasUsuarios from "./pages/user/VentasUsuarios.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -121,6 +122,8 @@ function App() {
               <Route path="/expiring" element={<LotList />} />
               <Route path="/stock-search" element={<SearchStockPage />} />
               <Route path="/user" element={<UserCreatePage />} />
+              <Route path="/users/ventas" element={<VentasUsuarios />} />
+
               <Route path="/branches" element={<BranchList />} />
               <Route path="/branches/new" element={<BranchForm />} />
               <Route path="/branches/:id" element={<BranchForm />} />
@@ -183,8 +186,10 @@ function App() {
               <Route path="/importar-stock" element={<ImportarStock />} />
               <Route path="/historial-stock" element={<HistorialStock />} />
 
-              <Route path="/InventoryDashboard" element={<InventoryDashboard />} />
-
+              <Route
+                path="/InventoryDashboard"
+                element={<InventoryDashboard />}
+              />
 
               {/* <Route
                 path="/lists/drug-returns"
