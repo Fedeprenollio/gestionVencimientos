@@ -24,6 +24,11 @@ const useInventoryStore = create((set) => ({
   movimientoPerdido: [],
 setMovimientoPerdido: (data) => set({ movimientoPerdido: data }),
 
+
+mermaPorVencimiento: null,
+setMermaPorVencimiento: (data) => set({ mermaPorVencimiento: data }),
+
+
 }));
 
 export default useInventoryStore;

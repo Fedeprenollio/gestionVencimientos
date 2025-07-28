@@ -11,11 +11,11 @@ import React, { useState } from "react";
 import DaysOfInventoryCard from "./DaysOfInventoryCard";
 import ProjectedLossCard from "./ProjectedLossCard";
 import HelpDialog from "./HelpDialog";
-import useInventoryStore from "../../store/useInventoryStore";
 import ProductosRecibidosCard from "./ProductosRecibidosCard";
 import ProductosDevueltosVencimientoCard from "./ProductosDevueltosVencimientoCard";
 import MovimientoLentoDataGrid from "./MovimientoLentoDataGrid";
 import ProductosPerdieronRotacionGrid from "./ProductosPerdieronRotacionGrid";
+import IndiceMermaMensualChart from "./IndiceMermaMensualChart";
 
 export default function InventoryIndicators({
   movimientos,
@@ -73,7 +73,7 @@ export default function InventoryIndicators({
         <Tab label="💸 Devolucion vencimientos" />
         <Tab label="💸 Lenta rotacion" />
         <Tab label="💸 Perdida de rotacion" />
-        
+        <Tab label="📉 Merma mensual" />
       </Tabs>
       <HelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
       <Box hidden={tab !== 0}>
@@ -92,10 +92,15 @@ export default function InventoryIndicators({
         {tab === 3 && <ProductosDevueltosVencimientoCard />}
       </Box>
       <Box hidden={tab !== 4}>{tab === 4 && <MovimientoLentoDataGrid />}</Box>
-      <Box hidden={tab !== 5}>{tab === 5 && <ProductosPerdieronRotacionGrid  stock={stock} movimientos={movimientos} />}</Box>
-
-
-      
+      <Box hidden={tab !== 5}>
+        {tab === 5 && (
+          <ProductosPerdieronRotacionGrid
+            stock={stock}
+            movimientos={movimientos}
+          />
+        )}
+      </Box>
+      <Box hidden={tab !== 6}>{tab === 6 && <IndiceMermaMensualChart />}</Box>
     </div>
   );
 }

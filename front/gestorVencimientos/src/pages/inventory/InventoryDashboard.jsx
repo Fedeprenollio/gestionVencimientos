@@ -18,6 +18,7 @@ import {
   agruparRecepcionesDesdeSucursales,
   agruparVentas,
   calcularDSIPorProducto,
+  calcularIndiceMermaMensual,
   calcularProductosDeMovimientoLento,
   detectarProductosQuePerdieronRotacion,
   listarProductosRecibidos,
@@ -37,7 +38,9 @@ export default function InventoryDashboard() {
     setIndicatorsData,
     setDevolucionesPorVencimiento,
     setMovimientoLento,
-    movimientoPerdido, setMovimientoPerdido
+    movimientoPerdido,
+    setMovimientoPerdido,
+    setMermaPorVencimiento,
   } = useInventoryStore();
 
   const [movimientos, setMovimientos] = useState([]);
@@ -103,7 +106,6 @@ export default function InventoryDashboard() {
   const procesarDatos = () => {
     //CALCULO DE DIAS DE INVATIO Y PERDIDAS PROYECTADAS
 
-    console.log("usarTodosLosProductos", usarTodosLosProductos);
     let stockFiltrado =
       usarTodosLosProductos || productsFromSelectedLists.length === 0
         ? stock
@@ -164,11 +166,12 @@ export default function InventoryDashboard() {
 
     setVentas(ventasPorProducto);
 
-
     //CALCULO DE MOVIMIENO PERDIDO
-     const data = detectarProductosQuePerdieronRotacion(movimientos, stockFiltrado);
-      console.log("DATA",data)
-      setMovimientoPerdido(data);
+    const data = detectarProductosQuePerdieronRotacion(
+      movimientos,
+      stockFiltrado
+    );
+    setMovimientoPerdido(data);
 
     //CALCULAR MOVIMIENTO LENTO
     const productosLentos = calcularProductosDeMovimientoLento(
@@ -179,7 +182,10 @@ export default function InventoryDashboard() {
 
     //CALCULO VENCIDOS
 
-    const devoluciones = mapearDevolucionesConProductos(movimientos, stockFiltrado);
+    const devoluciones = mapearDevolucionesConProductos(
+      movimientos,
+      stockFiltrado
+    );
     setDevolucionesPorVencimiento(devoluciones);
 
     //CALCULO DE RECEPCION DE OTRAS SUCURALES
@@ -193,6 +199,10 @@ export default function InventoryDashboard() {
     const setProductosRecibidos =
       useInventoryStore.getState().setProductosRecibidos;
     setProductosRecibidos(productosRecibidos);
+
+    //CALCULO VENCIDOS EN RELACION A LAS VENTAS DEL MES
+    const mermaMensual = calcularIndiceMermaMensual(movimientos)
+    setMermaPorVencimiento(mermaMensual);
   };
 
   return (

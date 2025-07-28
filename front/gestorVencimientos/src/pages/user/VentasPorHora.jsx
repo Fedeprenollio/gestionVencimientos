@@ -12,7 +12,6 @@ import {
 import GraficoVentasPorHora from "./GraficoVentasPorHora";
 
 export function VentasPorHora({ ventas, fechaDesde, fechaHasta }) {
-  console.log("ventas", ventas);
   const resumen = {};
 
   ventas.forEach((venta) => {

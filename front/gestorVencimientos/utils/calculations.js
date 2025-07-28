@@ -178,7 +178,6 @@ export function listarProductosRecibidos(recepcionesPorProducto, stock) {
     .filter(Boolean); // ✅ Elimina los `null`
 }
 
-
 export function calcularDevolucionesPorVencimiento(movimientos) {
   const devolucionesPorProducto = {};
 
@@ -216,9 +215,7 @@ export function calcularDevolucionesPorVencimiento(movimientos) {
 //   });
 // }
 
-
 export function mapearDevolucionesConProductos(movimientos, productos) {
-  console.log("productos??", productos);
   const resumen = calcularDevolucionesPorVencimiento(movimientos);
 
   return Object.entries(resumen)
@@ -244,7 +241,6 @@ export function mapearDevolucionesConProductos(movimientos, productos) {
     })
     .filter((item) => item !== null); // Eliminar los nulos del resultado
 }
-
 
 // export function mapearDevolucionesConProductos(movimientos, productos) {
 //   console.log("productos??",productos)
@@ -356,10 +352,9 @@ export function detectarProductosQuePerdieronRotacion(movimientos, stockData) {
     if (fechaVenta.isAfter(hace12Meses) && fechaVenta.isBefore(hace6Meses)) {
       productos[id].ventas12a6 += Math.abs(cantidad);
     } else if (fechaVenta.isAfter(hace6Meses)) {
-      productos[id].ventas0a6 +=  Math.abs(cantidad);
+      productos[id].ventas0a6 += Math.abs(cantidad);
     }
   }
-  console.log("productos 2", productos);
   // Ahora filtramos los que perdieron rotación
   const resultado = [];
 
@@ -389,3 +384,58 @@ export function detectarProductosQuePerdieronRotacion(movimientos, stockData) {
 
   return resultado;
 }
+
+// utils/merma.js
+
+export function calcularIndiceMermaMensual(movimientos) {
+  const ventasPorMes = {};
+  const devolucionesPorMes = {};
+
+  for (const mov of movimientos) {
+    const operacion = mov.Operacion?.toLowerCase() || "";
+    const total = parseFloat(mov.Total || 0);
+    if (isNaN(total)) continue;
+
+    const fecha =
+      typeof mov.Fecha === "number"
+        ? convertirExcelDateToJSDate(mov.Fecha)
+        : new Date(mov.Fecha);
+
+    if (!(fecha instanceof Date) || isNaN(fecha.getTime())) continue;
+
+    const mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
+
+    const esVenta =
+      operacion.includes("facturacion") &&
+      operacion.includes("fv");
+
+    const esDevolucionVencimiento =
+      operacion.includes("vencido") ||
+      operacion.includes("devolucion por vencimiento");
+
+    if (esVenta) {
+      ventasPorMes[mes] = (ventasPorMes[mes] || 0) + Math.abs(total);
+    } else if (esDevolucionVencimiento) {
+      devolucionesPorMes[mes] = (devolucionesPorMes[mes] || 0) + Math.abs(total);
+    }
+  }
+
+  const todosLosMeses = Array.from(
+    new Set([...Object.keys(ventasPorMes), ...Object.keys(devolucionesPorMes)])
+  ).sort();
+
+  return todosLosMeses.map((mes) => {
+    const ventas = ventasPorMes[mes] || 0;
+    const vencimientos = devolucionesPorMes[mes] || 0;
+    const total = ventas + vencimientos;
+    const indice = total > 0 ? parseFloat(((vencimientos / total) * 100).toFixed(2)) : 0;
+
+    return {
+      mes,
+      ventas,
+      vencimientos,
+      indiceMerma: indice,
+    };
+  });
+}
+
