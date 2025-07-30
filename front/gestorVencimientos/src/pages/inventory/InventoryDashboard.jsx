@@ -201,7 +201,8 @@ export default function InventoryDashboard() {
     setProductosRecibidos(productosRecibidos);
 
     //CALCULO VENCIDOS EN RELACION A LAS VENTAS DEL MES
-    const mermaMensual = calcularIndiceMermaMensual(movimientos)
+    const mermaMensual = calcularIndiceMermaMensual(movimientos,stockFiltrado)
+    console.log("mermaMensual",mermaMensual)
     setMermaPorVencimiento(mermaMensual);
   };
 

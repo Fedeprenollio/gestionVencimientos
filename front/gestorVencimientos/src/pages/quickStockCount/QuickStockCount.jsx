@@ -25,13 +25,13 @@ export default function QuickStockCount() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [listInfo, setListInfo] = useState(null); // nombre, sucursal, fecha
-
+console.log("ITEM", items)
   useEffect(() => {
     const fetchList = async () => {
       try {
         const res = await api.get(`/stock-count/${listId}`);
         const data = res;
-
+console.log("FATA",data)
         setListInfo({
           name: data.name || "Sin nombre",
           branch: data.branch?.name || "Sucursal desconocida",
@@ -94,40 +94,46 @@ export default function QuickStockCount() {
 };
 
   const handleAdd = async () => {
-    setError("");
-    setMessage("");
+  setError("");
+  setMessage("");
 
-    if (!barcode || quantity === 0) {
-      setError("Ingresá un código válido y una cantidad distinta de 0");
-      return;
+  if (!barcode || quantity === 0) {
+    setError("Ingresá un código válido y una cantidad distinta de 0");
+    return;
+  }
+
+  try {
+    const res = await api.post(`/stock-count/${listId}/add-product`, {
+      barcode,
+      quantity: parseInt(quantity),
+    });
+    console.log("RESSSS", res)
+    const { addedProduct } = res;
+
+    const existingIndex = items.findIndex((item) => item.barcode === barcode);
+    if (existingIndex >= 0) {
+      const updated = [...items];
+      updated[existingIndex].quantity += parseInt(quantity);
+      setItems(updated);
+    } else {
+      setItems([...items, {
+        barcode: addedProduct.barcode,
+        quantity: addedProduct.quantity,
+        name: addedProduct.nombre,
+      }]);
     }
 
-    try {
-      await api.post(`/stock-count/${listId}/add-product`, {
-        barcode,
-        quantity: parseInt(quantity),
-      });
+    setMessage("Producto registrado");
+    // playBeep();
+  } catch (err) {
+    console.error(err);
+    setError(err.response?.data?.message || "Error al agregar producto");
+  } finally {
+    setQuantity(1);
+    setBarcode("");
+  }
+};
 
-      // actualizar localmente
-      const existingIndex = items.findIndex((item) => item.barcode === barcode);
-      if (existingIndex >= 0) {
-        const updated = [...items];
-        updated[existingIndex].quantity += parseInt(quantity);
-        setItems(updated);
-      } else {
-        setItems([...items, { barcode, quantity: parseInt(quantity) }]);
-      }
-
-      setMessage("Producto registrado");
-      playBeep();
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Error al agregar producto");
-    } finally {
-      setQuantity(1);
-      setBarcode("");
-    }
-  };
 
   const playBeep = () => {
     const ctx = new AudioContext();

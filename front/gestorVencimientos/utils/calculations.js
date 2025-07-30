@@ -137,25 +137,7 @@ export function agruparRecepcionesDesdeSucursales(movimientos) {
   return recepcionesPorProducto;
 }
 
-// export function listarProductosRecibidos(recepcionesPorProducto, stock) {
-//   const normalizeId = (id) => String(id).trim();
-// console.log("STOCK EN listarProductosRecibidos ", stock)
-//   return Object.entries(recepcionesPorProducto).map(
-//     ([IDProducto, cantidad]) => {
-//       const productoEnStock = stock.find(
-//         (item) => normalizeId(item.IDProducto) === normalizeId(IDProducto)
-//       );
-//       return {
-//         IDProducto,
-//         cantidad,
-//         nombre: productoEnStock
-//           ? productoEnStock.producto || "Desconocido"
-//           : "Desconocido",
-//         codebar: productoEnStock ? productoEnStock.Codebar || "" : "",
-//       };
-//     }
-//   );
-// }
+
 
 export function listarProductosRecibidos(recepcionesPorProducto, stock) {
   const normalizeId = (id) => String(id).trim();
@@ -184,11 +166,12 @@ export function calcularDevolucionesPorVencimiento(movimientos) {
   for (const mov of movimientos) {
     const id = mov.IDProducto;
     const cantidad = parseFloat(mov.Cantidad || 0);
-    const operacion = mov.Operacion?.toLowerCase() || "";
+    const operacion = mov.Operacion?.toLowerCase() || ""
 
     const esDevolucion =
       operacion.includes("baja de stock - vencido") ||
-      operacion.includes("devolucion por vencimiento");
+      operacion.includes("devolucion por vencimiento")  ||
+      operacion.includes("vence")
 
     if (esDevolucion && !isNaN(cantidad)) {
       devolucionesPorProducto[id] =
@@ -278,7 +261,7 @@ export function calcularProductosDeMovimientoLento(
   const hoy = new Date();
   const fechaCorte = new Date(hoy);
   fechaCorte.setMonth(hoy.getMonth() - mesesSinVenta);
-
+console.log("stockData",stockData)
   const ventasPorProducto = {};
 
   for (const mov of movimientos) {
@@ -387,11 +370,69 @@ export function detectarProductosQuePerdieronRotacion(movimientos, stockData) {
 
 // utils/merma.js
 
-export function calcularIndiceMermaMensual(movimientos) {
+// export function calcularIndiceMermaMensual(movimientos) {
+//   const ventasPorMes = {};
+//   const devolucionesPorMes = {};
+
+//   for (const mov of movimientos) {
+//     const operacion = mov.Operacion?.toLowerCase() || "";
+//     const total = parseFloat(mov.Total || 0);
+//     if (isNaN(total)) continue;
+
+//     const fecha =
+//       typeof mov.Fecha === "number"
+//         ? convertirExcelDateToJSDate(mov.Fecha)
+//         : new Date(mov.Fecha);
+
+//     if (!(fecha instanceof Date) || isNaN(fecha.getTime())) continue;
+
+//     const mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
+
+//     const esVenta =
+//       operacion.includes("facturacion") &&
+//       operacion.includes("fv");
+
+//     const esDevolucionVencimiento =
+//       operacion.includes("vencido") ||
+//       operacion.includes("devolucion por vencimiento");
+
+//     if (esVenta) {
+//       ventasPorMes[mes] = (ventasPorMes[mes] || 0) + Math.abs(total);
+//     } else if (esDevolucionVencimiento) {
+//       devolucionesPorMes[mes] = (devolucionesPorMes[mes] || 0) + Math.abs(total);
+//     }
+//   }
+
+//   const todosLosMeses = Array.from(
+//     new Set([...Object.keys(ventasPorMes), ...Object.keys(devolucionesPorMes)])
+//   ).sort();
+
+//   return todosLosMeses.map((mes) => {
+//     const ventas = ventasPorMes[mes] || 0;
+//     const vencimientos = devolucionesPorMes[mes] || 0;
+//     const total = ventas + vencimientos;
+//     const indice = total > 0 ? parseFloat(((vencimientos / total) * 100).toFixed(2)) : 0;
+
+//     return {
+//       mes,
+//       ventas,
+//       vencimientos,
+//       indiceMerma: indice,
+//     };
+//   });
+// }
+
+export function calcularIndiceMermaMensual(movimientos, stockData) {
   const ventasPorMes = {};
   const devolucionesPorMes = {};
+console.log("stockData en vencimientos", stockData)
+  // Creamos un Set con los codebar de interés
+  const codigosDeInteres = new Set(stockData?.map((p) => p.Codebar));
 
   for (const mov of movimientos) {
+    // Filtrar solo los movimientos cuyo Codebar esté en stockData
+    if (!codigosDeInteres.has(mov.Codebar)) continue;
+
     const operacion = mov.Operacion?.toLowerCase() || "";
     const total = parseFloat(mov.Total || 0);
     if (isNaN(total)) continue;
@@ -411,7 +452,8 @@ export function calcularIndiceMermaMensual(movimientos) {
 
     const esDevolucionVencimiento =
       operacion.includes("vencido") ||
-      operacion.includes("devolucion por vencimiento");
+      operacion.includes("devolucion por vencimiento") ||
+       operacion.includes("vencer") 
 
     if (esVenta) {
       ventasPorMes[mes] = (ventasPorMes[mes] || 0) + Math.abs(total);
@@ -427,7 +469,7 @@ export function calcularIndiceMermaMensual(movimientos) {
   return todosLosMeses.map((mes) => {
     const ventas = ventasPorMes[mes] || 0;
     const vencimientos = devolucionesPorMes[mes] || 0;
-    const total = ventas + vencimientos;
+    const total = ventas ;
     const indice = total > 0 ? parseFloat(((vencimientos / total) * 100).toFixed(2)) : 0;
 
     return {

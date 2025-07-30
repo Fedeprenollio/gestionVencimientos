@@ -106,12 +106,30 @@ export const addProductToStockCountList = async (req, res) => {
 
     await list.save();
 
-    res.json({ message: "Producto agregado correctamente" });
+    // Volvemos a cargar la lista con populate para ver el nombre de productos
+    const updatedList = await StockCountList.findById(listId)
+      .populate("products.product");
+
+    // Obtenemos el producto agregado para mostrarlo directamente
+    const addedItem = updatedList.products.find((item) =>
+      item.product._id.equals(product._id)
+    );
+
+    res.json({
+      message: "Producto agregado correctamente",
+      addedProduct: {
+        nombre: product.name,
+        barcode: product.barcode,
+        quantity: addedItem.quantity,
+      },
+      updatedList,
+    });
   } catch (err) {
     console.error("Error al agregar producto:", err);
     res.status(500).json({ message: "Error del servidor" });
   }
 };
+
 
 // 5. Eliminar lista
 export const deleteStockCountList = async (req, res) => {

@@ -66,15 +66,25 @@ export default function InventoryIndicators({
       <Button variant="outlined" onClick={() => setHelpOpen(true)}>
         ¿Qué significan estos indicadores?
       </Button>
-      <Tabs value={tab} onChange={(e, newTab) => setTab(newTab)} sx={{ mb: 2 }}>
-        <Tab label="📦 Días de Inventario" />
-        <Tab label="💸 Pérdidas proyectadas" />
-        <Tab label="💸 Pedidos a sucursales" />
-        <Tab label="💸 Devolucion vencimientos" />
-        <Tab label="💸 Lenta rotacion" />
-        <Tab label="💸 Perdida de rotacion" />
-        <Tab label="📉 Merma mensual" />
-      </Tabs>
+
+      <Box sx={{ overflowX: "auto" }}>
+        <Tabs
+          value={tab}
+          onChange={(e, newTab) => setTab(newTab)}
+          sx={{ mb: 2 }}
+          variant="scrollable"
+          scrollButtons="auto"
+        >
+          <Tab label="📦 Días de Inventario" />
+          <Tab label="💸 Pérdidas proyectadas" />
+          <Tab label="💸 Pedidos a sucursales" />
+          <Tab label="💸 Devolucion vencimientos" />
+          <Tab label="💸 Lenta rotacion" />
+          <Tab label="💸 Perdida de rotacion" />
+          <Tab label="📉 Merma mensual" />
+        </Tabs>
+      </Box>
+
       <HelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
       <Box hidden={tab !== 0}>
         {tab === 0 && (
