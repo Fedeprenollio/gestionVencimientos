@@ -28,6 +28,8 @@ setMovimientoPerdido: (data) => set({ movimientoPerdido: data }),
 mermaPorVencimiento: null,
 setMermaPorVencimiento: (data) => set({ mermaPorVencimiento: data }),
 
+ventaMensual: null,
+setVentaMensual: (data) => set({ ventaMensual: data }),
 
 }));
 

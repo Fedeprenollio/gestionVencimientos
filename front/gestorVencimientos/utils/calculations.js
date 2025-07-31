@@ -40,6 +40,12 @@ const esVenta = (operacion) =>
   typeof operacion === "string" &&
   operacion.toLowerCase().startsWith("Facturacion FV");
 
+// helper para la fecha Excel
+function convertirExcelDateToJSDate(excelDate) {
+  const fechaBase = new Date(1899, 11, 30);
+  return new Date(fechaBase.getTime() + excelDate * 86400000);
+}
+
 export function agruparVentas(movimientos) {
   const ventasPorProducto = {};
   const hoy = new Date();
@@ -76,16 +82,51 @@ export function agruparVentas(movimientos) {
   return ventasPorProducto;
 }
 
-// helper para la fecha Excel
-function convertirExcelDateToJSDate(excelDate) {
-  const fechaBase = new Date(1899, 11, 30);
-  return new Date(fechaBase.getTime() + excelDate * 86400000);
-}
+// export function calcularDSIPorProducto(stockList, ventasPorProducto) {
+//   const resultado = [];
+//   for (const item of stockList) {
+//     const id = item.IDProducto;
+//     const stockActual = parseFloat(item.Cantidad || 0);
+//     const ventasAnuales = ventasPorProducto[id] || 0;
 
-export function calcularDSIPorProducto(stockList, ventasPorProducto) {
+//     // ⛔️ Ignorar productos sin stock y sin ventas
+//     if (stockActual === 0 && ventasAnuales === 0) continue;
+
+//     const ventasDiarias = ventasAnuales / 365;
+
+//     const dsi =
+//       ventasDiarias > 0
+//         ? stockActual / ventasDiarias
+//         : stockActual > 0
+//         ? Infinity
+//         : 0;
+
+//     resultado.push({
+//       IDProducto: id,
+//       producto: item.producto,
+//       dsi: dsi,
+//       stock: stockActual,
+//       ventasAnuales,
+//       codebar: item.Codebar, // ✅ agregar esto
+//       precio: item.Precio ?? 0,
+//       costo: item.costo ?? 0,
+//     });
+//   }
+
+//   return resultado;
+// }
+
+
+export function calcularDSIPorProducto(stockList, ventasPorProducto, devolucionesPorVencimiento) {
   const resultado = [];
+
+  // Creamos un Set de IDs de productos con devoluciones
+  const idsConDevolucion = new Set(
+    devolucionesPorVencimiento.map((item) => String(item.IDProducto))
+  );
+
   for (const item of stockList) {
-    const id = item.IDProducto;
+    const id = String(item.IDProducto);
     const stockActual = parseFloat(item.Cantidad || 0);
     const ventasAnuales = ventasPorProducto[id] || 0;
 
@@ -104,17 +145,20 @@ export function calcularDSIPorProducto(stockList, ventasPorProducto) {
     resultado.push({
       IDProducto: id,
       producto: item.producto,
-      dsi: dsi,
+      dsi,
       stock: stockActual,
       ventasAnuales,
-      codebar: item.Codebar, // ✅ agregar esto
+      codebar: item.Codebar,
       precio: item.Precio ?? 0,
       costo: item.costo ?? 0,
+      tuvoDevolucionVencimiento: idsConDevolucion.has(id),
     });
   }
 
   return resultado;
 }
+
+
 
 export function agruparRecepcionesDesdeSucursales(movimientos) {
   const recepcionesPorProducto = {};
@@ -136,8 +180,6 @@ export function agruparRecepcionesDesdeSucursales(movimientos) {
 
   return recepcionesPorProducto;
 }
-
-
 
 export function listarProductosRecibidos(recepcionesPorProducto, stock) {
   const normalizeId = (id) => String(id).trim();
@@ -166,12 +208,12 @@ export function calcularDevolucionesPorVencimiento(movimientos) {
   for (const mov of movimientos) {
     const id = mov.IDProducto;
     const cantidad = parseFloat(mov.Cantidad || 0);
-    const operacion = mov.Operacion?.toLowerCase() || ""
+    const operacion = mov.Operacion?.toLowerCase() || "";
 
     const esDevolucion =
       operacion.includes("baja de stock - vencido") ||
-      operacion.includes("devolucion por vencimiento")  ||
-      operacion.includes("vence")
+      operacion.includes("devolucion por vencimiento") ||
+      operacion.includes("vence");
 
     if (esDevolucion && !isNaN(cantidad)) {
       devolucionesPorProducto[id] =
@@ -261,7 +303,7 @@ export function calcularProductosDeMovimientoLento(
   const hoy = new Date();
   const fechaCorte = new Date(hoy);
   fechaCorte.setMonth(hoy.getMonth() - mesesSinVenta);
-console.log("stockData",stockData)
+  console.log("stockData", stockData);
   const ventasPorProducto = {};
 
   for (const mov of movimientos) {
@@ -425,7 +467,7 @@ export function detectarProductosQuePerdieronRotacion(movimientos, stockData) {
 export function calcularIndiceMermaMensual(movimientos, stockData) {
   const ventasPorMes = {};
   const devolucionesPorMes = {};
-console.log("stockData en vencimientos", stockData)
+  console.log("stockData en vencimientos", stockData);
   // Creamos un Set con los codebar de interés
   const codigosDeInteres = new Set(stockData?.map((p) => p.Codebar));
 
@@ -444,21 +486,24 @@ console.log("stockData en vencimientos", stockData)
 
     if (!(fecha instanceof Date) || isNaN(fecha.getTime())) continue;
 
-    const mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
+    const mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}`;
 
     const esVenta =
-      operacion.includes("facturacion") &&
-      operacion.includes("fv");
+      operacion.includes("facturacion") && operacion.includes("fv");
 
     const esDevolucionVencimiento =
       operacion.includes("vencido") ||
       operacion.includes("devolucion por vencimiento") ||
-       operacion.includes("vencer") 
+      operacion.includes("vencer");
 
     if (esVenta) {
       ventasPorMes[mes] = (ventasPorMes[mes] || 0) + Math.abs(total);
     } else if (esDevolucionVencimiento) {
-      devolucionesPorMes[mes] = (devolucionesPorMes[mes] || 0) + Math.abs(total);
+      devolucionesPorMes[mes] =
+        (devolucionesPorMes[mes] || 0) + Math.abs(total);
     }
   }
 
@@ -469,8 +514,9 @@ console.log("stockData en vencimientos", stockData)
   return todosLosMeses.map((mes) => {
     const ventas = ventasPorMes[mes] || 0;
     const vencimientos = devolucionesPorMes[mes] || 0;
-    const total = ventas ;
-    const indice = total > 0 ? parseFloat(((vencimientos / total) * 100).toFixed(2)) : 0;
+    const total = ventas;
+    const indice =
+      total > 0 ? parseFloat(((vencimientos / total) * 100).toFixed(2)) : 0;
 
     return {
       mes,
@@ -481,3 +527,45 @@ console.log("stockData en vencimientos", stockData)
   });
 }
 
+export function calcularVentasMensuales(movimientos, stockData) {
+  const ventasPorMes = {};
+
+  const codigosDeInteres = new Set(stockData?.map((p) => p.Codebar));
+
+  for (const mov of movimientos) {
+    if (!codigosDeInteres.has(mov.Codebar)) continue;
+
+    const operacion = mov.Operacion?.toLowerCase() || "";
+    const total = parseFloat(mov.Total || 0);
+    if (isNaN(total)) continue;
+
+    const fecha =
+      typeof mov.Fecha === "number"
+        ? convertirExcelDateToJSDate(mov.Fecha)
+        : new Date(mov.Fecha);
+
+    if (!(fecha instanceof Date) || isNaN(fecha.getTime())) continue;
+
+    const mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}`;
+
+    const esVenta =
+      operacion.includes("facturacion") && operacion.includes("fv");
+
+    if (esVenta) {
+      ventasPorMes[mes] = (ventasPorMes[mes] || 0) + Math.abs(total);
+    }
+  }
+
+  // Convertir el objeto a array ordenado por mes
+  const resultado = Object.entries(ventasPorMes)
+    .sort(([mesA], [mesB]) => mesA.localeCompare(mesB))
+    .map(([mes, ventas]) => ({
+      mes,
+      ventas,
+    }));
+
+  return resultado;
+}

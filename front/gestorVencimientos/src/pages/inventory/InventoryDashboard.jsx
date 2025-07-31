@@ -20,6 +20,7 @@ import {
   calcularDSIPorProducto,
   calcularIndiceMermaMensual,
   calcularProductosDeMovimientoLento,
+  calcularVentasMensuales,
   detectarProductosQuePerdieronRotacion,
   listarProductosRecibidos,
   mapearDevolucionesConProductos,
@@ -41,6 +42,7 @@ export default function InventoryDashboard() {
     movimientoPerdido,
     setMovimientoPerdido,
     setMermaPorVencimiento,
+    setVentaMensual,
   } = useInventoryStore();
 
   const [movimientos, setMovimientos] = useState([]);
@@ -133,12 +135,21 @@ export default function InventoryDashboard() {
       );
     }
 
+    //CALCULO VENCIDOS
+
+    const devoluciones = mapearDevolucionesConProductos(
+      movimientos,
+      stockFiltrado
+    );
+    setDevolucionesPorVencimiento(devoluciones);
+
     const ventasPorProducto = agruparVentas(movimientos);
     const resultadoDSI = calcularDSIPorProducto(
       stockFiltrado,
-      ventasPorProducto
+      ventasPorProducto,
+      devoluciones
     );
-
+    console.log("resultadoDSI", resultadoDSI);
     resultadoDSI.sort((a, b) => {
       if (a.dsi === Infinity) return -1;
       if (b.dsi === Infinity) return 1;
@@ -180,14 +191,6 @@ export default function InventoryDashboard() {
     );
     setMovimientoLento(productosLentos);
 
-    //CALCULO VENCIDOS
-
-    const devoluciones = mapearDevolucionesConProductos(
-      movimientos,
-      stockFiltrado
-    );
-    setDevolucionesPorVencimiento(devoluciones);
-
     //CALCULO DE RECEPCION DE OTRAS SUCURALES
     const recepcionesPorProducto =
       agruparRecepcionesDesdeSucursales(movimientos);
@@ -201,9 +204,13 @@ export default function InventoryDashboard() {
     setProductosRecibidos(productosRecibidos);
 
     //CALCULO VENCIDOS EN RELACION A LAS VENTAS DEL MES
-    const mermaMensual = calcularIndiceMermaMensual(movimientos,stockFiltrado)
-    console.log("mermaMensual",mermaMensual)
+    const mermaMensual = calcularIndiceMermaMensual(movimientos, stockFiltrado);
     setMermaPorVencimiento(mermaMensual);
+
+    //CALCULO VENTA MENSUAL
+    const ventaMensual = calcularVentasMensuales(movimientos, stockFiltrado);
+    console.log("ventaMensual", ventaMensual);
+    setVentaMensual(mermaMensual);
   };
 
   return (

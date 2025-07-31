@@ -15,7 +15,7 @@ import {
 
 export default function IndiceMermaMensualChart() {
   const mermaPorVencimiento = useInventoryStore((s) => s.mermaPorVencimiento);
-
+  const ventaMensual = useInventoryStore((s) => s.ventaMensual);
   const formatoPesos = (valor) =>
     new Intl.NumberFormat("es-AR", {
       style: "currency",
@@ -52,7 +52,7 @@ export default function IndiceMermaMensualChart() {
             dataKey="vencimientos"
             fill="#82ca9d"
             name="Dinero"
-            
+            barSize={40}
           >
             <LabelList
               dataKey="vencimientos"
@@ -99,6 +99,55 @@ export default function IndiceMermaMensualChart() {
           </Line>
         </LineChart>
       </ResponsiveContainer>
+
+      {/* <h3>📉 Ventas (mensual)</h3>
+      <ResponsiveContainer width="100%" height={350}>
+        <LineChart data={ventaMensual}>
+          <CartesianGrid stroke="#a19b9b" />
+          <XAxis dataKey="mes" />
+          <YAxis yAxisId="left" unit="%" />
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            tickFormatter={formatoPesos}
+          />
+          <Tooltip
+            formatter={(value, name) => {
+              if (name === "Dinero") {
+                return [`${formatoPesos(value)}`, name];
+              }
+              return [`${value.toFixed(1)}%`, name];
+            }}
+            contentStyle={{ fontWeight: "bold" }}
+            labelStyle={{ fontWeight: "bold" }}
+          />
+          <Bar
+            yAxisId="right"
+            dataKey="ventas"
+            fill="#82ca9d"
+            name="Dinero"
+            barSize={40}
+          >
+            <LabelList
+              dataKey="ventas"
+              position="top"
+              formatter={formatoPesos}
+              content={({ x, y, value }) => (
+                <text
+                  x={x}
+                  y={y - 4}
+                  fill="#333"
+                  fontSize={12}
+                  textAnchor="middle"
+                  fontWeight="bold"
+                >
+                  {formatoPesos(value)}
+                </text>
+              )}
+            />
+          </Bar>
+        </LineChart>
+      </ResponsiveContainer> */}
     </div>
   );
 }

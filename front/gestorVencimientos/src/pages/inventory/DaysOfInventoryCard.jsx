@@ -68,6 +68,17 @@ function getColumns() {
       width: 160,
       renderCell: (params) => renderDSI(params.value),
     },
+    {
+      field: "tuvoDevolucionVencimiento",
+      headerName: "¿Dev por venc?",
+      width: 250,
+      renderCell: (params) =>
+        params.value ? (
+          <Chip label="Sí" color="error" size="small" />
+        ) : (
+          <Chip label="No" color="default" size="small" />
+        ),
+    },
   ];
 }
 function renderDSI(dsi) {
