@@ -20,6 +20,7 @@ import {
   removeMultipleProductsFromList,
   updateTagDate,
   getProductsFromLists,
+  getUploadLogsByBranch,
 } from '../controllers/productListController.js';
 import { comparePricesByDateSeparateCollections } from '../controllers/historyPruceController.js';
 import ProductList from '../models/ProductList.js';
@@ -28,7 +29,7 @@ import { updateFromStockImport } from '../controllers/productList/updateFromStoc
 const productListRoutes = express.Router();
 
 productListRoutes.post('/', createProductList);
-productListRoutes.get('/:id', getProductListById); // <-- NUEVA RUTA
+
 productListRoutes.get('/branch/:branchId', getProductListsByBranch);
 productListRoutes.post('/products', getProductsFromLists); //<-- me trae todos los productos de las listas seleccionadas
 
@@ -82,7 +83,9 @@ productListRoutes.post("/:id/update-last-tag-date", async (req, res) => {
 });
 
 //CON PAGIACION
+productListRoutes.get("/upload-logs/by-branch", getUploadLogsByBranch);
 productListRoutes.get("/:listId/upload-logs", getUploadLogs);
+
 productListRoutes.get('/:listId/compare-prices', comparePricesByDate);
 
 productListRoutes.get('/:listId/products-to-retag', getProductsToRetag);
@@ -92,7 +95,7 @@ productListRoutes.put("/:id/quick-products", updateQuickProducts);
 productListRoutes.delete("/:id/quick-products", clearQuickProducts ); // <- esta es la nueva
 productListRoutes.patch("/lists/:listId/product/:productId/tag-date", updateTagDate);
 
-
+productListRoutes.get('/:id', getProductListById); // <-- NUEVA RUTA
 
 productListRoutes.post("/update-from-stock-import", updateFromStockImport);
 

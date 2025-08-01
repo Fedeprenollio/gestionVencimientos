@@ -303,7 +303,6 @@ export function calcularProductosDeMovimientoLento(
   const hoy = new Date();
   const fechaCorte = new Date(hoy);
   fechaCorte.setMonth(hoy.getMonth() - mesesSinVenta);
-  console.log("stockData", stockData);
   const ventasPorProducto = {};
 
   for (const mov of movimientos) {
@@ -467,7 +466,6 @@ export function detectarProductosQuePerdieronRotacion(movimientos, stockData) {
 export function calcularIndiceMermaMensual(movimientos, stockData) {
   const ventasPorMes = {};
   const devolucionesPorMes = {};
-  console.log("stockData en vencimientos", stockData);
   // Creamos un Set con los codebar de interés
   const codigosDeInteres = new Set(stockData?.map((p) => p.Codebar));
 

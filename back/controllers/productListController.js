@@ -1542,6 +1542,37 @@ export const getUploadLogs = async (req, res) => {
   }
 };
 
+// controllers/uploadLogsController.js
+
+export const getUploadLogsByBranch = async (req, res) => {
+  try {
+    const { branchId } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // 1. Buscar listas de la sucursal
+    const lists = await ProductList.find({branch: branchId }).select('_id');
+    const listIds = lists.map(list => list._id);
+console.log("lists",lists)
+    // 2. Buscar logs de esas listas
+    const [logs, total] = await Promise.all([
+      PriceUploadLog.find({ listId: { $in: listIds } })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      PriceUploadLog.countDocuments({ listId: { $in: listIds } }),
+    ]);
+
+    res.json({ logs, total });
+  } catch (error) {
+    console.error("Error al obtener logs por sucursal:", error);
+    res.status(500).json({ message: "Error del servidor" });
+  }
+};;
+
+
+
 export const getProductsToRetagByList = async (req, res) => {
   try {
     const { listId } = req.params;

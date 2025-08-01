@@ -1,6 +1,6 @@
 // src/components/price/UploadLogs.jsx
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -21,13 +21,15 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { TrendingUp, TrendingDown, NewReleases } from "@mui/icons-material";
-import { fetchUploadLogs } from "../../api/productApi";
+import { fetchUploadLogs, fetchUploadLogsByBranch } from "../../api/productApi";
 import { exportToTXT } from "../../../utils/exportUtils";
 import HistoryIcon from "@mui/icons-material/History";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
 export default function UploadLogs() {
   const { listId } = useParams();
+  const location = useLocation();
+const branchId = new URLSearchParams(location.search).get("branch");
   const [logs, setLogs] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -52,22 +54,45 @@ export default function UploadLogs() {
     },
   };
 
-  const loadLogs = async () => {
-    try {
-      setLoading(true);
-      const res = await fetchUploadLogs(listId, page);
-      setLogs(res.logs || []);
-      setTotalPages(Math.ceil(res.total / 10));
-    } catch (err) {
-      console.error("Error cargando logs", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const loadLogs = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const res = await fetchUploadLogs(listId, page);
+  //     setLogs(res.logs || []);
+  //     setTotalPages(Math.ceil(res.total / 10));
+  //   } catch (err) {
+  //     console.error("Error cargando logs", err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
-  useEffect(() => {
-    loadLogs();
-  }, [listId, page]);
+  const loadLogs = async () => {
+  try {
+    setLoading(true);
+    let res;
+
+    if (listId) {
+      res = await fetchUploadLogs(listId, page);
+    } else if (branchId) {
+      res = await fetchUploadLogsByBranch(branchId, page);
+    }
+
+    setLogs(res.logs || []);
+    setTotalPages(Math.ceil((res.total || 0) / 10));
+  } catch (err) {
+    console.error("Error cargando logs", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+console.log("LOGS", logs)
+
+ useEffect(() => {
+  if (listId || branchId) loadLogs();
+}, [listId, branchId, page]);
+
 
   const exportCodes = (products, filename) => {
     const codes = products.map((p) => p.barcode);

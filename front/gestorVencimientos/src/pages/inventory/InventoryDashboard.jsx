@@ -149,7 +149,6 @@ export default function InventoryDashboard() {
       ventasPorProducto,
       devoluciones
     );
-    console.log("resultadoDSI", resultadoDSI);
     resultadoDSI.sort((a, b) => {
       if (a.dsi === Infinity) return -1;
       if (b.dsi === Infinity) return 1;
@@ -209,8 +208,7 @@ export default function InventoryDashboard() {
 
     //CALCULO VENTA MENSUAL
     const ventaMensual = calcularVentasMensuales(movimientos, stockFiltrado);
-    console.log("ventaMensual", ventaMensual);
-    setVentaMensual(mermaMensual);
+    setVentaMensual(ventaMensual);
   };
 
   return (

@@ -113,7 +113,7 @@ export default function BranchListSelector() {
       </Button>
       <Button
         variant="contained"
-         sx={{ mb: 2 }}
+        sx={{ mb: 2 }}
         color="success"
         // disabled={selectedLists.length === 0}
         onClick={() =>
@@ -123,6 +123,14 @@ export default function BranchListSelector() {
         }
       >
         Actualizar precios de listas seleccionadas
+      </Button>
+      <Button
+        variant="contained"
+        color="secondary"
+        onClick={() => navigate(`/historial-cargas?branch=${selectedBranch}`)}
+        disabled={!selectedBranch}
+      >
+        Ver historial de cambios de precios de la sucursal
       </Button>
 
       {loadingLists ? (
@@ -191,14 +199,14 @@ export default function BranchListSelector() {
                     Generar txt para etiquetas
                   </Button>
 
-                  <Button
+                  {/* <Button
                     variant="outlined"
                     size="small"
                     color="success"
                     onClick={() => navigate(`/list/${list._id}/analyze-prices`)}
                   >
                     Analizar precios
-                  </Button>
+                  </Button> */}
 
                   <Button
                     variant="outlined"
@@ -207,7 +215,7 @@ export default function BranchListSelector() {
                       navigate(`/listas/${list._id}/historial-cargas`)
                     }
                   >
-                    Ver historial de cargas
+                    Ver historial de precios
                   </Button>
                 </Box>
               </Box>

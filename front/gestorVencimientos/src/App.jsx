@@ -159,6 +159,9 @@ function App() {
                 path="/listas/:listId/historial-cargas"
                 element={<UploadLogs />}
               />
+
+              <Route path="/historial-cargas" element={<UploadLogs />} />
+
               {/* <Route path="/stock-count" element={<QuickStockCountPage />} /> */}
               <Route path="/stock-count" element={<StockCountListPage />} />
               <Route
