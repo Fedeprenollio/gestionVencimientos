@@ -1571,7 +1571,75 @@ console.log("lists",lists)
   }
 };;
 
+export const getUploadLogsByBranchGroupedByDate = async (req, res) => {
+  try {
+    const { branchId } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
+    // 1. Buscar listas de la sucursal
+    const lists = await ProductList.find({ branch: branchId }).select('_id');
+    const listIds = lists.map(list => list._id);
+
+    // 2. Agrupar logs por fecha (solo día)
+    const aggregation = [
+      { $match: { listId: { $in: listIds } } },
+
+      // Agregar campo solo con fecha (sin hora) para agrupar
+      {
+        $addFields: {
+          dateOnly: {
+            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+          },
+        },
+      },
+
+      // Agrupar por dateOnly
+      {
+        $group: {
+          _id: "$dateOnly",
+          logs: { $push: "$$ROOT" }, // mete todos los logs de ese día en un array
+          count: { $sum: 1 },
+        },
+      },
+
+      // Ordenar por fecha descendente
+      { $sort: { _id: -1 } },
+
+      // Paginación en grupos
+      { $skip: skip },
+      { $limit: limit },
+    ];
+
+    const groupedLogs = await PriceUploadLog.aggregate(aggregation);
+
+    // Para total de grupos (número de días con logs)
+    const totalGroups = await PriceUploadLog.aggregate([
+      { $match: { listId: { $in: listIds } } },
+      {
+        $addFields: {
+          dateOnly: {
+            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$dateOnly",
+        },
+      },
+      { $count: "total" },
+    ]);
+
+    const total = totalGroups[0]?.total || 0;
+
+    res.json({ groupedLogs, total });
+  } catch (error) {
+    console.error("Error al obtener logs agrupados por fecha:", error);
+    res.status(500).json({ message: "Error del servidor" });
+  }
+};
 
 export const getProductsToRetagByList = async (req, res) => {
   try {

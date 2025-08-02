@@ -23,36 +23,9 @@ import ListSubheader from "@mui/material/ListSubheader";
 
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
-import {
-  agruparVentas,
-  calcularDSIPorProducto,
-} from "../../../utils/calculations";
 import { exportToExcel } from "./exporttoexcel";
 import useInventoryStore from "../../store/useInventoryStore";
 
-function getDSILabel(dsi) {
-  if (dsi === Infinity) return "Sin consumo";
-  if (dsi <= 20) return "Muy bajo";
-  if (dsi <= 60) return "Bajo";
-  if (dsi <= 180) return "Medio";
-  return "Alto";
-}
-
-function getDSIColor(dsi) {
-  if (dsi === Infinity) return "error";
-  if (dsi <= 20) return "warning";
-  if (dsi <= 60) return "success";
-  if (dsi <= 180) return "secondary";
-  return "error";
-}
-
-function getDSIIcon(dsi) {
-  if (dsi === Infinity) return <ReportProblemIcon />;
-  if (dsi <= 20) return <PriorityHighIcon />;
-  if (dsi <= 60) return <CheckCircleIcon />;
-  if (dsi <= 180) return <AccessTimeIcon />;
-  return <WarningIcon />;
-}
 
 function getColumns() {
   return [
@@ -282,43 +255,7 @@ const dsiResultado = useMemo(() => {
         )}
       />
 
-      {/* <Autocomplete
-        multiple
-        disableCloseOnSelect
-        options={filteredOptions}
-        getOptionLabel={(option) => option.title}
-        isOptionEqualToValue={(option, value) => option.title === value.title}
-        value={selectedProducts}
-        inputValue={inputValue}
-        onInputChange={(e, val) => setInputValue(val)}
-        onChange={(event, newValue) => setSelectedProducts(newValue)}
-        renderOption={(props, option, { selected }) => {
-          const { key, ...optionProps } = props;
-          return (
-            <li key={key} {...optionProps}>
-              <Checkbox
-                icon={icon}
-                checkedIcon={checkedIcon}
-                style={{ marginRight: 8 }}
-                checked={selected}
-              />
-              {option.title}
-            </li>
-          );
-        }}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Seleccionar productos"
-            placeholder="Ej: amoxi, ibu..."
-            helperText={
-              inputValue.length < 3
-                ? "Escribí al menos 3 letras para refinar la búsqueda"
-                : ""
-            }
-          />
-        )}
-      /> */}
+    
       <Box display="flex" gap={2} my={2}>
         {/* <Button
           variant="outlined"

@@ -3,6 +3,31 @@ import { DataGrid } from "@mui/x-data-grid";
 import { Box, Typography, CircularProgress } from "@mui/material";
 import useInventoryStore from "../../store/useInventoryStore";
 import { detectarProductosQuePerdieronRotacion } from "../../../utils/calculations";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import { Button } from "@mui/material";
+
+function exportToExcel({
+  data,
+  fileName = "export.xlsx",
+  sheetName = "Sheet1",
+}) {
+  if (!data || data.length === 0) {
+    console.warn("No hay datos para exportar");
+    return;
+  }
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+  const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+
+  saveAs(blob, fileName);
+}
+
 
 const columns = [
   { field: "nombre", headerName: "Producto", flex: 2 },
@@ -35,6 +60,19 @@ console.log("movimientoPerdido",movimientoPerdido)
           autoHeight
         />
       )}
+         <Button
+              variant="contained"
+              color="success"
+              sx={{ ml: 2 }}
+              onClick={() =>
+                exportToExcel({
+                  data: movimientoPerdido,
+                  fileName: `indicador de perdida de rotacion.xlsx`,
+                })
+              }
+            >
+              Exportar a Excel
+            </Button>
     </Box>
   );
 }

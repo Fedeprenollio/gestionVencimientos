@@ -37,6 +37,9 @@ export function exportToExcel({ modo, dsiResultado, selectedProducts }) {
       "Ventas Anuales": Number(item.ventasAnuales) || 0,
       "Días de Inventario":
         item.dsi === Infinity ? "∞" : Number(item.dsi.toFixed(0)),
+       "¿Dev por venc?": item.tuvoDevolucionVencimiento ? "Sí" : "No",
+       
+
     };
 
     if (categorias[nivel]) {
