@@ -51,6 +51,8 @@ import HistorialStock from "./pages/importar/HistorialStock.jsx";
 import TutorialPage from "./pages/TutorialPage.jsx";
 import InventoryDashboard from "./pages/inventory/InventoryDashboard.jsx";
 import VentasUsuarios from "./pages/user/VentasUsuarios.jsx";
+import PromotionForm from "./components/PromotionForm.jsx";
+import { PromotionsPage } from "./pages/promotions/PromotionsPage.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -123,13 +125,11 @@ function App() {
               <Route path="/stock-search" element={<SearchStockPage />} />
               <Route path="/user" element={<UserCreatePage />} />
               <Route path="/users/ventas" element={<VentasUsuarios />} />
-
               <Route path="/branches" element={<BranchList />} />
               <Route path="/branches/new" element={<BranchForm />} />
               <Route path="/branches/:id" element={<BranchForm />} />
               {/* <Route path="/lists" element={<ProductListList />} /> */}
               <Route path="/lists" element={<MainTabs />} />
-
               <Route path="/lists/new" element={<ProductListForm />} />
               <Route path="/lists/edit/:id" element={<ProductListForm />} />
               <Route
@@ -159,9 +159,7 @@ function App() {
                 path="/listas/:listId/historial-cargas"
                 element={<UploadLogs />}
               />
-
               <Route path="/historial-cargas" element={<UploadLogs />} />
-
               {/* <Route path="/stock-count" element={<QuickStockCountPage />} /> */}
               <Route path="/stock-count" element={<StockCountListPage />} />
               <Route
@@ -172,7 +170,6 @@ function App() {
                 path="/stock-count/:listId"
                 element={<QuickStockCount />}
               />
-
               <Route
                 path="/lists/drug-returns"
                 element={<VencimientosPage />}
@@ -188,19 +185,19 @@ function App() {
               <Route path="/importar-productos" element={<ImportProducts />} />
               <Route path="/importar-stock" element={<ImportarStock />} />
               <Route path="/historial-stock" element={<HistorialStock />} />
-
               <Route
                 path="/InventoryDashboard"
                 element={<InventoryDashboard />}
               />
-
+              <Route path="/promotions" element={<PromotionsPage />} />
+              
+              <Route path="/promotions/new" element={<PromotionForm />} />
               {/* <Route
                 path="/lists/drug-returns"
                 element={<ReturnListManager />}
               /> */}
               <Route path="*" element={<Productos />} />
               <Route path="/analisis" element={<StockAnalysisUploader />} />
-
               <Route
                 path="/lists/:listId/products-to-retag"
                 element={<ProductsToRetag />}

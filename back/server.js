@@ -12,6 +12,7 @@ import stockCounterRouter from './routes/stockCountRoutes.js';
 import returnListRoutes from './routes/returnListRoutes.js';
 import routerStock from './routes/stockRoutes.js';
 import routerImportStock from "./routes/stockImportRoutes.js"
+import promotionRoutes from "./routes/promotionRoutes.js";
 
 
 const allowedOrigins = [
@@ -52,6 +53,7 @@ app.use('/product-lists', productListRoutes);
 app.use('/stock-count', stockCounterRouter);
 app.use("/return-lists", returnListRoutes);
 app.use("/stock", routerStock);
+app.use("/promotions", promotionRoutes);
 // app.post('/parse-barcode', (req, res) => {
 //   const code = req.body.code;
 //   const result = parseBarcode(code);

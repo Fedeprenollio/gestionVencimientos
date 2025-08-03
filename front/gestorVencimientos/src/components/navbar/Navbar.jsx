@@ -391,7 +391,6 @@
 //   );
 // }
 
-
 import React, { useState } from "react";
 import {
   AppBar,
@@ -417,11 +416,20 @@ import MenuIcon from "@mui/icons-material/Menu";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import PromoNotifications from "../PromoNotifications";
+import useBranchStore from "../../store/useBranchStore";
 
-export default function Navbar({ currentUser, onToggleTheme, mode, onChangeUser }) {
+export default function Navbar({
+  currentUser,
+  onToggleTheme,
+  mode,
+  onChangeUser,
+}) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
+  const { branches, selectedBranchId } = useBranchStore();
+  // Buscar la sucursal seleccionada por su ID
+  const selectedBranch = branches.find((b) => b._id === selectedBranchId);
   const [anchorElProd, setAnchorElProd] = useState(null);
   const [anchorElLote, setAnchorElLote] = useState(null);
   const [anchorElStock, setAnchorElStock] = useState(null);
@@ -429,7 +437,7 @@ export default function Navbar({ currentUser, onToggleTheme, mode, onChangeUser 
   const [anchorElList, setAnchorElList] = useState(null);
   const [anchorElUseful, setAnchorElUseful] = useState(null);
   const [anchorElHelp, setAnchorElHelp] = useState(null);
-
+  console.log("selectedBranch",selectedBranch)
   const openProd = Boolean(anchorElProd);
   const openLote = Boolean(anchorElLote);
   const openStock = Boolean(anchorElStock);
@@ -458,7 +466,7 @@ export default function Navbar({ currentUser, onToggleTheme, mode, onChangeUser 
       submenu: [
         { label: "Buscar stock en sucursales", to: "/stock-search" },
         { label: "Ventas sin stock", to: "/stock/stockAnalysiss" },
-         { label: "Dashboard Inventario.", to: "/InventoryDashboard" },  
+        { label: "Dashboard Inventario.", to: "/InventoryDashboard" },
       ],
     },
     {
@@ -467,12 +475,13 @@ export default function Navbar({ currentUser, onToggleTheme, mode, onChangeUser 
         {
           label: "Listas de seguimientos de precio",
           to: "/lists",
-          submenu: [
-            { label: "Etiquetas especiales", to: "/lists?tab=1" },
-          ],
+          submenu: [{ label: "Etiquetas especiales", to: "/lists?tab=1" }],
         },
         { label: "Listas de control de stock", to: "/stock-count" },
-        { label: "Listas de devolución a droguerías", to: "/lists/drug-returns" },
+        {
+          label: "Listas de devolución a droguerías",
+          to: "/lists/drug-returns",
+        },
       ],
     },
     {
@@ -481,11 +490,18 @@ export default function Navbar({ currentUser, onToggleTheme, mode, onChangeUser 
     },
     {
       label: "Usuarios",
-      submenu: [{ label: "Crear usuario", to: "/users/create" },{ label: "Ventas por usuario", to: "/users/ventas" } ],
+      submenu: [
+        { label: "Crear usuario", to: "/users/create" },
+        { label: "Ventas por usuario", to: "/users/ventas" },
+      ],
     },
     {
       label: "Links Útiles",
       submenu: [{ label: "Sucursales y teléfonos", to: "/contacts" }],
+    },
+     {
+      label: "Promociones",
+      submenu: [{ label: "Promociones", to: "/promotions" }],
     },
     {
       label: "Ayuda",
@@ -502,38 +518,93 @@ export default function Navbar({ currentUser, onToggleTheme, mode, onChangeUser 
 
             {!isMobile && (
               <>
-                <Button color="inherit" onClick={(e) => setAnchorElProd(e.currentTarget)}>Productos</Button>
-                <Menu anchorEl={anchorElProd} open={openProd} onClose={() => setAnchorElProd(null)}>
+                <Button
+                  color="inherit"
+                  onClick={(e) => setAnchorElProd(e.currentTarget)}
+                >
+                  Productos
+                </Button>
+                <Menu
+                  anchorEl={anchorElProd}
+                  open={openProd}
+                  onClose={() => setAnchorElProd(null)}
+                >
                   {menuItems[0].submenu.map(({ label, to }) => (
-                    <MenuItem component={Link} to={to} key={label} onClick={() => setAnchorElProd(null)}>
+                    <MenuItem
+                      component={Link}
+                      to={to}
+                      key={label}
+                      onClick={() => setAnchorElProd(null)}
+                    >
                       {label}
                     </MenuItem>
                   ))}
                 </Menu>
 
-                <Button color="inherit" onClick={(e) => setAnchorElLote(e.currentTarget)}>Vencimientos</Button>
-                <Menu anchorEl={anchorElLote} open={openLote} onClose={() => setAnchorElLote(null)}>
+                <Button
+                  color="inherit"
+                  onClick={(e) => setAnchorElLote(e.currentTarget)}
+                >
+                  Vencimientos
+                </Button>
+                <Menu
+                  anchorEl={anchorElLote}
+                  open={openLote}
+                  onClose={() => setAnchorElLote(null)}
+                >
                   {menuItems[1].submenu.map(({ label, to }) => (
-                    <MenuItem component={Link} to={to} key={label} onClick={() => setAnchorElLote(null)}>
+                    <MenuItem
+                      component={Link}
+                      to={to}
+                      key={label}
+                      onClick={() => setAnchorElLote(null)}
+                    >
                       {label}
                     </MenuItem>
                   ))}
                 </Menu>
 
-                <Button color="inherit" onClick={(e) => setAnchorElStock(e.currentTarget)}>Stock</Button>
-                <Menu anchorEl={anchorElStock} open={openStock} onClose={() => setAnchorElStock(null)}>
+                <Button
+                  color="inherit"
+                  onClick={(e) => setAnchorElStock(e.currentTarget)}
+                >
+                  Stock
+                </Button>
+                <Menu
+                  anchorEl={anchorElStock}
+                  open={openStock}
+                  onClose={() => setAnchorElStock(null)}
+                >
                   {menuItems[2].submenu.map(({ label, to }) => (
-                    <MenuItem component={Link} to={to} key={label} onClick={() => setAnchorElStock(null)}>
+                    <MenuItem
+                      component={Link}
+                      to={to}
+                      key={label}
+                      onClick={() => setAnchorElStock(null)}
+                    >
                       {label}
                     </MenuItem>
                   ))}
                 </Menu>
 
-                <Button color="inherit" onClick={(e) => setAnchorElList(e.currentTarget)}>Listas</Button>
-                <Menu anchorEl={anchorElList} open={openList} onClose={() => setAnchorElList(null)}>
+                <Button
+                  color="inherit"
+                  onClick={(e) => setAnchorElList(e.currentTarget)}
+                >
+                  Listas
+                </Button>
+                <Menu
+                  anchorEl={anchorElList}
+                  open={openList}
+                  onClose={() => setAnchorElList(null)}
+                >
                   {menuItems[3].submenu.map((item) => (
                     <Box key={item.label}>
-                      <MenuItem component={Link} to={item.to} onClick={() => setAnchorElList(null)}>
+                      <MenuItem
+                        component={Link}
+                        to={item.to}
+                        onClick={() => setAnchorElList(null)}
+                      >
                         {item.label}
                       </MenuItem>
                       {item.submenu?.map((sub) => (
@@ -551,30 +622,78 @@ export default function Navbar({ currentUser, onToggleTheme, mode, onChangeUser 
                   ))}
                 </Menu>
 
-                <Button color="inherit" component={Link} to="/branches">Sucursales</Button>
+                <Button color="inherit" component={Link} to="/branches">
+                  Sucursales
+                </Button>
 
-                <Button color="inherit" onClick={(e) => setAnchorElUser(e.currentTarget)}>Usuarios</Button>
-                <Menu anchorEl={anchorElUser} open={openUser} onClose={() => setAnchorElUser(null)}>
+                 <Button color="inherit" component={Link} to="/promotions">
+                  Promociones
+                </Button>
+
+                <Button
+                  color="inherit"
+                  onClick={(e) => setAnchorElUser(e.currentTarget)}
+                >
+                  Usuarios
+                </Button>
+                <Menu
+                  anchorEl={anchorElUser}
+                  open={openUser}
+                  onClose={() => setAnchorElUser(null)}
+                >
                   {menuItems[5].submenu.map(({ label, to }) => (
-                    <MenuItem component={Link} to={to} key={label} onClick={() => setAnchorElUser(null)}>
+                    <MenuItem
+                      component={Link}
+                      to={to}
+                      key={label}
+                      onClick={() => setAnchorElUser(null)}
+                    >
                       {label}
                     </MenuItem>
                   ))}
                 </Menu>
 
-                <Button color="inherit" onClick={(e) => setAnchorElUseful(e.currentTarget)}>Links Útiles</Button>
-                <Menu anchorEl={anchorElUseful} open={Boolean(anchorElUseful)} onClose={() => setAnchorElUseful(null)}>
+                <Button
+                  color="inherit"
+                  onClick={(e) => setAnchorElUseful(e.currentTarget)}
+                >
+                  Links Útiles
+                </Button>
+                <Menu
+                  anchorEl={anchorElUseful}
+                  open={Boolean(anchorElUseful)}
+                  onClose={() => setAnchorElUseful(null)}
+                >
                   {menuItems[6].submenu.map(({ label, to }) => (
-                    <MenuItem component={Link} to={to} key={label} onClick={() => setAnchorElUseful(null)}>
+                    <MenuItem
+                      component={Link}
+                      to={to}
+                      key={label}
+                      onClick={() => setAnchorElUseful(null)}
+                    >
                       {label}
                     </MenuItem>
                   ))}
                 </Menu>
 
-                <Button color="inherit" onClick={(e) => setAnchorElHelp(e.currentTarget)}>Ayuda</Button>
-                <Menu anchorEl={anchorElHelp} open={Boolean(anchorElHelp)} onClose={() => setAnchorElHelp(null)}>
+                <Button
+                  color="inherit"
+                  onClick={(e) => setAnchorElHelp(e.currentTarget)}
+                >
+                  Ayuda
+                </Button>
+                <Menu
+                  anchorEl={anchorElHelp}
+                  open={Boolean(anchorElHelp)}
+                  onClose={() => setAnchorElHelp(null)}
+                >
                   {menuItems[7].submenu.map(({ label, to }) => (
-                    <MenuItem component={Link} to={to} key={label} onClick={() => setAnchorElHelp(null)}>
+                    <MenuItem
+                      component={Link}
+                      to={to}
+                      key={label}
+                      onClick={() => setAnchorElHelp(null)}
+                    >
                       {label}
                     </MenuItem>
                   ))}
@@ -589,14 +708,28 @@ export default function Navbar({ currentUser, onToggleTheme, mode, onChangeUser 
             </IconButton>
             {currentUser ? (
               <>
-                <Typography variant="body2">Hola {currentUser.username}</Typography>
-                <Button color="inherit" onClick={onChangeUser}>Cambiar usuario</Button>
+                <Typography variant="body2">
+                  Hola {currentUser.username}
+                </Typography>
+                <Button color="inherit" onClick={onChangeUser}>
+                  Cambiar usuario
+                </Button>
               </>
             ) : (
               <Typography variant="body2">Iniciar sesión</Typography>
             )}
+            {selectedBranch && (
+              <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                {selectedBranch.name}
+              </Typography>
+            )}
+            <PromoNotifications />
             {isMobile && (
-              <IconButton edge="end" color="inherit" onClick={() => setDrawerOpen(true)}>
+              <IconButton
+                edge="end"
+                color="inherit"
+                onClick={() => setDrawerOpen(true)}
+              >
                 <MenuIcon />
               </IconButton>
             )}
@@ -606,7 +739,11 @@ export default function Navbar({ currentUser, onToggleTheme, mode, onChangeUser 
 
       <Toolbar />
 
-      <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+      <Drawer
+        anchor="right"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      >
         <Box sx={{ width: 260, p: 2 }}>
           {menuItems.map(({ label, submenu }) => (
             <Accordion key={label}>
