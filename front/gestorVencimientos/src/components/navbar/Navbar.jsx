@@ -718,12 +718,12 @@ export default function Navbar({
             ) : (
               <Typography variant="body2">Iniciar sesión</Typography>
             )}
-            {selectedBranch && (
+            {selectedBranch && currentUser && (
               <Typography variant="body1" sx={{ fontWeight: "bold" }}>
                 {selectedBranch.name}
               </Typography>
             )}
-            <PromoNotifications />
+               {currentUser && <PromoNotifications /> } 
             {isMobile && (
               <IconButton
                 edge="end"
