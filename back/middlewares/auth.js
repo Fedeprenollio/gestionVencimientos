@@ -4,7 +4,7 @@ import User from '../models/User.js';
 
 export const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  console.log(",authHeader",authHeader)
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Token faltante o inválido' });
   }
@@ -13,7 +13,8 @@ export const authenticate = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select('username fullname');
+    const user = await User.findById(decoded.id).select('username fullname role');
+
     if (!user) {
       return res.status(401).json({ message: 'Usuario no encontrado' });
     }
@@ -23,3 +24,12 @@ export const authenticate = async (req, res, next) => {
     return res.status(401).json({ message: 'Token inválido' });
   }
 };
+
+// middlewares/authorizeAdmin.js
+export const authorizeAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Acceso denegado: solo administradores' });
+  }
+  next();
+};
+

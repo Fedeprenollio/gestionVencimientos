@@ -32,6 +32,10 @@ export default function ProductLotsAccordion({
   onEditLot,
   onDeleteLot,
 }) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const isAdmin = currentUser?.role === "admin";
+
+  console.log("product", product);
   return (
     <Accordion expanded={isExpanded} onChange={onToggleExpand}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -48,6 +52,10 @@ export default function ProductLotsAccordion({
             <Typography variant="body2" color="text.secondary">
               Código: {product.barcode}
             </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Códigos alternativos:{" "}
+              {product.alternateBarcodes?.join(" - ") || "N/A"}
+            </Typography>
           </Box>
 
           <Box>
@@ -59,15 +67,18 @@ export default function ProductLotsAccordion({
             >
               <EditIcon />
             </IconButton>
-            <IconButton
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteProduct(product._id);
-              }}
-              color="error"
-            >
-              <DeleteIcon />
-            </IconButton>
+
+            {isAdmin && (
+              <IconButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteProduct(product._id);
+                }}
+                color="error"
+              >
+                <DeleteIcon />
+              </IconButton>
+            )}
           </Box>
         </Box>
       </AccordionSummary>
@@ -127,52 +138,46 @@ export default function ProductLotsAccordion({
             )} */}
 
             {lots.length > 0 ? (
-  <Table size="small">
-    <TableHead>
-      <TableRow>
-        <TableCell>Vencimiento</TableCell>
-        <TableCell>Cantidad</TableCell>
-        <TableCell>Sucursal</TableCell>
-        <TableCell>Creado por</TableCell>
-        <TableCell align="right">Acciones</TableCell>
-      </TableRow>
-    </TableHead>
-    <TableBody>
-      {lots.map((lot) => (
-        <TableRow key={lot._id}>
-          <TableCell>
-            {new Date(lot.expirationDate).toLocaleDateString()}
-          </TableCell>
-          <TableCell>{lot.quantity}</TableCell>
-          <TableCell>{lot.branch}</TableCell>
-          <TableCell>
-            {lot.createdBy?.username || "N/A"}
-          </TableCell>
-          <TableCell align="right">
-            <IconButton
-              size="small"
-              onClick={() => onEditLot(lot)}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => onDeleteLot(lot)}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </TableCell>
-        </TableRow>
-      ))}
-    </TableBody>
-  </Table>
-) : (
-  <Typography variant="body2">
-    No hay lotes para este producto.
-  </Typography>
-)}
-
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Vencimiento</TableCell>
+                    <TableCell>Cantidad</TableCell>
+                    <TableCell>Sucursal</TableCell>
+                    <TableCell>Creado por</TableCell>
+                    <TableCell align="right">Acciones</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {lots.map((lot) => (
+                    <TableRow key={lot._id}>
+                      <TableCell>
+                        {new Date(lot.expirationDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>{lot.quantity}</TableCell>
+                      <TableCell>{lot.branch}</TableCell>
+                      <TableCell>{lot.createdBy?.username || "N/A"}</TableCell>
+                      <TableCell align="right">
+                        <IconButton size="small" onClick={() => onEditLot(lot)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => onDeleteLot(lot)}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <Typography variant="body2">
+                No hay lotes para este producto.
+              </Typography>
+            )}
           </>
         )}
       </AccordionDetails>

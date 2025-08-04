@@ -30,6 +30,9 @@ const schema = yup.object({
 });
 
 export default function UserCreateForm({ onSubmit }) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const isFederico = currentUser?.username === "Federico";
+
   const {
     control,
     handleSubmit,
@@ -115,7 +118,9 @@ export default function UserCreateForm({ onSubmit }) {
           <FormControl fullWidth margin="normal" error={!!errors.role}>
             <InputLabel>Rol</InputLabel>
             <Select {...field} label="Rol">
-              <MenuItem value="admin">Administrador</MenuItem>
+              <MenuItem value="admin" disabled={!isFederico}>
+                Administrador
+              </MenuItem>
               <MenuItem value="user">Usuario</MenuItem>
             </Select>
             <FormHelperText>{errors.role?.message}</FormHelperText>

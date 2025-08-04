@@ -53,6 +53,9 @@ import InventoryDashboard from "./pages/inventory/InventoryDashboard.jsx";
 import VentasUsuarios from "./pages/user/VentasUsuarios.jsx";
 import PromotionForm from "./components/PromotionForm.jsx";
 import { PromotionsPage } from "./pages/promotions/PromotionsPage.jsx";
+import axios from "axios";
+import usePromoStore from "./store/usePromoStore.js";
+import { AppRoutes } from "./AppRoutes.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -80,11 +83,35 @@ function App() {
     if (savedUser) setCurrentUser(savedUser);
   }, []);
 
-  const handleLogin = (userData) => {
+  // const handleLogin = (userData) => {
+  //   localStorage.setItem("currentUser", JSON.stringify(userData.user));
+  //   localStorage.setItem("token", userData.token); // ✅ guardar el token
+  //   setCurrentUser(userData.user);
+  //   setShowLogin(false);
+  // };
+
+  const handleLogin = async (userData) => {
     localStorage.setItem("currentUser", JSON.stringify(userData.user));
-    localStorage.setItem("token", userData.token); // ✅ guardar el token
+    localStorage.setItem("token", userData.token);
     setCurrentUser(userData.user);
     setShowLogin(false);
+
+    // ✅ También cargamos promos vencidas
+    const selectedBranchId = localStorage.getItem("selectedBranchId");
+    if (selectedBranchId) {
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/promotions/expired`,
+          {
+            params: { branchId: selectedBranchId },
+            headers: { Authorization: `Bearer ${userData.token}` },
+          }
+        );
+        usePromoStore.getState().setPromotions(res.data);
+      } catch (error) {
+        console.error("Error cargando promociones vencidas:", error);
+      }
+    }
   };
 
   const handleLogout = () => {
@@ -114,96 +141,17 @@ function App() {
             onChangeUser={handleLogout}
           />
 
-          {showLogin && <LoginPage onLogin={handleLogin} />}
+          {showLogin ? (
+            <Routes>
+              <Route path="/users/create" element={<UserCreatePage />} />
+              <Route path="*" element={<LoginPage onLogin={handleLogin} />} />
+            </Routes>
+          ) : (
+            <AppRoutes />
+          )}
 
           {/* Contenido principal */}
-          <Box sx={{ flexGrow: 1, px: 2, pb: 4 }}>
-            <Routes>
-              <Route path="/productos" element={<Productos />} />
-              <Route path="/lotes/cargar" element={<ProductForm />} />
-              <Route path="/expiring" element={<LotList />} />
-              <Route path="/stock-search" element={<SearchStockPage />} />
-              <Route path="/user" element={<UserCreatePage />} />
-              <Route path="/users/ventas" element={<VentasUsuarios />} />
-              <Route path="/branches" element={<BranchList />} />
-              <Route path="/branches/new" element={<BranchForm />} />
-              <Route path="/branches/:id" element={<BranchForm />} />
-              {/* <Route path="/lists" element={<ProductListList />} /> */}
-              <Route path="/lists" element={<MainTabs />} />
-              <Route path="/lists/new" element={<ProductListForm />} />
-              <Route path="/lists/edit/:id" element={<ProductListForm />} />
-              <Route
-                path="/lists/:listId/add-products"
-                element={<AddProductsLocal />}
-              />
-              <Route
-                path="/lists/:listId/analyze-sales"
-                element={<BarcodeSalesAnalyzer />}
-              />
-              <Route path="/products/import" element={<ImportProducts />} />
-              <Route path="/users/create" element={<UserCreatePage />} />
-              <Route path="/products/prices" element={<ProductPrices />} />
-              <Route
-                path="/list/:listId/analyze-prices"
-                element={<AnalyzePriceChanges />}
-              />
-              <Route
-                path="/lists/:listId/upload-prices"
-                element={<UploadPrices />}
-              />
-              <Route
-                path="/lists/upload-prices-multiple"
-                element={<UploadPricesMultiple />}
-              />
-              <Route
-                path="/listas/:listId/historial-cargas"
-                element={<UploadLogs />}
-              />
-              <Route path="/historial-cargas" element={<UploadLogs />} />
-              {/* <Route path="/stock-count" element={<QuickStockCountPage />} /> */}
-              <Route path="/stock-count" element={<StockCountListPage />} />
-              <Route
-                path="/stock-count/new"
-                element={<CreateStockCountList />}
-              />
-              <Route
-                path="/stock-count/:listId"
-                element={<QuickStockCount />}
-              />
-              <Route
-                path="/lists/drug-returns"
-                element={<VencimientosPage />}
-              />
-              <Route
-                path="/stock/stockAnalysiss"
-                element={<ImportStockAnalysis />}
-              />
-              <Route path="/contacts" element={<SucursalesContactList />} />
-              <Route path="/help" element={<TutorialPage />} />
-              {/* //IMPORTACION DE STOCK  */}
-              {/* <Route path="/" element={<Navigate to="/importar-stock" />} /> */}
-              <Route path="/importar-productos" element={<ImportProducts />} />
-              <Route path="/importar-stock" element={<ImportarStock />} />
-              <Route path="/historial-stock" element={<HistorialStock />} />
-              <Route
-                path="/InventoryDashboard"
-                element={<InventoryDashboard />}
-              />
-              <Route path="/promotions" element={<PromotionsPage />} />
-              
-              <Route path="/promotions/new" element={<PromotionForm />} />
-              {/* <Route
-                path="/lists/drug-returns"
-                element={<ReturnListManager />}
-              /> */}
-              <Route path="*" element={<Productos />} />
-              <Route path="/analisis" element={<StockAnalysisUploader />} />
-              <Route
-                path="/lists/:listId/products-to-retag"
-                element={<ProductsToRetag />}
-              />
-            </Routes>
-          </Box>
+
           {/* Footer */}
           <Box
             component="footer"

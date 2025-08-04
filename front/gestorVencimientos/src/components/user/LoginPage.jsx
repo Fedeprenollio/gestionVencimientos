@@ -15,6 +15,7 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import axios from "axios";
 import SucursalSelector from "../SucursalSelector";
+import { useNavigate } from "react-router-dom";
 
 export default function LoginPage({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -22,14 +23,18 @@ export default function LoginPage({ onLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const theme = useTheme();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/users/login`, {
-        username,
-        password,
-      });
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/users/login`,
+        {
+          username,
+          password,
+        }
+      );
       onLogin(res.data);
     } catch (err) {
       setError("Usuario o contraseña incorrectos");
@@ -42,7 +47,8 @@ export default function LoginPage({ onLogin }) {
         elevation={4}
         sx={{
           p: 3,
-          backgroundColor: theme.palette.mode === "light" ? "#f5f5f5" : "#2c2c2c",
+          backgroundColor:
+            theme.palette.mode === "light" ? "#f5f5f5" : "#2c2c2c",
           borderRadius: 2,
           width: "100%",
           maxWidth: "70%",
@@ -57,7 +63,14 @@ export default function LoginPage({ onLogin }) {
         </Box>
 
         <form onSubmit={handleSubmit}>
-          <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2, mb: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              gap: 2,
+              mb: 2,
+            }}
+          >
             <TextField
               label="Usuario"
               size="small"
@@ -86,10 +99,8 @@ export default function LoginPage({ onLogin }) {
               }}
             />
           </Box>
-                
-                
-                
-              <SucursalSelector/>
+
+          <SucursalSelector />
           {error && (
             <Typography color="error" sx={{ mb: 2 }}>
               {error}
@@ -100,6 +111,16 @@ export default function LoginPage({ onLogin }) {
             Ingresar
           </Button>
         </form>
+        <Button
+          variant="contained"
+          color="secondary"
+          fullWidth
+          size="small"
+          sx={{ mt: 1 }}
+          onClick={() => navigate("/users/create")}
+        >
+          Crear cuenta
+        </Button>
       </Paper>
     </Box>
   );

@@ -4,38 +4,49 @@ import { IconButton, Badge, Menu, MenuItem, Typography } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import useBranchStore from "../store/useBranchStore"; // para obtener sucursal seleccionada
 import axios from "axios";
+import usePromoStore from "../store/usePromoStore";
 
 export default function PromoNotifications() {
   const { selectedBranchId } = useBranchStore();
   const [anchorEl, setAnchorEl] = useState(null);
-  const [promotions, setPromotions] = useState([]);
-    console.log("promotions",promotions)
-  useEffect(() => {
-    if (!selectedBranchId) return;
+const promotions = usePromoStore((s) => s.promotions);
+const setPromotions = usePromoStore((s) => s.setPromotions); // si tu store lo define
 
-    const fetchPromos = async () => {
-      try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/promotions/expired`,
-          { params: { branchId: selectedBranchId } }
-        );
-        setPromotions(res.data);
-      } catch (error) {
-        console.error("Error fetching expired promotions", error);
-      }
-    };
+ useEffect(() => {
+  if (!selectedBranchId) return;
 
-    fetchPromos();
-
-    // Opcional: refrescar cada 10 minutos
-    const intervalId = setInterval(fetchPromos, 10 * 60 * 1000);
-
-    return () => clearInterval(intervalId);
-  }, [selectedBranchId]);
-
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
+  const fetchPromos = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/promotions/expired`,
+        { params: { branchId: selectedBranchId } }
+      );
+      setPromotions(res.data); // <- usando el setter del store
+    } catch (error) {
+      console.error("Error fetching expired promotions", error);
+    }
   };
+
+  fetchPromos();
+}, [selectedBranchId]);
+
+  // const handleClick = (event) => {
+  //   setAnchorEl(event.currentTarget);
+  // };
+  const handleClick = async (event) => {
+  setAnchorEl(event.currentTarget);
+
+  try {
+    const res = await axios.get(
+      `${import.meta.env.VITE_API_URL}/promotions/expired`,
+      { params: { branchId: selectedBranchId } }
+    );
+    setPromotions(res.data);
+  } catch (error) {
+    console.error("Error fetching expired promotions", error);
+  }
+};
+
   const handleClose = () => {
     setAnchorEl(null);
   };

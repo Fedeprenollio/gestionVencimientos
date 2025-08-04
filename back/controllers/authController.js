@@ -13,6 +13,14 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: "Usuario ya existe" });
     }
 
+
+     // Validación: solo Federico puede crear admins
+    if (role === "admin") {
+      if (!req.user || req.user.username !== "Federico") {
+        return res.status(403).json({ message: "No tienes permiso para crear usuarios admin" });
+      }
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
     const newUser = new User({ username, fullname, passwordHash, role });
     await newUser.save();
@@ -37,7 +45,7 @@ export const login = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, username: user.username, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "1d" }
     );
 
     res.json({
