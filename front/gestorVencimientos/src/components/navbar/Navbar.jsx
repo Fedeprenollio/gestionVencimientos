@@ -313,25 +313,28 @@ export default function Navbar({
             <IconButton onClick={onToggleTheme} color="inherit">
               {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>
-            {currentUser ? (
+            { !isMobile &&  currentUser ? (
               <>
                 <Typography variant="body2">
                   Hola {currentUser.username}
                 </Typography>
+                 <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                {selectedBranch.name}
+              </Typography>
                 <Button color="inherit" onClick={onChangeUser}>
                   Cambiar usuario
                 </Button>
               </>
-            ) : (
+            ) :  !isMobile &&  (
               <Button color="inherit" component={Link} to="/login">
                 Iniciar sesión
               </Button>
             )}
-            {selectedBranch && currentUser && (
+            {/* {selectedBranch && currentUser && (
               <Typography variant="body1" sx={{ fontWeight: "bold" }}>
                 {selectedBranch.name}
               </Typography>
-            )}
+            )} */}
             {currentUser && <PromoNotifications />}
             {isMobile && (
               <IconButton
@@ -354,6 +357,37 @@ export default function Navbar({
         onClose={() => setDrawerOpen(false)}
       >
         <Box sx={{ width: 260, p: 2 }}>
+          {isMobile && (
+            <Box sx={{ mt: 2 }}>
+              {currentUser ? (
+                <>
+                  <Typography variant="body1" fontWeight="bold" sx={{ px: 1 }}>
+                    Hola {currentUser.username}
+                  </Typography>
+                  <Button
+                    // button
+                  
+                    onClick={() => {
+                      setDrawerOpen(false);
+                      onChangeUser();
+                    }}
+                  >
+                    <ListItemText primary="Cambiar usuario" />
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  
+                  component={Link}
+                  to="/login"
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  <ListItemText primary="Iniciar sesión" />
+                </Button>
+              )}
+            </Box>
+          )}
+
           {menuItems.map(({ label, submenu }) => (
             <Accordion key={label}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
