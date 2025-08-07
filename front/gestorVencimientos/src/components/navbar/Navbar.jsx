@@ -313,22 +313,24 @@ export default function Navbar({
             <IconButton onClick={onToggleTheme} color="inherit">
               {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>
-            { !isMobile &&  currentUser ? (
+            {!isMobile && currentUser ? (
               <>
                 <Typography variant="body2">
                   Hola {currentUser.username}
                 </Typography>
-                 <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                {selectedBranch.name}
-              </Typography>
+                <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                  {selectedBranch.name}
+                </Typography>
                 <Button color="inherit" onClick={onChangeUser}>
                   Cambiar usuario
                 </Button>
               </>
-            ) :  !isMobile &&  (
-              <Button color="inherit" component={Link} to="/login">
-                Iniciar sesión
-              </Button>
+            ) : (
+              !isMobile && (
+                <Button color="inherit" component={Link} to="/login">
+                  Iniciar sesión
+                </Button>
+              )
             )}
             {/* {selectedBranch && currentUser && (
               <Typography variant="body1" sx={{ fontWeight: "bold" }}>
@@ -364,9 +366,12 @@ export default function Navbar({
                   <Typography variant="body1" fontWeight="bold" sx={{ px: 1 }}>
                     Hola {currentUser.username}
                   </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: "bold", px: 1 }}>
+                    {selectedBranch.name}
+                  </Typography>
                   <Button
                     // button
-                  
+
                     onClick={() => {
                       setDrawerOpen(false);
                       onChangeUser();
@@ -377,7 +382,6 @@ export default function Navbar({
                 </>
               ) : (
                 <Button
-                  
                   component={Link}
                   to="/login"
                   onClick={() => setDrawerOpen(false)}
