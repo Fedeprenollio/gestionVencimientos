@@ -319,7 +319,7 @@ export default function Navbar({
                   Hola {currentUser.username}
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                  {selectedBranch.name}
+                  {selectedBranch?.name}
                 </Typography>
                 <Button color="inherit" onClick={onChangeUser}>
                   Cambiar usuario
@@ -367,7 +367,7 @@ export default function Navbar({
                     Hola {currentUser.username}
                   </Typography>
                   <Typography variant="body1" sx={{ fontWeight: "bold", px: 1 }}>
-                    {selectedBranch.name}
+                    {selectedBranch?.name}
                   </Typography>
                   <Button
                     // button
