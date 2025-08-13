@@ -185,35 +185,55 @@ export default function AddProductsLocal() {
   };
 
 
-  const handleBulkRemove = async () => {
-    if (!window.confirm("¿Estás seguro que querés eliminar estos productos?"))
-      return;
-    setLoadingBulk(true);
+  // const handleBulkRemove = async () => {
+  //   if (!window.confirm("¿Estás seguro que querés eliminar estos productos?"))
+  //     return;
+  //   setLoadingBulk(true);
+  //   const codesToRemove = parseBarcodes(bulkRemoveInput);
+  //   console.log("codesToRemove",codesToRemove)
+  //   const codeToProductMap = {};
+  //   list.products.forEach((p) => {
+  //     if (p.product?.barcode) {
+  //       codeToProductMap[p.product.barcode.trim()] = p.product._id;
+  //     }
+  //   });
 
-    const codesToRemove = parseBarcodes(bulkRemoveInput);
-    const codeToProductMap = {};
-    list.products.forEach((p) => {
-      if (p.product?.barcode) {
-        codeToProductMap[p.product.barcode.trim()] = p.product._id;
-      }
-    });
+  //   const productIds = codesToRemove
+  //     .map((code) => codeToProductMap[code])
+  //     .filter(Boolean);
 
-    const productIds = codesToRemove
-      .map((code) => codeToProductMap[code])
-      .filter(Boolean);
+  //   try {
+  //     console.log("productIds",productIds)
+  //     await removeMultipleProductsFromList(listId, productIds);
+  //     showFeedback("Productos eliminados correctamente");
+  //     setBulkRemoveInput("");
+  //     loadList();
+  //   } catch (err) {
+  //     console.error(err);
+  //     showFeedback("Error al eliminar productos", "error");
+  //   } finally {
+  //     setLoadingBulk(false);
+  //   }
+  // };
+const handleBulkRemove = async () => {
+  if (!window.confirm("¿Estás seguro que querés eliminar estos productos?"))
+    return;
 
-    try {
-      await removeMultipleProductsFromList(listId, productIds);
-      showFeedback("Productos eliminados correctamente");
-      setBulkRemoveInput("");
-      loadList();
-    } catch (err) {
-      console.error(err);
-      showFeedback("Error al eliminar productos", "error");
-    } finally {
-      setLoadingBulk(false);
-    }
-  };
+  setLoadingBulk(true);
+  const codesToRemove = parseBarcodes(bulkRemoveInput); // aquí están los códigos
+
+  try {
+    await removeMultipleProductsFromList(listId, codesToRemove); // ahora mando códigos directamente
+    showFeedback("Productos eliminados correctamente");
+    setBulkRemoveInput("");
+    loadList();
+  } catch (err) {
+    console.error(err);
+    showFeedback("Error al eliminar productos", "error");
+  } finally {
+    setLoadingBulk(false);
+  }
+};
 
   const handleRemoveSelected = async () => {
     if (!window.confirm("¿Eliminar los productos seleccionados?")) return;
