@@ -1910,29 +1910,71 @@ export const addMultipleProductsToList = async (req, res) => {
 };
 
 
+// export const removeMultipleProductsFromList = async (req, res) => {
+//   const { listId } = req.params;
+//   const { productIds } = req.body;
+// console.log("productIds",productIds)
+//   if (!Array.isArray(productIds)) {
+//     return res.status(400).json({ message: "Se requiere un array de IDs" });
+//   }
+
+//   try {
+//     const list = await ProductList.findById(listId);
+//     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
+
+//     const originalCount = list.products.length;
+
+//     list.products = list.products.filter(
+//       (entry) => !productIds.includes(entry.product.toString())
+//     );
+//     console.log("products para eliminar",list)
+//     const removedCount = originalCount - list.products.length;
+
+//     await list.save();
+
+//     res.json({ removedCount });
+//   } catch (err) {
+//     console.error("Error al eliminar múltiples productos:", err);
+//     res.status(500).json({ message: "Error interno del servidor" });
+//   }
+// };
 export const removeMultipleProductsFromList = async (req, res) => {
   const { listId } = req.params;
-  const { productIds } = req.body;
-console.log("productIds",productIds)
+  const { productIds } = req.body; // en realidad son códigos
+
   if (!Array.isArray(productIds)) {
-    return res.status(400).json({ message: "Se requiere un array de IDs" });
+    return res.status(400).json({ message: "Se requiere un array de códigos" });
   }
 
   try {
     const list = await ProductList.findById(listId);
     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
 
+    // 1. Buscar IDs de productos que coincidan con los códigos enviados
+    const productsToRemove = await Product.find({
+      $or: [
+        { barcode: { $in: productIds } },
+        { alternateBarcodes: { $in: productIds } }
+      ]
+    }).select("_id");
+
+    const idsToRemove = productsToRemove.map(p => p._id.toString());
+
+    // 2. Filtrar la lista usando esos IDs
     const originalCount = list.products.length;
 
     list.products = list.products.filter(
-      (entry) => !productIds.includes(entry.product.toString())
+      entry => !idsToRemove.includes(entry.product.toString())
     );
-    console.log("products para eliminar",list)
+
     const removedCount = originalCount - list.products.length;
 
     await list.save();
 
-    res.json({ removedCount });
+    res.json({
+      removedCount,
+      removedProducts: productsToRemove.map(p => p._id)
+    });
   } catch (err) {
     console.error("Error al eliminar múltiples productos:", err);
     res.status(500).json({ message: "Error interno del servidor" });
