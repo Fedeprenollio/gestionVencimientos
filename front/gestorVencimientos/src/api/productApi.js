@@ -69,8 +69,8 @@ export const fetchUploadLogs = async (listId,page) => {
   console.log("res",res.data)
   return res;
 };
-export const fetchUploadLogsByBranch = async (branchId, page) => {
-  const res = await api.get(`/product-lists/upload-logs/by-branch?branchId=${branchId}&page=${page}`);
+export const fetchUploadLogsByBranch = async (branchId, page,searchTerm) => {
+  const res = await api.get(`/product-lists/upload-logs/by-branch?branchId=${branchId}&page=${page}&search=${searchTerm}`);
   return res;
 };
 

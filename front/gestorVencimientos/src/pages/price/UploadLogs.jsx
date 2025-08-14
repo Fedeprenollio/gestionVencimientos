@@ -25,6 +25,7 @@ import { fetchUploadLogs, fetchUploadLogsByBranch } from "../../api/productApi";
 import { exportToTXT } from "../../../utils/exportUtils";
 import HistoryIcon from "@mui/icons-material/History";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import { TextField } from "@mui/material";
 
 export default function UploadLogs() {
   const { listId } = useParams();
@@ -35,6 +36,17 @@ const branchId = new URLSearchParams(location.search).get("branch");
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [pageMap, setPageMap] = useState({}); // local pagination for each log/group
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  // --- debounce: actualiza debouncedSearch 500ms después de dejar de tipear ---
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1); // reiniciamos página cuando cambia búsqueda
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const groupLabels = {
     priceIncreased: {
@@ -73,9 +85,9 @@ const branchId = new URLSearchParams(location.search).get("branch");
     let res;
 
     if (listId) {
-      res = await fetchUploadLogs(listId, page);
+      res = await fetchUploadLogs(listId, page, searchTerm);
     } else if (branchId) {
-      res = await fetchUploadLogsByBranch(branchId, page);
+      res = await fetchUploadLogsByBranch(branchId, page, searchTerm);
     }
 
     setLogs(res.logs || []);
@@ -87,19 +99,23 @@ const branchId = new URLSearchParams(location.search).get("branch");
   }
 };
 
-console.log("LOGS", logs)
 
- useEffect(() => {
-  if (listId || branchId) loadLogs();
-}, [listId, branchId, page]);
+//  useEffect(() => {
+//   if (listId || branchId) loadLogs();
+// }, [listId, branchId, page, searchTerm]);
 
-
+  // llamamos a la API sólo si no hay búsqueda o si tiene al menos 3 letras
+  useEffect(() => {
+    if ((debouncedSearch && debouncedSearch.length >= 3) || debouncedSearch === "") {
+      if (listId || branchId) loadLogs();
+    }
+  }, [listId, branchId, page, debouncedSearch]);
   const exportCodes = (products, filename) => {
     const codes = products.map((p) => p.barcode);
     exportToTXT(codes, filename);
   };
 
-  if (loading) return <CircularProgress />;
+  // if (loading) return <CircularProgress />;
 
   return (
     <Box p={2}>
@@ -109,8 +125,24 @@ console.log("LOGS", logs)
           Historial de cargas de precios
         </Typography>
       </Box>
+        {/* Input de búsqueda */}
+      <Box mb={2}>
+        <TextField
+          label="Buscar por lista"
+          variant="outlined"
+          size="small"
+          fullWidth
+          value={searchTerm}
+          onChange={(e) => {
+            setPage(1); // resetea a la página 1 al buscar
+            setSearchTerm(e.target.value);
+          }}
+        />
+      </Box>
+          {loading && <CircularProgress /> }
+
       {logs.length === 0 ? (
-        <Typography>No hay registros aún.</Typography>
+        <Typography>No hay registros que coincidan.</Typography>
       ) : (
         <>
           {logs.map((log) => {
