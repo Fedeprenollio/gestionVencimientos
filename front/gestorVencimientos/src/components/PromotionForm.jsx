@@ -10,10 +10,15 @@ import dayjs from "dayjs";
 import SucursalSelector from "./SucursalSelector";
 import useBranchStore from "../store/useBranchStore";
 import axios from "axios";
+import usePromoStore from "../store/usePromoStore";
 
 export default function PromotionForm() {
   const { handleSubmit, control, reset } = useForm();
   const { selectedBranchId } = useBranchStore();
+const getAllPromotions = usePromoStore((s) => s.getAllPromotions);
+const getExpiredPromotions = usePromoStore((s) => s.getExpiredPromotions);
+
+
 
   const onSubmit = async (data) => {
     if (!selectedBranchId) {
@@ -25,11 +30,12 @@ export default function PromotionForm() {
       ...data,
       branchId: selectedBranchId,
     };
-console.log("dataWithSucursal",dataWithSucursal)
     try {
      await axios.post(import.meta.env.VITE_API_URL+"/promotions",  dataWithSucursal )
 
       alert("Promoción creada correctamente");
+      getAllPromotions(selectedBranchId)
+      getExpiredPromotions(selectedBranchId)
       reset();
     } catch (error) {
       console.error("Error al guardar:", error);
