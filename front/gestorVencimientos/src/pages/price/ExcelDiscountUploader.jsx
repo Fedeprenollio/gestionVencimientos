@@ -212,7 +212,9 @@ const ExcelDiscountUploader = ({
       <DialogContent>
         <Typography variant="body2" gutterBottom>
           Subí un archivo Excel con columnas <strong>Codebar</strong>,{" "}
-          <strong>Unitario</strong> y <strong>Descuento</strong> (Nombre es
+
+          {/* <strong>Unitario</strong> */}
+           y <strong>Descuento</strong> (Nombre es
           opcional)
         </Typography>
         <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />

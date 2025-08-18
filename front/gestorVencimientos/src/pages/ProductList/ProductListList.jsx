@@ -125,6 +125,7 @@ export default function BranchListSelector() {
         Actualizar precios de listas seleccionadas
       </Button>
       <Button
+        sx={{ mb: 2 }}
         variant="contained"
         color="secondary"
         onClick={() => navigate(`/historial-cargas?branch=${selectedBranch}`)}

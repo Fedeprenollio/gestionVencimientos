@@ -13,6 +13,7 @@ import {
   TableCell,
   TableRow,
   TableBody,
+  TextField,
 } from "@mui/material";
 import ClasicasInput from "./ClasicasInput";
 import EspecialesInput from "./EspecialesInput";
@@ -56,12 +57,10 @@ const [especiales, setEspeciales] = useState(() => {
   const [openClearDialog, setOpenClearDialog] = useState(false);
   const clasicosConStock = clasicos.filter((p) => p.stock > 0);
   const clasicosSinStock = clasicos.filter((p) => !p.stock || p.stock <= 0);
-  console.log("especiales,", especiales);
   const especialesConStock = especiales.filter((p) => p.stock > 0);
-  console.log("especialesConStock", especialesConStock);
   const especialesSinStock = especiales.filter((p) => !p.stock || p.stock <= 0);
-  console.log("especialesSinStock", especialesSinStock);
   const [importId, setImportId] = useState(false);
+  const [scale, setScale] = useState(1); // valor por defecto = 1
 
   const { selectedBranchId } = useBranchStore();
 
@@ -361,7 +360,7 @@ const [especiales, setEspeciales] = useState(() => {
         <Tab label="Etiquetas Especiales" />
       </Tabs>
       <Box display="flex" flexDirection="column" gap={2} mb={2}>
-        <Box
+        {/* <Box
           sx={{
             border: "1px solid #ccc",
             borderRadius: 2,
@@ -379,7 +378,7 @@ const [especiales, setEspeciales] = useState(() => {
           <Button variant="contained" onClick={() => setOpenModal(true)}>
             Subir archivo Excel
           </Button>
-        </Box>
+        </Box> */}
 
         <Box
           sx={{
@@ -389,7 +388,7 @@ const [especiales, setEspeciales] = useState(() => {
           }}
         >
           <Typography variant="subtitle1" fontWeight="bold">
-            🔁 Aplicar importación reciente
+            🔁 Aplicar importación reciente de precios y stocks
           </Typography>
           <Typography variant="body2" mb={1}>
             Usa la última importación aplicada a esta sucursal y actualiza solo
@@ -476,6 +475,23 @@ const [especiales, setEspeciales] = useState(() => {
         </Box>
       )}
 
+
+ {/* 🔧 Input para scale */}
+      {tabIndex === 1 && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle2">Escala de impresión</Typography>
+          <TextField
+            type="number"
+            value={scale}
+            onChange={(e) => setScale(Number(e.target.value))}
+            inputProps={{ step: 0.1, min: 0.1, max: 3 }}
+            size="small"
+          />
+        </Box>
+      )}
+
+
+
       {tabIndex === 1 && (
         <Box>
           <EspecialesInput
@@ -515,7 +531,7 @@ const [especiales, setEspeciales] = useState(() => {
                 color="success"
                 sx={{ mt: 2 }}
                 onClick={() =>
-                  generatePDF_Grandes({ especiales: especialesConStock })
+                  generatePDF_Grandes({ especiales: especialesConStock, scale })
                 }
               >
                 Generar PDF (con stock)
@@ -555,7 +571,7 @@ const [especiales, setEspeciales] = useState(() => {
                 color="warning"
                 sx={{ mt: 2 }}
                 onClick={() =>
-                  generatePDF_Grandes({ especiales: especialesSinStock })
+                  generatePDF_Grandes({ especiales: especialesSinStock, scale })
                 }
               >
                 Generar PDF (sin stock)
