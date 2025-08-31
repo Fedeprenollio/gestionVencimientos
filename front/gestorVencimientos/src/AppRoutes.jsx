@@ -33,6 +33,7 @@ import ProductPrices from "./pages/price/ProductPrices";
 import StockCountForm from "./pages/quickStockCount/StockCountForm";
 import InventoryDashboard from "./pages/inventory/InventoryDashboard";
 import MovementAnalyzer from "./pages/StockAnalysisUploader";
+import WhatsAppQR from "./pages/whatsapp/WhatsAppQR";
 
 export const AppRoutes = () => {
   return (
@@ -91,6 +92,7 @@ export const AppRoutes = () => {
         <Route path="/historial-stock" element={<HistorialStock />} />
         <Route path="/InventoryDashboard" element={<InventoryDashboard />} />
         <Route path="/promotions" element={<PromotionsPage />} />
+        <Route path="/whatsapp" element={<WhatsAppQR />} />
 
         <Route path="/promotions/new" element={<PromotionForm />} />
         {/* <Route

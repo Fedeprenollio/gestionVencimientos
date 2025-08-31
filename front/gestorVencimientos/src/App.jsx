@@ -56,6 +56,7 @@ import { PromotionsPage } from "./pages/promotions/PromotionsPage.jsx";
 import axios from "axios";
 import usePromoStore from "./store/usePromoStore.js";
 import { AppRoutes } from "./AppRoutes.jsx";
+import WhatsAppFloating from "./pages/whatsapp/WhatsAppFloating.jsx";
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -173,6 +174,8 @@ function App() {
             </Typography>
           </Box>
         </Box>
+        <WhatsAppFloating />
+
       </LocalizationProvider>
     </ThemeProvider>
   );
