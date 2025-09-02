@@ -33,5 +33,11 @@ export const addQuickProductsToList = (listId, quickProducts) =>
 
 export const getQuickProductsFromList = (listId) =>
   api.get(`/product-lists/${listId}/quick-products`);
+
 export const clearQuickProductsFromList = (listId) =>
   api.delete(`${BASE}/${listId}/quick-products`);
+
+export const deleteProductList = async (listId) => {
+  const { data } = await api.delete(`/product-lists/${listId}`);
+  return data;
+};

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchBranches } from "../../api/branchApi";
-import { getProductListsByBranch } from "../../api/listApi";
+import { getProductListsByBranch,deleteProductList  } from "../../api/listApi";
 import {
   Box,
   MenuItem,
@@ -11,6 +11,10 @@ import {
   CircularProgress,
   Button,
   Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { exportToTXT } from "../../../utils/exportUtils";
@@ -18,13 +22,16 @@ import ProductLabelManager from "../price/ProductLabelManager";
 import { Checkbox, FormControlLabel } from "@mui/material"; // Agregá esto
 import { useEffect } from "react";
 import AddIcon from "@mui/icons-material/Add"; // al inicio del archivo
+import DeleteIcon from "@mui/icons-material/Delete";
 
 export default function BranchListSelector() {
   const [selectedLists, setSelectedLists] = useState([]);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedBranch, setSelectedBranch] = useState(() => {
     return localStorage.getItem("lastSelectedBranch") || "";
   });
+  const [listToDelete, setListToDelete] = useState(null); // 👈 lista a eliminar
 
   useEffect(() => {
     if (selectedBranch) {
@@ -64,6 +71,17 @@ export default function BranchListSelector() {
   //     setSelectedLists(lists.map((l) => l._id)); // seleccionadas todas por defecto
   //   }
   // }, [lists]);
+
+
+   // 🔥 Mutación para eliminar lista
+  const deleteMutation = useMutation({
+    mutationFn: (listId) => deleteProductList(listId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["productListsByBranch", selectedBranch]);
+      setListToDelete(null); // cerrar diálogo
+    },
+  });
+
 
   const handleExport = (list) => {
     const codes =
@@ -164,7 +182,7 @@ export default function BranchListSelector() {
                     {list.name}
                   </Typography>
                 </Box>
-
+             
                 {/* Botones con diseño responsive */}
                 <Box
                   display="flex"
@@ -218,14 +236,47 @@ export default function BranchListSelector() {
                   >
                     Ver historial de precios
                   </Button>
+                      <Button
+                    variant="outlined"
+                    size="small"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => setListToDelete(list)}
+                  >
+                    Eliminar
+                  </Button>
+
                 </Box>
               </Box>
             </Paper>
           ))}
         </List>
+
+        
       )}
+
+          {/* Diálogo de confirmación */}
+      <Dialog open={!!listToDelete} onClose={() => setListToDelete(null)}>
+        <DialogTitle>Confirmar eliminación</DialogTitle>
+        <DialogContent>
+          ¿Seguro que deseas eliminar la lista{" "}
+          <b>{listToDelete?.name}</b>? Esta acción no se puede deshacer.
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setListToDelete(null)}>Cancelar</Button>
+          <Button
+            color="error"
+            onClick={() => deleteMutation.mutate(listToDelete._id)}
+            disabled={deleteMutation.isLoading}
+          >
+            {deleteMutation.isLoading ? "Eliminando..." : "Eliminar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* <ProductLabelManager /> */}
     </Box>
   );
 }
+
+
