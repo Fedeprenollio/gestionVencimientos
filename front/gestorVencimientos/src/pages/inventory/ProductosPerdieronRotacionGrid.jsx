@@ -1,8 +1,7 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import { Box, Typography, CircularProgress } from "@mui/material";
 import useInventoryStore from "../../store/useInventoryStore";
-import { detectarProductosQuePerdieronRotacion } from "../../../utils/calculations";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { Button } from "@mui/material";

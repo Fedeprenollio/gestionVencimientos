@@ -70,12 +70,10 @@ export function agruparVentas(movimientos) {
       typeof operacion === "string" &&
       operacion.toLowerCase().includes("facturacion") &&
       operacion.toLowerCase().includes("fv");
-
     if (esVenta && !isNaN(cantidad)) {
-      if (fecha >= unAnioAtras && fecha <= hoy) {
-        ventasPorProducto[id] =
-          (ventasPorProducto[id] || 0) + Math.abs(cantidad);
-      }
+      // if (fecha >= unAnioAtras && fecha <= hoy) {
+      ventasPorProducto[id] = (ventasPorProducto[id] || 0) + Math.abs(cantidad);
+      // }
     }
   }
 
@@ -116,8 +114,11 @@ export function agruparVentas(movimientos) {
 //   return resultado;
 // }
 
-
-export function calcularDSIPorProducto(stockList, ventasPorProducto, devolucionesPorVencimiento) {
+export function calcularDSIPorProducto(
+  stockList,
+  ventasPorProducto,
+  devolucionesPorVencimiento
+) {
   const resultado = [];
 
   // Creamos un Set de IDs de productos con devoluciones
@@ -152,13 +153,21 @@ export function calcularDSIPorProducto(stockList, ventasPorProducto, devolucione
       precio: item.Precio ?? 0,
       costo: item.costo ?? 0,
       tuvoDevolucionVencimiento: idsConDevolucion.has(id),
+      fechaUltimoPrecio: excelDateToJSDate(item.FechaUltimoPrecio),
+      laboratorio: item.Laboratorio,
+      rubro: item.Rubro,
     });
   }
 
   return resultado;
 }
-
-
+function excelDateToJSDate(serial) {
+  // Excel empieza el 1 de enero de 1900 como día 1
+  const excelEpoch = new Date(1900, 0, 1);
+  const days = serial - 1; // porque el día 1 en Excel es 1900-01-01
+  excelEpoch.setDate(excelEpoch.getDate() + days);
+  return excelEpoch;
+}
 
 export function agruparRecepcionesDesdeSucursales(movimientos) {
   const recepcionesPorProducto = {};
@@ -224,22 +233,6 @@ export function calcularDevolucionesPorVencimiento(movimientos) {
   return devolucionesPorProducto;
 }
 
-// export function mapearDevolucionesConProductos(movimientos, productos) {
-//   console.log("productos", productos);
-//   const resumen = calcularDevolucionesPorVencimiento(movimientos);
-
-//   return Object.entries(resumen).map(([id, cantidad]) => {
-//    const producto = productos.find((p) => String(p.IDProducto) === String(id)) || {};
-
-//     return {
-//       IDProducto: id,
-//       nombre: producto.producto || "(Sin nombre)", // <- Aquí el cambio
-//       codebar: producto.Codebar || "-", // Asegurate de respetar mayúsculas/minúsculas
-//       cantidad,
-//     };
-//   });
-// }
-
 export function mapearDevolucionesConProductos(movimientos, productos) {
   const resumen = calcularDevolucionesPorVencimiento(movimientos);
 
@@ -266,33 +259,6 @@ export function mapearDevolucionesConProductos(movimientos, productos) {
     })
     .filter((item) => item !== null); // Eliminar los nulos del resultado
 }
-
-// export function mapearDevolucionesConProductos(movimientos, productos) {
-//   console.log("productos??",productos)
-//   const resumen = calcularDevolucionesPorVencimiento(movimientos);
-
-//   return Object.entries(resumen).map(([id, cantidad]) => {
-//     const producto =
-//       productos.find((p) => String(p.IDProducto) === String(id)) || {};
-
-//     // Precio unitario: puede ser producto.Precio, producto.Unitario o 0 si no existe
-//     const precioUnitario = producto.Precio || producto.Unitario || 0;
-
-//     // Calcular pérdida total
-//     const perdidaTotal = precioUnitario * cantidad;
-
-//     return {
-//       IDProducto: id,
-//       nombre: producto.producto || "(Sin nombre)",
-//       codebar: producto.Codebar || "-",
-//       cantidad,
-//       precioUnitario,
-//       perdidaTotal,
-//     };
-//   });
-// }
-
-// utils/calculations.js
 
 export function calcularProductosDeMovimientoLento(
   movimientos,
@@ -565,5 +531,110 @@ export function calcularVentasMensuales(movimientos, stockData) {
       ventas,
     }));
 
+  return resultado;
+}
+
+export function calcularABCDSI(stockData, movimientos) {
+  // 1️⃣ Ventas anuales por producto
+  const ventasPorProducto = agruparVentas(movimientos);
+
+  // 2️⃣ Calcular DSI por producto
+  const dsiPorProducto = calcularDSIPorProducto(
+    stockData,
+    ventasPorProducto,
+    []
+  );
+
+  // 3️⃣ Calcular valor anual para ABC
+  const productosConValor = dsiPorProducto.map((item) => {
+    const valorAnual = (item.ventasAnuales || 0) * (item.precio || 0);
+    return {
+      ...item,
+      valorAnual,
+    };
+  });
+
+  // 4️⃣ Ordenar por valor anual descendente
+  productosConValor.sort((a, b) => b.valorAnual - a.valorAnual);
+
+  // 5️⃣ Calcular % individual, % acumulado y categoría ABC
+  const totalValor = productosConValor.reduce(
+    (sum, p) => sum + p.valorAnual,
+    0
+  );
+  let acumulado = 0;
+
+  for (const p of productosConValor) {
+    // % individual del producto sobre el total
+    p.porcentajeIndividual =
+      totalValor > 0 ? (p.valorAnual / totalValor) * 100 : 0;
+
+    // % acumulado
+    acumulado += p.valorAnual;
+    p.porcentajeAcumulado = totalValor > 0 ? (acumulado / totalValor) * 100 : 0;
+
+    // Categoría ABC
+    if (p.porcentajeAcumulado <= 80) {
+      p.categoriaABC = "A";
+    } else if (p.porcentajeAcumulado <= 95) {
+      p.categoriaABC = "B";
+    } else {
+      p.categoriaABC = "C";
+    }
+  }
+
+  return productosConValor;
+}
+
+export function analizarStockEntreSucursales(
+  sucursalesData,
+  umbralBajo = 180,
+  umbralAlto = 365
+) {
+  const resultado = {};
+
+  for (const sucursal of sucursalesData) {
+    const { sucursalId, stockData, movimientos } = sucursal;
+    console.log("sucursalId", sucursalId);
+    // 1️⃣ Ventas anuales
+    const ventasPorProducto = agruparVentas(movimientos);
+
+    // 2️⃣ DSI por producto
+    const dsiPorProducto = calcularDSIPorProducto(
+      stockData,
+      ventasPorProducto,
+      []
+    );
+
+    for (const p of dsiPorProducto) {
+      // console.log(
+      //   "Producto:",
+      //   p.IDProducto,
+      //   "Nombre:",
+      //   p.producto,
+      //   "Sucursal:",
+      //   sucursalId,
+      //   "DSI:",
+      //   p.dsi
+      // );
+      if (!resultado[p.IDProducto]) {
+        resultado[p.IDProducto] = {
+          nombre: p.producto || "(sin nombre)",
+          deficit: [],
+          exceso: [],
+          neutral: [],
+        };
+      }
+
+      if (p.dsi < umbralBajo) {
+        resultado[p.IDProducto].deficit.push({ sucursalId, dsi: p.dsi });
+      } else if (p.dsi > umbralAlto) {
+        resultado[p.IDProducto].exceso.push({ sucursalId, dsi: p.dsi });
+      } else {
+        resultado[p.IDProducto].neutral.push({ sucursalId, dsi: p.dsi });
+      }
+    }
+  }
+  console.log("EL RESULTADO", resultado)
   return resultado;
 }

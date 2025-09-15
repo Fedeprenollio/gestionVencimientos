@@ -17,6 +17,7 @@ import ExcelUploader from "../../components/ExcelUploader";
 import {
   agruparRecepcionesDesdeSucursales,
   agruparVentas,
+  calcularABCDSI,
   calcularDSIPorProducto,
   calcularIndiceMermaMensual,
   calcularProductosDeMovimientoLento,
@@ -43,6 +44,8 @@ export default function InventoryDashboard() {
     setMovimientoPerdido,
     setMermaPorVencimiento,
     setVentaMensual,
+    DSIABC,
+    setDSIABC
   } = useInventoryStore();
 
   const [movimientos, setMovimientos] = useState([]);
@@ -202,6 +205,11 @@ export default function InventoryDashboard() {
       useInventoryStore.getState().setProductosRecibidos;
     setProductosRecibidos(productosRecibidos);
 
+
+    //CALCULO DE DSI Y ABC
+    const DSIABC = calcularABCDSI(stockFiltrado, movimientos )
+    console.log("stockFiltrado",stockFiltrado)
+    setDSIABC(DSIABC)
     //CALCULO VENCIDOS EN RELACION A LAS VENTAS DEL MES
     const mermaMensual = calcularIndiceMermaMensual(movimientos, stockFiltrado);
     setMermaPorVencimiento(mermaMensual);

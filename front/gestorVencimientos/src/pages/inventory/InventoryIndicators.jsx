@@ -16,6 +16,7 @@ import ProductosDevueltosVencimientoCard from "./ProductosDevueltosVencimientoCa
 import MovimientoLentoDataGrid from "./MovimientoLentoDataGrid";
 import ProductosPerdieronRotacionGrid from "./ProductosPerdieronRotacionGrid";
 import IndiceMermaMensualChart from "./IndiceMermaMensualChart";
+import ABCGrid from "./ABCGrid";
 
 export default function InventoryIndicators({
   movimientos,
@@ -33,7 +34,6 @@ export default function InventoryIndicators({
   return (
     <div>
       <h2>Indicadores de Inventario</h2>
-
       <Stack direction="row" spacing={2} mb={2}>
         <FormControlLabel
           control={
@@ -66,7 +66,6 @@ export default function InventoryIndicators({
       <Button variant="outlined" onClick={() => setHelpOpen(true)}>
         ¿Qué significan estos indicadores?
       </Button>
-
       <Box sx={{ overflowX: "auto" }}>
         <Tabs
           value={tab}
@@ -76,15 +75,16 @@ export default function InventoryIndicators({
           scrollButtons="auto"
         >
           <Tab label="📦 Días de Inventario" />
+
           <Tab label="💸 Pérdidas proyectadas" />
           <Tab label="💸 Pedidos a sucursales" />
           <Tab label="💸 Devolucion vencimientos" />
           <Tab label="💸 Lenta rotacion" />
           <Tab label="💸 Perdida de rotacion" />
           <Tab label="📉 Merma mensual" />
+          <Tab label="📦 ABC" />
         </Tabs>
       </Box>
-
       <HelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
       <Box hidden={tab !== 0}>
         {tab === 0 && (
@@ -95,7 +95,6 @@ export default function InventoryIndicators({
           />
         )}
       </Box>
-
       <Box hidden={tab !== 1}>{tab === 1 && <ProjectedLossCard />}</Box>
       <Box hidden={tab !== 2}>{tab === 2 && <ProductosRecibidosCard />}</Box>
       <Box hidden={tab !== 3}>
@@ -111,6 +110,8 @@ export default function InventoryIndicators({
         )}
       </Box>
       <Box hidden={tab !== 6}>{tab === 6 && <IndiceMermaMensualChart />}</Box>
+      <Box hidden={tab !== 7}>{tab === 7 && <ABCGrid />}</Box>
+      
     </div>
   );
 }
