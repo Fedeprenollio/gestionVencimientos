@@ -478,6 +478,411 @@
 //   );
 // }
 
+
+// //ANDA PERFECTO
+// import React, { useState } from "react";
+// import * as XLSX from "xlsx";
+// import {
+//   Box,
+//   Typography,
+//   Button,
+//   Table,
+//   TableBody,
+//   TableCell,
+//   TableHead,
+//   TableRow,
+//   Paper,
+// } from "@mui/material";
+
+// export default function TrasladoProductos() {
+//   const [groupedBySucursal, setGroupedBySucursal] = useState({});
+
+//   const parseNumber = (val) => {
+//     const n = Number(val);
+//     return isNaN(n) ? 0 : n;
+//   };
+
+//   const handleFileUpload = (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
+
+//     const reader = new FileReader();
+//     reader.onload = (evt) => {
+//       const bstr = evt.target.result;
+//       const wb = XLSX.read(bstr, { type: "binary" });
+//       const wsname = wb.SheetNames[0];
+//       const ws = wb.Sheets[wsname];
+//       const jsonData = XLSX.utils.sheet_to_json(ws);
+//       assignProducts(jsonData);
+//     };
+//     reader.readAsBinaryString(file);
+//   };
+
+//   const assignProducts = (rows) => {
+//     const productsMap = {};
+
+//     rows.forEach((r) => {
+//       const codigo = (r["Código de Barra"] ?? "").toString().trim();
+//       if (!codigo) return;
+
+//       const producto = r["Producto"] ?? "";
+//       const mes = (r["Mes"] ?? "").toString().trim();
+//       const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN").toString().trim();
+//       const sucursalDestino = (r["Sucursal de destino"] ?? "DESTINO_UNKNOWN").toString().trim();
+
+//       if (sucursalOrigen === sucursalDestino) return; // ❌ evitar traslado origen=destino
+
+//       const cantidad = parseNumber(r["Cantidad"]);
+//       const ventas = parseNumber(r["Unidades vendidas en destino"]);
+//       const stock = parseNumber(r["Stock"]);
+
+//       const prodKey = `${codigo}||${mes}`;
+//       if (!productsMap[prodKey]) {
+//         productsMap[prodKey] = {
+//           codigo,
+//           producto,
+//           mes,
+//           origins: {}, // origen -> cantidad (UNICA)
+//           destinations: {}, // destino -> { ventas, stock }
+//         };
+//       }
+
+//       // ✅ Solo sumamos una vez por origen
+//       if (!productsMap[prodKey].origins[sucursalOrigen]) {
+//         productsMap[prodKey].origins[sucursalOrigen] = cantidad;
+//       }
+
+//       // ✅ Guardamos el mejor dato de ventas/stock por destino
+//       if (!productsMap[prodKey].destinations[sucursalDestino]) {
+//         productsMap[prodKey].destinations[sucursalDestino] = {
+//           ventas,
+//           stock,
+//         };
+//       }
+//     });
+
+//     const result = {};
+
+//     Object.values(productsMap).forEach((prod) => {
+//       const originsArr = Object.entries(prod.origins).map(([origen, qty]) => ({
+//         sucursalOrigen: origen,
+//         cantidad: qty,
+//       }));
+
+//       const destinosArr = Object.entries(prod.destinations).map(([dest, v]) => ({
+//         sucursalDestino: dest,
+//         ventas: v.ventas,
+//         stock: v.stock,
+//       }));
+
+//       const destinosValidos = destinosArr.filter((d) => d.ventas >= 5);
+//       if (destinosValidos.length === 0) return;
+
+//       destinosValidos.sort((a, b) => b.ventas - a.ventas);
+
+//       let idxDestino = 0;
+//       originsArr.forEach((origen) => {
+//         if (origen.cantidad <= 0) return;
+
+//         const destino = destinosValidos[idxDestino % destinosValidos.length];
+
+//         if (!result[destino.sucursalDestino]) result[destino.sucursalDestino] = [];
+//         result[destino.sucursalDestino].push({
+//           codigo: prod.codigo,
+//           producto: prod.producto,
+//           sucursalOrigen: origen.sucursalOrigen,
+//           vence: prod.mes,
+//           cantidadTrasladar: origen.cantidad, // ✅ ahora es la cantidad real (no sumada)
+//           ventasDestino: destino.ventas,
+//           stockDestino: destino.stock,
+//         });
+
+//         idxDestino++;
+//       });
+//     });
+
+//     setGroupedBySucursal(result);
+//   };
+
+//   return (
+//     <Box p={3}>
+//       <Typography variant="h5" gutterBottom>
+//         Plan de Traslado de Productos Críticos
+//       </Typography>
+
+//       <Button variant="contained" component="label">
+//         Cargar Excel
+//         <input type="file" hidden onChange={handleFileUpload} />
+//       </Button>
+
+//       {Object.keys(groupedBySucursal).length === 0 && (
+//         <Typography variant="body1" sx={{ mt: 2 }}>
+//           Carga un archivo para ver el plan de traslado.
+//         </Typography>
+//       )}
+
+//       {Object.keys(groupedBySucursal).map((suc) => (
+//         <Paper key={suc} sx={{ my: 3, p: 2 }}>
+//           <Typography variant="h6">{`Sucursal destino: ${suc}`}</Typography>
+//           <Table size="small">
+//             <TableHead>
+//               <TableRow>
+//                 <TableCell>Sucursal Origen</TableCell>
+//                 <TableCell>Código</TableCell>
+//                 <TableCell>Producto</TableCell>
+//                 <TableCell>Vence</TableCell>
+//                 <TableCell>Cantidad a trasladar</TableCell>
+//                 <TableCell>Ventas en destino</TableCell>
+//                 <TableCell>Stock en destino</TableCell>
+//               </TableRow>
+//             </TableHead>
+//             <TableBody>
+//               {groupedBySucursal[suc].map((item, i) => (
+//                 <TableRow key={i}>
+//                   <TableCell>{item.sucursalOrigen}</TableCell>
+//                   <TableCell>{item.codigo}</TableCell>
+//                   <TableCell>{item.producto}</TableCell>
+//                   <TableCell>{item.vence}</TableCell>
+//                   <TableCell>{item.cantidadTrasladar}</TableCell>
+//                   <TableCell>{item.ventasDestino}</TableCell>
+//                   <TableCell>{item.stockDestino}</TableCell>
+//                 </TableRow>
+//               ))}
+//             </TableBody>
+//           </Table>
+//         </Paper>
+//       ))}
+//     </Box>
+//   );
+// }
+
+
+
+//ANDA BIEN (INCLUYE SOLICITUD DE PEDIDOS A SUCRUSALES)
+// import React, { useState } from "react";
+// import * as XLSX from "xlsx";
+// import {
+//   Box,
+//   Typography,
+//   Button,
+//   Table,
+//   TableBody,
+//   TableCell,
+//   TableHead,
+//   TableRow,
+//   Paper,
+//   Tabs,
+//   Tab,
+// } from "@mui/material";
+
+// export default function TrasladoProductos() {
+//   const [groupedBySucursal, setGroupedBySucursal] = useState({});
+//   const [groupedByOrigen, setGroupedByOrigen] = useState({});
+//   const [tab, setTab] = useState(0);
+
+//   const parseNumber = (val) => {
+//     const n = Number(val);
+//     return isNaN(n) ? 0 : n;
+//   };
+
+//   const handleFileUpload = (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
+
+//     const reader = new FileReader();
+//     reader.onload = (evt) => {
+//       const bstr = evt.target.result;
+//       const wb = XLSX.read(bstr, { type: "binary" });
+//       const wsname = wb.SheetNames[0];
+//       const ws = wb.Sheets[wsname];
+//       const jsonData = XLSX.utils.sheet_to_json(ws);
+//       assignProducts(jsonData);
+//     };
+//     reader.readAsBinaryString(file);
+//   };
+
+//   const assignProducts = (rows) => {
+//     const productsMap = {};
+
+//     rows.forEach((r) => {
+//       const codigo = (r["Código de Barra"] ?? "").toString().trim();
+//       if (!codigo) return;
+
+//       const producto = r["Producto"] ?? "";
+//       const mes = (r["Mes"] ?? "").toString().trim();
+//       const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN").toString().trim();
+//       const sucursalDestino = (r["Sucursal de destino"] ?? "DESTINO_UNKNOWN").toString().trim();
+
+//       if (sucursalOrigen === sucursalDestino) return;
+
+//       const cantidad = parseNumber(r["Cantidad"]);
+//       const ventas = parseNumber(r["Unidades vendidas en destino"]);
+//       const stock = parseNumber(r["Stock"]);
+
+//       const prodKey = `${codigo}||${mes}`;
+//       if (!productsMap[prodKey]) {
+//         productsMap[prodKey] = {
+//           codigo,
+//           producto,
+//           mes,
+//           origins: {},
+//           destinations: {},
+//         };
+//       }
+
+//       if (!productsMap[prodKey].origins[sucursalOrigen]) {
+//         productsMap[prodKey].origins[sucursalOrigen] = cantidad;
+//       }
+
+//       if (!productsMap[prodKey].destinations[sucursalDestino]) {
+//         productsMap[prodKey].destinations[sucursalDestino] = {
+//           ventas,
+//           stock,
+//         };
+//       }
+//     });
+
+//     const result = {};
+
+//     Object.values(productsMap).forEach((prod) => {
+//       const originsArr = Object.entries(prod.origins).map(([origen, qty]) => ({
+//         sucursalOrigen: origen,
+//         cantidad: qty,
+//       }));
+
+//       const destinosArr = Object.entries(prod.destinations).map(([dest, v]) => ({
+//         sucursalDestino: dest,
+//         ventas: v.ventas,
+//         stock: v.stock,
+//       }));
+
+//       const destinosValidos = destinosArr.filter((d) => d.ventas >= 5);
+//       if (destinosValidos.length === 0) return;
+
+//       destinosValidos.sort((a, b) => b.ventas - a.ventas);
+
+//       let idxDestino = 0;
+//       originsArr.forEach((origen) => {
+//         if (origen.cantidad <= 0) return;
+
+//         const destino = destinosValidos[idxDestino % destinosValidos.length];
+
+//         if (!result[destino.sucursalDestino]) result[destino.sucursalDestino] = [];
+//         result[destino.sucursalDestino].push({
+//           codigo: prod.codigo,
+//           producto: prod.producto,
+//           sucursalOrigen: origen.sucursalOrigen,
+//           vence: prod.mes,
+//           cantidadTrasladar: origen.cantidad,
+//           ventasDestino: destino.ventas,
+//           stockDestino: destino.stock,
+//         });
+
+//         idxDestino++;
+//       });
+//     });
+
+//     🔄 Generamos el agrupado inverso (por origen)
+//     const origenesResult = {};
+//     Object.entries(result).forEach(([destino, items]) => {
+//       items.forEach((item) => {
+//         if (!origenesResult[item.sucursalOrigen]) origenesResult[item.sucursalOrigen] = [];
+//         origenesResult[item.sucursalOrigen].push({
+//           ...item,
+//           sucursalDestino: destino,
+//         });
+//       });
+//     });
+
+//     setGroupedBySucursal(result);
+//     setGroupedByOrigen(origenesResult);
+//   };
+
+//   return (
+//     <Box p={3}>
+//       <Typography variant="h5" gutterBottom>
+//         Plan de Traslado de Productos Críticos
+//       </Typography>
+
+//       <Button variant="contained" component="label">
+//         Cargar Excel
+//         <input type="file" hidden onChange={handleFileUpload} />
+//       </Button>
+
+//       {Object.keys(groupedBySucursal).length > 0 && (
+//         <>
+//           <Tabs value={tab} onChange={(e, newValue) => setTab(newValue)} sx={{ mt: 3 }}>
+//             <Tab label="Distribución por Destino" />
+//             <Tab label="Pedidos por Origen" />
+//           </Tabs>
+
+//           {tab === 0 &&
+//             Object.keys(groupedBySucursal).map((suc) => (
+//               <Paper key={suc} sx={{ my: 3, p: 2 }}>
+//                 <Typography variant="h6">{`Sucursal destino: ${suc}`}</Typography>
+//                 <Table size="small">
+//                   <TableHead>
+//                     <TableRow>
+//                       <TableCell>Sucursal Origen</TableCell>
+//                       <TableCell>Código</TableCell>
+//                       <TableCell>Producto</TableCell>
+//                       <TableCell>Vence</TableCell>
+//                       <TableCell>Cantidad a trasladar</TableCell>
+//                       <TableCell>Ventas en destino</TableCell>
+//                       <TableCell>Stock en destino</TableCell>
+//                     </TableRow>
+//                   </TableHead>
+//                   <TableBody>
+//                     {groupedBySucursal[suc].map((item, i) => (
+//                       <TableRow key={i}>
+//                         <TableCell>{item.sucursalOrigen}</TableCell>
+//                         <TableCell>{item.codigo}</TableCell>
+//                         <TableCell>{item.producto}</TableCell>
+//                         <TableCell>{item.vence}</TableCell>
+//                         <TableCell>{item.cantidadTrasladar}</TableCell>
+//                         <TableCell>{item.ventasDestino}</TableCell>
+//                         <TableCell>{item.stockDestino}</TableCell>
+//                       </TableRow>
+//                     ))}
+//                   </TableBody>
+//                 </Table>
+//               </Paper>
+//             ))}
+
+//           {tab === 1 &&
+//             Object.keys(groupedByOrigen).map((origen) => (
+//               <Paper key={origen} sx={{ my: 3, p: 2 }}>
+//                 <Typography variant="h6">{`Sucursal origen: ${origen}`}</Typography>
+//                 <Table size="small">
+//                   <TableHead>
+//                     <TableRow>
+//                       <TableCell>Destino</TableCell>
+//                       <TableCell>Código</TableCell>
+//                       <TableCell>Producto</TableCell>
+//                       <TableCell>Vence</TableCell>
+//                       <TableCell>Cantidad</TableCell>
+//                     </TableRow>
+//                   </TableHead>
+//                   <TableBody>
+//                     {groupedByOrigen[origen].map((item, i) => (
+//                       <TableRow key={i}>
+//                         <TableCell>{item.sucursalDestino}</TableCell>
+//                         <TableCell>{item.codigo}</TableCell>
+//                         <TableCell>{item.producto}</TableCell>
+//                         <TableCell>{item.vence}</TableCell>
+//                         <TableCell>{item.cantidadTrasladar}</TableCell>
+//                       </TableRow>
+//                     ))}
+//                   </TableBody>
+//                 </Table>
+//               </Paper>
+//             ))}
+//         </>
+//       )}
+//     </Box>
+//   );
+// }
+
 import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import {
@@ -490,10 +895,14 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Tabs,
+  Tab,
 } from "@mui/material";
 
 export default function TrasladoProductos() {
   const [groupedBySucursal, setGroupedBySucursal] = useState({});
+  const [groupedByOrigen, setGroupedByOrigen] = useState({});
+  const [tab, setTab] = useState(0);
 
   const parseNumber = (val) => {
     const n = Number(val);
@@ -528,7 +937,7 @@ export default function TrasladoProductos() {
       const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN").toString().trim();
       const sucursalDestino = (r["Sucursal de destino"] ?? "DESTINO_UNKNOWN").toString().trim();
 
-      if (sucursalOrigen === sucursalDestino) return; // ❌ evitar traslado origen=destino
+      if (sucursalOrigen === sucursalDestino) return;
 
       const cantidad = parseNumber(r["Cantidad"]);
       const ventas = parseNumber(r["Unidades vendidas en destino"]);
@@ -540,17 +949,15 @@ export default function TrasladoProductos() {
           codigo,
           producto,
           mes,
-          origins: {}, // origen -> cantidad (UNICA)
-          destinations: {}, // destino -> { ventas, stock }
+          origins: {},
+          destinations: {},
         };
       }
 
-      // ✅ Solo sumamos una vez por origen
       if (!productsMap[prodKey].origins[sucursalOrigen]) {
         productsMap[prodKey].origins[sucursalOrigen] = cantidad;
       }
 
-      // ✅ Guardamos el mejor dato de ventas/stock por destino
       if (!productsMap[prodKey].destinations[sucursalDestino]) {
         productsMap[prodKey].destinations[sucursalDestino] = {
           ventas,
@@ -590,7 +997,7 @@ export default function TrasladoProductos() {
           producto: prod.producto,
           sucursalOrigen: origen.sucursalOrigen,
           vence: prod.mes,
-          cantidadTrasladar: origen.cantidad, // ✅ ahora es la cantidad real (no sumada)
+          cantidadTrasladar: origen.cantidad,
           ventasDestino: destino.ventas,
           stockDestino: destino.stock,
         });
@@ -599,7 +1006,54 @@ export default function TrasladoProductos() {
       });
     });
 
+    // Agrupado inverso (por origen)
+    const origenesResult = {};
+    Object.entries(result).forEach(([destino, items]) => {
+      items.forEach((item) => {
+        if (!origenesResult[item.sucursalOrigen]) origenesResult[item.sucursalOrigen] = [];
+        origenesResult[item.sucursalOrigen].push({
+          ...item,
+          sucursalDestino: destino,
+        });
+      });
+    });
+
     setGroupedBySucursal(result);
+    setGroupedByOrigen(origenesResult);
+  };
+
+  const exportToExcel = (data, isDestino) => {
+    const wb = XLSX.utils.book_new();
+
+    Object.keys(data).forEach((key) => {
+      const cleanSheetName = key.substring(0, 31); // Excel no admite nombres >31 caracteres
+      const rows = data[key].map((item) => {
+        if (isDestino) {
+          return {
+            "Sucursal Origen": item.sucursalOrigen,
+            Código: item.codigo,
+            Producto: item.producto,
+            Vence: item.vence,
+            "Cantidad a trasladar": item.cantidadTrasladar,
+            "Ventas en destino": item.ventasDestino,
+            "Stock en destino": item.stockDestino,
+          };
+        } else {
+          return {
+            "Sucursal Destino (Ventas)": `${item.sucursalDestino} (${item.ventasDestino})`,
+            Código: item.codigo,
+            Producto: item.producto,
+            Vence: item.vence,
+            "Cantidad a preparar": item.cantidadTrasladar,
+          };
+        }
+      });
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, cleanSheetName);
+    });
+
+    XLSX.writeFile(wb, isDestino ? "Distribucion_por_Destino.xlsx" : "Pedidos_por_Origen.xlsx");
   };
 
   return (
@@ -613,43 +1067,96 @@ export default function TrasladoProductos() {
         <input type="file" hidden onChange={handleFileUpload} />
       </Button>
 
-      {Object.keys(groupedBySucursal).length === 0 && (
-        <Typography variant="body1" sx={{ mt: 2 }}>
-          Carga un archivo para ver el plan de traslado.
-        </Typography>
-      )}
+      {Object.keys(groupedBySucursal).length > 0 && (
+        <>
+          <Tabs value={tab} onChange={(e, newValue) => setTab(newValue)} sx={{ mt: 3 }}>
+            <Tab label="Distribución por Destino" />
+            <Tab label="Pedidos por Origen" />
+          </Tabs>
 
-      {Object.keys(groupedBySucursal).map((suc) => (
-        <Paper key={suc} sx={{ my: 3, p: 2 }}>
-          <Typography variant="h6">{`Sucursal destino: ${suc}`}</Typography>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Sucursal Origen</TableCell>
-                <TableCell>Código</TableCell>
-                <TableCell>Producto</TableCell>
-                <TableCell>Vence</TableCell>
-                <TableCell>Cantidad a trasladar</TableCell>
-                <TableCell>Ventas en destino</TableCell>
-                <TableCell>Stock en destino</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {groupedBySucursal[suc].map((item, i) => (
-                <TableRow key={i}>
-                  <TableCell>{item.sucursalOrigen}</TableCell>
-                  <TableCell>{item.codigo}</TableCell>
-                  <TableCell>{item.producto}</TableCell>
-                  <TableCell>{item.vence}</TableCell>
-                  <TableCell>{item.cantidadTrasladar}</TableCell>
-                  <TableCell>{item.ventasDestino}</TableCell>
-                  <TableCell>{item.stockDestino}</TableCell>
-                </TableRow>
+          {tab === 0 && (
+            <>
+              <Button
+                variant="outlined"
+                sx={{ mt: 2 }}
+                onClick={() => exportToExcel(groupedBySucursal, true)}
+              >
+                Exportar Excel (Distribución)
+              </Button>
+              {Object.keys(groupedBySucursal).map((suc) => (
+                <Paper key={suc} sx={{ my: 3, p: 2 }}>
+                  <Typography variant="h6">{`Sucursal destino: ${suc}`}</Typography>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Sucursal Origen</TableCell>
+                        <TableCell>Código</TableCell>
+                        <TableCell>Producto</TableCell>
+                        <TableCell>Vence</TableCell>
+                        <TableCell>Cantidad a trasladar</TableCell>
+                        <TableCell>Ventas en destino</TableCell>
+                        <TableCell>Stock en destino</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {groupedBySucursal[suc].map((item, i) => (
+                        <TableRow key={i}>
+                          <TableCell>{item.sucursalOrigen}</TableCell>
+                          <TableCell>{item.codigo}</TableCell>
+                          <TableCell>{item.producto}</TableCell>
+                          <TableCell>{item.vence}</TableCell>
+                          <TableCell>{item.cantidadTrasladar}</TableCell>
+                          <TableCell>{item.ventasDestino}</TableCell>
+                          <TableCell>{item.stockDestino}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Paper>
               ))}
-            </TableBody>
-          </Table>
-        </Paper>
-      ))}
+            </>
+          )}
+
+          {tab === 1 && (
+            <>
+              <Button
+                variant="outlined"
+                sx={{ mt: 2 }}
+                onClick={() => exportToExcel(groupedByOrigen, false)}
+              >
+                Exportar Excel (Pedidos)
+              </Button>
+              {Object.keys(groupedByOrigen).map((origen) => (
+                <Paper key={origen} sx={{ my: 3, p: 2 }}>
+                  <Typography variant="h6">{`Sucursal origen: ${origen}`}</Typography>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Destino (Ventas)</TableCell>
+                        <TableCell>Código</TableCell>
+                        <TableCell>Producto</TableCell>
+                        <TableCell>Vence</TableCell>
+                        <TableCell>Cantidad</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {groupedByOrigen[origen].map((item, i) => (
+                        <TableRow key={i}>
+                          <TableCell>{item.sucursalDestino} ({item.ventasDestino})</TableCell>
+                          <TableCell>{item.codigo}</TableCell>
+                          <TableCell>{item.producto}</TableCell>
+                          <TableCell>{item.vence}</TableCell>
+                          <TableCell>{item.cantidadTrasladar}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Paper>
+              ))}
+            </>
+          )}
+        </>
+      )}
     </Box>
   );
 }
