@@ -35,6 +35,7 @@ import InventoryDashboard from "./pages/inventory/InventoryDashboard";
 import MovementAnalyzer from "./pages/StockAnalysisUploader";
 import WhatsAppQR from "./pages/whatsapp/WhatsAppQR";
 import AnalizadorSucursales from "./pages/AnalizadorSucursales/AnalizadorSucursales";
+import ProximosAVencer from "./pages/AsiganacionesDeStocks/ProximosAVencer";
 
 export const AppRoutes = () => {
   return (
@@ -44,6 +45,11 @@ export const AppRoutes = () => {
         <Route path="/lotes/cargar" element={<ProductForm />} />
         <Route path="/expiring" element={<LotList />} />
         <Route path="/stock-search" element={<SearchStockPage />} />
+        <Route path="/mover-proximos-a-vencer" element={<ProximosAVencer />} />
+
+
+
+      
         <Route path="/user" element={<UserCreatePage />} />
         <Route path="/users/ventas" element={<VentasUsuarios />} />
         <Route path="/branches" element={<BranchList />} />
