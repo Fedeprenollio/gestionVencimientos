@@ -73,6 +73,9 @@ export default function Navbar({
       submenu: [
         { label: "Buscar stock en sucursales", to: "/stock-search" },
          { label: "Mover proximos a vencer", to: "/mover-proximos-a-vencer" },
+         { label: "ABC", to: "/ABCViewer" },
+
+         
         { label: "Ventas sin stock", to: "/stock/stockAnalysiss" },
         { label: "Dashboard Inventario.", to: "/InventoryDashboard" },
       ],
