@@ -478,7 +478,6 @@
 //   );
 // }
 
-
 // //ANDA PERFECTO
 // import React, { useState } from "react";
 // import * as XLSX from "xlsx";
@@ -655,8 +654,6 @@
 //     </Box>
 //   );
 // }
-
-
 
 //ANDA BIEN (INCLUYE SOLICITUD DE PEDIDOS A SUCRUSALES)
 // import React, { useState } from "react";
@@ -925,6 +922,103 @@ export default function TrasladoProductos() {
     reader.readAsBinaryString(file);
   };
 
+  // const assignProducts = (rows) => {
+  //   const productsMap = {};
+
+  //   rows.forEach((r) => {
+  //     const codigo = (r["Código de Barra"] ?? "").toString().trim();
+  //     if (!codigo) return;
+
+  //     const producto = r["Producto"] ?? "";
+  //     const mes = (r["Mes"] ?? "").toString().trim();
+  //     const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN").toString().trim();
+  //     const sucursalDestino = (r["Sucursal de destino"] ?? "DESTINO_UNKNOWN").toString().trim();
+
+  //     if (sucursalOrigen === sucursalDestino) return;
+
+  //     const cantidad = parseNumber(r["Cantidad"]);
+  //     const ventas = parseNumber(r["Unidades vendidas en destino"]);
+  //     const stock = parseNumber(r["Stock"]);
+
+  //     const prodKey = `${codigo}||${mes}`;
+  //     if (!productsMap[prodKey]) {
+  //       productsMap[prodKey] = {
+  //         codigo,
+  //         producto,
+  //         mes,
+  //         origins: {},
+  //         destinations: {},
+  //       };
+  //     }
+
+  //     if (!productsMap[prodKey].origins[sucursalOrigen]) {
+  //       productsMap[prodKey].origins[sucursalOrigen] = cantidad;
+  //     }
+
+  //     if (!productsMap[prodKey].destinations[sucursalDestino]) {
+  //       productsMap[prodKey].destinations[sucursalDestino] = {
+  //         ventas,
+  //         stock,
+  //       };
+  //     }
+  //   });
+
+  //   const result = {};
+
+  //   Object.values(productsMap).forEach((prod) => {
+  //     const originsArr = Object.entries(prod.origins).map(([origen, qty]) => ({
+  //       sucursalOrigen: origen,
+  //       cantidad: qty,
+  //     }));
+
+  //     const destinosArr = Object.entries(prod.destinations).map(([dest, v]) => ({
+  //       sucursalDestino: dest,
+  //       ventas: v.ventas,
+  //       stock: v.stock,
+  //     }));
+
+  //     const destinosValidos = destinosArr.filter((d) => d.ventas >= 5);
+  //     if (destinosValidos.length === 0) return;
+
+  //     destinosValidos.sort((a, b) => b.ventas - a.ventas);
+
+  //     let idxDestino = 0;
+  //     originsArr.forEach((origen) => {
+  //       if (origen.cantidad <= 0) return;
+
+  //       const destino = destinosValidos[idxDestino % destinosValidos.length];
+
+  //       if (!result[destino.sucursalDestino]) result[destino.sucursalDestino] = [];
+  //       result[destino.sucursalDestino].push({
+  //         codigo: prod.codigo,
+  //         producto: prod.producto,
+  //         sucursalOrigen: origen.sucursalOrigen,
+  //         vence: prod.mes,
+  //         cantidadTrasladar: origen.cantidad,
+  //         ventasDestino: destino.ventas,
+  //         stockDestino: destino.stock,
+  //       });
+
+  //       idxDestino++;
+  //     });
+  //   });
+
+  //   // Agrupado inverso (por origen)
+  //   const origenesResult = {};
+  //   Object.entries(result).forEach(([destino, items]) => {
+  //     items.forEach((item) => {
+  //       if (!origenesResult[item.sucursalOrigen]) origenesResult[item.sucursalOrigen] = [];
+  //       origenesResult[item.sucursalOrigen].push({
+  //         ...item,
+  //         sucursalDestino: destino,
+  //       });
+  //     });
+  //   });
+
+  //   setGroupedBySucursal(result);
+  //   setGroupedByOrigen(origenesResult);
+  // };
+
   const assignProducts = (rows) => {
     const productsMap = {};
 
@@ -934,10 +1028,12 @@ export default function TrasladoProductos() {
 
       const producto = r["Producto"] ?? "";
       const mes = (r["Mes"] ?? "").toString().trim();
-      const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN").toString().trim();
-      const sucursalDestino = (r["Sucursal de destino"] ?? "DESTINO_UNKNOWN").toString().trim();
-
-      if (sucursalOrigen === sucursalDestino) return;
+      const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN")
+        .toString()
+        .trim();
+      const sucursalDestino = (r["Sucursal de destino"] ?? "DESTINO_UNKNOWN")
+        .toString()
+        .trim();
 
       const cantidad = parseNumber(r["Cantidad"]);
       const ventas = parseNumber(r["Unidades vendidas en destino"]);
@@ -949,20 +1045,28 @@ export default function TrasladoProductos() {
           codigo,
           producto,
           mes,
-          origins: {},
-          destinations: {},
+          origins: {}, // como antes: origen -> cantidad (primer valor)
+          destinations: {}, // como antes: destino -> { ventas, stock } (primer valor)
+          ventasOrigin: {}, // NUEVO: acumulador de ventas cuando origen === destino
         };
       }
 
-      if (!productsMap[prodKey].origins[sucursalOrigen]) {
-        productsMap[prodKey].origins[sucursalOrigen] = cantidad;
-      }
+      const prod = productsMap[prodKey];
 
-      if (!productsMap[prodKey].destinations[sucursalDestino]) {
-        productsMap[prodKey].destinations[sucursalDestino] = {
-          ventas,
-          stock,
-        };
+      if (sucursalOrigen === sucursalDestino) {
+        // Esta fila indica ventas EN la misma sucursal (ventas en origen)
+        prod.ventasOrigin[sucursalOrigen] =
+          (prod.ventasOrigin[sucursalOrigen] || 0) + ventas;
+        // No tocamos origins.cantidad ni destinations (conservamos comportamiento original)
+      } else {
+        // Comportamiento original: guardar cantidad del origen sólo si no existe aún
+        if (!prod.origins[sucursalOrigen]) {
+          prod.origins[sucursalOrigen] = cantidad;
+        }
+        // Comportamiento original: guardar ventas/stock del destino solo si no existe aún
+        if (!prod.destinations[sucursalDestino]) {
+          prod.destinations[sucursalDestino] = { ventas, stock };
+        }
       }
     });
 
@@ -972,13 +1076,16 @@ export default function TrasladoProductos() {
       const originsArr = Object.entries(prod.origins).map(([origen, qty]) => ({
         sucursalOrigen: origen,
         cantidad: qty,
+        ventasOrigen: prod.ventasOrigin[origen] || 0, // traemos las ventas en origen si existen
       }));
 
-      const destinosArr = Object.entries(prod.destinations).map(([dest, v]) => ({
-        sucursalDestino: dest,
-        ventas: v.ventas,
-        stock: v.stock,
-      }));
+      const destinosArr = Object.entries(prod.destinations).map(
+        ([dest, v]) => ({
+          sucursalDestino: dest,
+          ventas: v.ventas,
+          stock: v.stock,
+        })
+      );
 
       const destinosValidos = destinosArr.filter((d) => d.ventas >= 5);
       if (destinosValidos.length === 0) return;
@@ -991,7 +1098,8 @@ export default function TrasladoProductos() {
 
         const destino = destinosValidos[idxDestino % destinosValidos.length];
 
-        if (!result[destino.sucursalDestino]) result[destino.sucursalDestino] = [];
+        if (!result[destino.sucursalDestino])
+          result[destino.sucursalDestino] = [];
         result[destino.sucursalDestino].push({
           codigo: prod.codigo,
           producto: prod.producto,
@@ -1000,6 +1108,7 @@ export default function TrasladoProductos() {
           cantidadTrasladar: origen.cantidad,
           ventasDestino: destino.ventas,
           stockDestino: destino.stock,
+          ventasOrigen: origen.ventasOrigen, // lo pasamos para poder mostrar/exportar
         });
 
         idxDestino++;
@@ -1010,7 +1119,8 @@ export default function TrasladoProductos() {
     const origenesResult = {};
     Object.entries(result).forEach(([destino, items]) => {
       items.forEach((item) => {
-        if (!origenesResult[item.sucursalOrigen]) origenesResult[item.sucursalOrigen] = [];
+        if (!origenesResult[item.sucursalOrigen])
+          origenesResult[item.sucursalOrigen] = [];
         origenesResult[item.sucursalOrigen].push({
           ...item,
           sucursalDestino: destino,
@@ -1022,39 +1132,58 @@ export default function TrasladoProductos() {
     setGroupedByOrigen(origenesResult);
   };
 
-  const exportToExcel = (data, isDestino) => {
-    const wb = XLSX.utils.book_new();
+ const exportToExcel = (data, isDestino) => {
+  const wb = XLSX.utils.book_new();
 
-    Object.keys(data).forEach((key) => {
-      const cleanSheetName = key.substring(0, 31); // Excel no admite nombres >31 caracteres
-      const rows = data[key].map((item) => {
-        if (isDestino) {
-          return {
-            "Sucursal Origen": item.sucursalOrigen,
-            Código: item.codigo,
-            Producto: item.producto,
-            Vence: item.vence,
-            "Cantidad a trasladar": item.cantidadTrasladar,
-            "Ventas en destino": item.ventasDestino,
-            "Stock en destino": item.stockDestino,
-          };
-        } else {
-          return {
-            "Sucursal Destino (Ventas)": `${item.sucursalDestino} (${item.ventasDestino})`,
-            Código: item.codigo,
-            Producto: item.producto,
-            Vence: item.vence,
-            "Cantidad a preparar": item.cantidadTrasladar,
-          };
-        }
-      });
+  Object.keys(data).forEach((key) => {
+    const cleanSheetName = key.substring(0, 31); // Excel no admite nombres >31 caracteres
 
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, cleanSheetName);
+    // 🔹 Agrego filas con títulos antes de los datos
+    const titulo = isDestino
+      ? [`Sucursal de Destino: ${key}`] // si el key representa la sucursal origen
+      : [`Sucursal de Origen: ${key}`];
+
+    const rows = data[key].map((item) => {
+      if (isDestino) {
+        return {
+          "Sucursal Origen": item.sucursalOrigen,
+          Código: item.codigo,
+          Producto: item.producto,
+          Vence: item.vence,
+          "Cantidad a trasladar": item.cantidadTrasladar,
+          "Ventas en origen": item.ventasOrigen,
+          "Ventas en destino": item.ventasDestino,
+          "Stock en destino": item.stockDestino,
+        };
+      } else {
+        return {
+          "Sucursal Destino (Ventas)": `${item.sucursalDestino} (${item.ventasDestino})`,
+          Código: item.codigo,
+          Producto: item.producto,
+          Vence: item.vence,
+          "Cantidad a preparar": item.cantidadTrasladar,
+          "Ventas en origen": item.ventasOrigen,
+          "Ventas en destino": item.ventasDestino,
+        };
+      }
     });
 
-    XLSX.writeFile(wb, isDestino ? "Distribucion_por_Destino.xlsx" : "Pedidos_por_Origen.xlsx");
-  };
+    // 🔹 Convertimos el objeto a sheet
+    const dataSheet = XLSX.utils.json_to_sheet(rows, { origin: 1 });
+
+    // 🔹 Creamos una hoja nueva con el título en la primera fila
+    const ws = XLSX.utils.aoa_to_sheet([titulo]);
+    XLSX.utils.sheet_add_json(ws, rows, { origin: "A4" });
+
+    // 🔹 Agregamos hoja al workbook
+    XLSX.utils.book_append_sheet(wb, ws, cleanSheetName);
+  });
+
+  XLSX.writeFile(
+    wb,
+    isDestino ? "Distribucion_por_Destino.xlsx" : "Pedidos_por_Origen.xlsx"
+  );
+};
 
   return (
     <Box p={3}>
@@ -1069,7 +1198,11 @@ export default function TrasladoProductos() {
 
       {Object.keys(groupedBySucursal).length > 0 && (
         <>
-          <Tabs value={tab} onChange={(e, newValue) => setTab(newValue)} sx={{ mt: 3 }}>
+          <Tabs
+            value={tab}
+            onChange={(e, newValue) => setTab(newValue)}
+            sx={{ mt: 3 }}
+          >
             <Tab label="Distribución por Destino" />
             <Tab label="Pedidos por Origen" />
           </Tabs>
@@ -1094,6 +1227,7 @@ export default function TrasladoProductos() {
                         <TableCell>Producto</TableCell>
                         <TableCell>Vence</TableCell>
                         <TableCell>Cantidad a trasladar</TableCell>
+                        <TableCell>Ventas en origen</TableCell> {/* 👈 NUEVO */}
                         <TableCell>Ventas en destino</TableCell>
                         <TableCell>Stock en destino</TableCell>
                       </TableRow>
@@ -1106,6 +1240,8 @@ export default function TrasladoProductos() {
                           <TableCell>{item.producto}</TableCell>
                           <TableCell>{item.vence}</TableCell>
                           <TableCell>{item.cantidadTrasladar}</TableCell>
+                          <TableCell>{item.ventasOrigen}</TableCell>{" "}
+                          {/* 👈 NUEVO */}
                           <TableCell>{item.ventasDestino}</TableCell>
                           <TableCell>{item.stockDestino}</TableCell>
                         </TableRow>
@@ -1136,17 +1272,23 @@ export default function TrasladoProductos() {
                         <TableCell>Código</TableCell>
                         <TableCell>Producto</TableCell>
                         <TableCell>Vence</TableCell>
-                        <TableCell>Cantidad</TableCell>
+                        <TableCell>Cantidad a trasladas</TableCell>
+                        <TableCell>Ventas en origen</TableCell> {/* 👈 NUEVO */}
+                        <TableCell>Ventas en destino</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {groupedByOrigen[origen].map((item, i) => (
                         <TableRow key={i}>
-                          <TableCell>{item.sucursalDestino} ({item.ventasDestino})</TableCell>
+                          <TableCell>
+                            {item.sucursalDestino} ({item.ventasDestino})
+                          </TableCell>
                           <TableCell>{item.codigo}</TableCell>
                           <TableCell>{item.producto}</TableCell>
                           <TableCell>{item.vence}</TableCell>
                           <TableCell>{item.cantidadTrasladar}</TableCell>
+                          <TableCell>{item.ventasOrigen}</TableCell>{" "}
+                          <TableCell>{item.ventasDestino}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
