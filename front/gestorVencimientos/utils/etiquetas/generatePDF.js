@@ -556,3 +556,279 @@ export const generatePDF_CartelMixto = async () => {
   doc.save("cartel_consumo_inmediato.pdf");
 };
 
+export const generatePDF_Cartel30 = async () => {
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  const logoBase64 = await loadImageBase64("/logo.png");
+
+  // Margen reducido → cartel más compacto
+  const marginX = pageWidth * 0.15;
+  const marginY = pageHeight * 0.15;
+  const innerWidth = pageWidth - marginX * 2;
+  const innerHeight = pageHeight - marginY * 2;
+
+  // Marco
+  doc.setDrawColor(180, 0, 0);
+  doc.setLineWidth(3);
+  doc.rect(marginX, marginY, innerWidth, innerHeight, "S");
+
+  // Logo arriba
+  if (logoBase64) {
+    doc.addImage(
+      logoBase64,
+      "PNG",
+      pageWidth / 2 - 15,
+      marginY + 5,
+      30,
+      30
+    );
+  }
+
+  // Texto principal
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(28);
+  doc.setTextColor(180, 0, 0);
+  doc.text("VENCIMIENTO PRÓXIMO", pageWidth / 2, marginY + 45, {
+    align: "center",
+  });
+
+  // Descuento grande
+  doc.setFontSize(100);
+  doc.setTextColor(220, 0, 0);
+  doc.text("30%", pageWidth / 2, marginY + innerHeight / 2 + 20, {
+    align: "center",
+  });
+
+  // OFF debajo del número
+  doc.setFontSize(40);
+  doc.text("OFF", pageWidth / 2, marginY + innerHeight / 2 + 50, {
+    align: "center",
+  });
+
+  doc.save("cartel_30.pdf");
+};
+
+
+export const generatePDF_Cartel20 = async () => {
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  const logoBase64 = await loadImageBase64("/logo.png");
+
+  const marginX = pageWidth * 0.15;
+  const marginY = pageHeight * 0.15;
+  const innerWidth = pageWidth - marginX * 2;
+  const innerHeight = pageHeight - marginY * 2;
+
+  // Marco (otro color para diferenciar)
+  doc.setDrawColor(255, 128, 0);
+  doc.setLineWidth(3);
+  doc.rect(marginX, marginY, innerWidth, innerHeight, "S");
+
+  // Logo
+  if (logoBase64) {
+    doc.addImage(
+      logoBase64,
+      "PNG",
+      pageWidth / 2 - 15,
+      marginY + 5,
+      30,
+      30
+    );
+  }
+
+  // Texto principal
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(28);
+  doc.setTextColor(255, 128, 0);
+  doc.text("VENCIMIENTO PRÓXIMO", pageWidth / 2, marginY + 45, {
+    align: "center",
+  });
+
+  // Descuento
+  doc.setFontSize(100);
+  doc.setTextColor(255, 128, 0);
+  doc.text("20%", pageWidth / 2, marginY + innerHeight / 2 + 20, {
+    align: "center",
+  });
+
+  // OFF
+  doc.setFontSize(40);
+  doc.text("OFF", pageWidth / 2, marginY + innerHeight / 2 + 50, {
+    align: "center",
+  });
+
+  doc.save("cartel_20.pdf");
+};
+
+
+//////
+
+
+// 🎨 Colores base
+const COLORS = {
+  consumo: { main: [200, 0, 0], secondary: [255, 128, 0] }, // rojo + naranja
+  c30: { main: [220, 0, 0] }, // rojo intenso
+  c20: { main: [255, 128, 0] }, // naranja intenso
+};
+
+
+// 🟢 Cartel Consumo Inmediato (60% y 40%)
+export const generatePDF_CartelMixtoB = async () => {
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const logoBase64 = await loadImageBase64("/logo.png");
+
+  const marginY = pageHeight * 0.12;
+  const innerHeight = pageHeight - marginY * 2;
+
+  // Fondo gris suave
+  doc.setFillColor(245, 245, 245);
+  doc.rect(0, 0, pageWidth, pageHeight, "F");
+
+  // Marco
+  doc.setDrawColor(...COLORS.consumo.main);
+  doc.setLineWidth(3);
+  doc.rect(10, marginY, pageWidth - 20, innerHeight, "S");
+
+  // Logo
+  if (logoBase64) {
+    doc.addImage(logoBase64, "PNG", pageWidth / 2 - 20, marginY + 5, 40, 40);
+  }
+
+  // Título
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(32);
+  doc.setTextColor(...COLORS.consumo.main);
+  doc.text("CONSUMO INMEDIATO", pageWidth / 2, marginY + 55, { align: "center" });
+
+  // Línea divisoria
+  doc.setLineWidth(1);
+  doc.line(30, marginY + 65, pageWidth - 30, marginY + 65);
+
+  // Descuentos
+  const centerY = marginY + innerHeight / 2 + 20;
+
+  doc.setFontSize(90);
+  doc.setTextColor(...COLORS.consumo.main);
+  doc.text("60%", pageWidth / 2 - 60, centerY, { align: "right" });
+  doc.setFontSize(40);
+  doc.text("OFF", pageWidth / 2 - 50, centerY + 12);
+
+  doc.setFontSize(90);
+  doc.setTextColor(...COLORS.consumo.secondary);
+  doc.text("40%", pageWidth / 2 + 60, centerY, { align: "left" });
+  doc.setFontSize(40);
+  doc.text("OFF", pageWidth / 2 + 50, centerY + 12, { align: "right" });
+
+  // Texto extra
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(60);
+  doc.text("¡Precios especiales, stock limitado!", pageWidth / 2, marginY + innerHeight - 8, { align: "center" });
+
+  doc.save("cartel_consumo_inmediato.pdf");
+};
+
+// 🔴 Cartel -30%
+export const generatePDF_Cartel30B = async () => {
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const logoBase64 = await loadImageBase64("/logo.png");
+
+  const marginY = pageHeight * 0.12;
+  const innerHeight = pageHeight - marginY * 2;
+
+  // Fondo rojo claro
+  doc.setFillColor(255, 235, 235);
+  doc.rect(0, 0, pageWidth, pageHeight, "F");
+
+  // Marco
+  doc.setDrawColor(...COLORS.c30.main);
+  doc.setLineWidth(4);
+  doc.rect(10, marginY, pageWidth - 20, innerHeight, "S");
+
+  // Logo
+  if (logoBase64) {
+    doc.addImage(logoBase64, "PNG", pageWidth / 2 - 20, marginY + 5, 40, 40);
+  }
+
+  // Título
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(30);
+  doc.setTextColor(...COLORS.c30.main);
+  doc.text("DESCUENTO ESPECIAL", pageWidth / 2, marginY + 55, { align: "center" });
+
+  // Línea divisoria
+  doc.setLineWidth(1);
+  doc.line(30, marginY + 65, pageWidth - 30, marginY + 65);
+
+  // Texto central
+  const centerY = marginY + innerHeight / 2 + 20;
+  doc.setFontSize(120);
+  doc.text("-30%", pageWidth / 2, centerY, { align: "center" });
+
+  // Texto extra
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(80);
+  doc.text("Descuento directo en góndola", pageWidth / 2, marginY + innerHeight - 10, { align: "center" });
+
+  doc.save("cartel_30.pdf");
+};
+
+// 🟠 Cartel -20%
+export const generatePDF_Cartel20B = async () => {
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const logoBase64 = await loadImageBase64("/logo.png");
+
+  const marginY = pageHeight * 0.12;
+  const innerHeight = pageHeight - marginY * 2;
+
+  // Fondo naranja claro
+  doc.setFillColor(255, 245, 230);
+  doc.rect(0, 0, pageWidth, pageHeight, "F");
+
+  // Marco
+  doc.setDrawColor(...COLORS.c20.main);
+  doc.setLineWidth(4);
+  doc.rect(10, marginY, pageWidth - 20, innerHeight, "S");
+
+  // Logo
+  if (logoBase64) {
+    doc.addImage(logoBase64, "PNG", pageWidth / 2 - 20, marginY + 5, 40, 40);
+  }
+
+  // Título
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(30);
+  doc.setTextColor(...COLORS.c20.main);
+  doc.text("DESCUENTO ESPECIAL", pageWidth / 2, marginY + 55, { align: "center" });
+
+  // Línea divisoria
+  doc.setLineWidth(1);
+  doc.line(30, marginY + 65, pageWidth - 30, marginY + 65);
+
+  // Texto central
+  const centerY = marginY + innerHeight / 2 + 20;
+  doc.setFontSize(120);
+  doc.text("-20%", pageWidth / 2, centerY, { align: "center" });
+
+  // Texto extra
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(100);
+  doc.text("Descuento directo en góndola", pageWidth / 2, marginY + innerHeight - 10, { align: "center" });
+
+  doc.save("cartel_20.pdf");
+};
