@@ -671,10 +671,26 @@ export const generatePDF_Cartel20 = async () => {
 
 
 // 🎨 Colores base
-const COLORS = {
-  consumo: { main: [200, 0, 0], secondary: [255, 128, 0] }, // rojo + naranja
-  c30: { main: [220, 0, 0] }, // rojo intenso
-  c20: { main: [255, 128, 0] }, // naranja intenso
+// const COLORS = {
+//   consumo: { main: [200, 0, 0], secondary: [255, 128, 0] }, // rojo + naranja
+//   c30: { main: [220, 0, 0] }, // rojo intenso
+//   c20: { main: [255, 128, 0] }, // naranja intenso
+// };
+
+
+export const COLORS = {
+  consumo: {
+    main: [200, 0, 0],        // Rojo corporativo (para 60%)
+    secondary: [255, 130, 0], // Naranja vibrante (para 40%)
+  },
+  c30: {
+    main: [220, 0, 0],        // Rojo más intenso que "consumo"
+    bg: [255, 235, 235],      // Fondo rojo claro
+  },
+  c20: {
+    main: [240, 120, 0],      // Naranja elegante
+    bg: [255, 245, 230],      // Fondo naranja claro
+  },
 };
 
 
