@@ -79,7 +79,13 @@ const [especiales, setEspeciales] = useState(() => {
   };
 
   const updateEspecialField = (index, field, value) => {
+      console.log("updateEspecialField -> index:", index, "field:", field, "value:", value);
+
     setEspeciales((prev) => {
+      if (index < 0) {
+      console.warn("No se encontró el producto para actualizar", field, value);
+      return prev;
+    }
       const updated = [...prev];
       updated[index][field] = value;
 
@@ -224,8 +230,7 @@ const [especiales, setEspeciales] = useState(() => {
     // setOpenUpdateModal(false);
     alert(`Precios actualizados para ${actualizados} productos`);
   };
-  console.log("Clasicos", clasicos);
-  console.log("Especiales", especiales);
+ 
 
   const handleClearAll = () => {
     localStorage.removeItem("labels_clasicos");
