@@ -226,6 +226,7 @@ import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { Tabs, Tab, Box, Typography, Button } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import ProductosSinVentas from "../ProductosSinVentas/ProductosSinVentas";
 
 export default function ABCViewer() {
   const [ventas, setVentas] = useState([]);
@@ -523,6 +524,8 @@ export default function ABCViewer() {
           📂 Sube ambos archivos (ventas y stock) para ver el análisis ABC + DSI.
         </Typography>
       )}
+
+      <ProductosSinVentas/>
     </Box>
   );
 }

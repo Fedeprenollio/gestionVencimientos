@@ -1168,8 +1168,7 @@ export default function TrasladoProductos() {
       }
     });
 
-    // 🔹 Convertimos el objeto a sheet
-    const dataSheet = XLSX.utils.json_to_sheet(rows, { origin: 1 });
+
 
     // 🔹 Creamos una hoja nueva con el título en la primera fila
     const ws = XLSX.utils.aoa_to_sheet([titulo]);
