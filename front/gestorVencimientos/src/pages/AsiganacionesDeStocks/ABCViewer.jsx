@@ -123,7 +123,7 @@ export default function ABCViewer() {
         item.dsi =
           consumoDiario > 0
             ? Number((item.stock / consumoDiario).toFixed(1))
-            : 0;
+            : 9999;
       });
 
       agrupado[suc].items = items;
