@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { Tabs, Tab, Box, Typography, Button } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import ProductosSinVentas from "../ProductosSinVentas/ProductosSinVentas";
+import ComparadorPrecios from "../ComparadorPrecios/ComparadorPrecios";
 
 export default function ABCViewer() {
   const [ventas, setVentas] = useState([]);
@@ -638,6 +639,11 @@ export default function ABCViewer() {
       </Button>
 
       <ProductosSinVentas />
+
+      ------------------------------------------
+      ComparadorPrecios
+
+      <ComparadorPrecios/>
     </Box>
   );
 }
