@@ -463,9 +463,12 @@ export default function ComparadorPrecios() {
               style={{
                 fontWeight: esMasBarato ? "bold" : "normal",
                 color: esMasBarato ? "green" : "inherit",
+                border: esMasBarato ? "2px solid green" : "none", // 👈 borde
+                padding: "2px 4px", // opcional, para que el borde no quede pegado al texto
+                borderRadius: "4px", // opcional, para borde redondeado
               }}
             >
-              {precioActual || ""}
+              {precioActual ? precioActual.toFixed(2) : ""}
             </span>
           );
         },
