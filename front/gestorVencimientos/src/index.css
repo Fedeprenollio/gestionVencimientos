@@ -66,3 +66,8 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 } */
+
+ .precio-mas-barato {
+  background-color: #d4edda; /* verde clarito */
+  font-weight: bold;
+}

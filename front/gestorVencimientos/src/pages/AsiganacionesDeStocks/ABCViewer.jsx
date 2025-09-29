@@ -4,6 +4,9 @@ import { Tabs, Tab, Box, Typography, Button } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import ProductosSinVentas from "../ProductosSinVentas/ProductosSinVentas";
 import ComparadorPrecios from "../ComparadorPrecios/ComparadorPrecios";
+import TablaAExcel from "../ComparadorPrecios/TablaAExcel";
+import TablaAExcelCofa from "../ComparadorPrecios/TablaAExcelCofa";
+import TablaAExcelSud from "../ComparadorPrecios/TablaAExcelSud";
 
 export default function ABCViewer() {
   const [ventas, setVentas] = useState([]);
@@ -640,6 +643,22 @@ export default function ABCViewer() {
 
       <ProductosSinVentas />
 
+-------
+  Descargar tablas Del Sud
+
+  <TablaAExcelSud/>
+
+
+---------
+
+Descargar tabla a excel de cofa
+
+<TablaAExcelCofa/>
+
+------------
+  Descargar tabla de Suizo
+
+<TablaAExcel/>
       ------------------------------------------
       ComparadorPrecios
 
