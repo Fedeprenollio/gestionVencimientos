@@ -173,12 +173,7 @@ export default function ComparadorPrecios() {
           minCantidad = 375;
           bulto = 1;
 
-          console.log(
-            "DelSud código de barra leído:",
-            code,
-            "PrecioFinal:",
-            precioFinal
-          );
+          
         } else if (tipo === "delSudNoTrans") {
           const colPrecio = keys.find(
             (k) => k.trim() === "Precio Final (sin IVA)"
@@ -562,7 +557,8 @@ export default function ComparadorPrecios() {
         <DataGrid rows={rows} columns={columns} />
       </div>
 
-      {resultado && (
+      <div>
+   {resultado && (
         <div style={{ marginTop: 20 }}>
           <strong>💰 Costo total: ${totalCosto.toFixed(2)}</strong>
           <br />
@@ -579,6 +575,35 @@ export default function ComparadorPrecios() {
           </span>
         </div>
       )}
+
+      <br />
+    {/* --- NUEVO: costo total si toda la compra fuera Del Sud No Transfer --- */}
+    <span
+      style={{
+        marginTop: 10,
+        display: "inline-block",
+        color: "blue",
+        fontWeight: "bold",
+      }}
+    >
+      💰 Costo si toda la compra se hiciera con Del Sud No Transfer: $
+      {planCompra
+        .reduce((sum, p) => {
+          const provData = buscarProveedor(
+            preciosProveedores["delSudNoTrans"] || {},
+            p.aliases
+          );
+          if (!provData?.precioFinal) return sum; // ignorar si no hay precio
+          const cantidad = p.maximo; // usar maximo del plan de compra
+          const bulto = provData.bulto || 1;
+          const precioUnidad = provData.precioFinal || 0;
+          return sum + cantidad * precioUnidad * bulto;
+        }, 0)
+        .toFixed(2)}
+    </span>
+      </div>
+
+   
 
       <Button
         variant="outlined"
