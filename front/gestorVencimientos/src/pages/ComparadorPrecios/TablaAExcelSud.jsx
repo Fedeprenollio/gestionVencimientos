@@ -22,29 +22,6 @@ export default function TablaAExcelSud() {
   };
   // -------- CORREGIDO --------
 
-  // const extraerEANDesdeTxt = (linea) => {
-  //   if (!linea) return "";
-
-  //   // 1️⃣ Buscar HE / UC / Z / IC con o sin espacio
-  //   let match = linea.match(/(?:HE|UC|Z4|IC|HK)\s*(\d{12,14})/i);
-  //   if (match) {
-  //     let digitos = match[1];
-  //     if (digitos.length > 2) digitos = digitos.slice(0, 13); // NO descarto primeros dos si es un EAN estándar
-  //     return digitos;
-  //   }
-
-  //   // 2️⃣ Si no hay prefijo, buscar primer grupo de 13-14 dígitos consecutivos
-  //   match = linea.match(/\d{13,14}/);
-  //   if (match) {
-  //     let digitos = match[0];
-  //     // descartar primeros 2 si este caso es realmente un código no prefijado
-  //     if (digitos.length > 2) digitos = digitos.slice(2);
-  //     if (digitos.length > 13) digitos = digitos.slice(-13);
-  //     return digitos;
-  //   }
-
-  //   return "";
-  // };
 
   const extraerEANDesdeTxt = (linea) => {
     if (!linea) return "";
@@ -144,62 +121,131 @@ export default function TablaAExcelSud() {
 };
 
 
-  const exportarExcel = () => {
-    if (tablasHtml.every((t) => !t)) {
-      alert("Pegá al menos una tabla HTML de Sud.");
-      return;
-    }
-    if (!txtContenido || Object.keys(mapaEAN).length === 0) {
-      if (
-        !confirm(
-          "No se cargó el .txt o no se detectaron EAN. ¿Continuar sin códigos?"
-        )
-      )
-        return;
-    }
+//   const exportarExcel = () => {
+//     if (tablasHtml.every((t) => !t)) {
+//       alert("Pegá al menos una tabla HTML de Sud.");
+//       return;
+//     }
+//     if (!txtContenido || Object.keys(mapaEAN).length === 0) {
+//       if (
+//         !confirm(
+//           "No se cargó el .txt o no se detectaron EAN. ¿Continuar sin códigos?"
+//         )
+//       )
+//         return;
+//     }
 
-    const todasFilas = [];
-    tablasHtml.forEach((html) => {
-      if (!html) return;
-      const div = document.createElement("div");
-      div.innerHTML = html;
-      const rows = div.querySelectorAll("tbody tr");
-      Array.from(rows).forEach((row) => {
-        const celdas = row.querySelectorAll("td");
-        if (!celdas || celdas.length === 0) return;
-        const nombreDet =
-          row.querySelector(".product-name")?.textContent ||
-          getTextoCelda(celdas[0]);
-        const producto = (nombreDet || "").trim();
-        const lista = getPrecioDesdeTd(celdas[3]);
-        const precioOferta = getPrecioDesdeTd(celdas[4]);
-        const descuento = (getTextoCelda(celdas[5]) || "").trim();
-        const promo = row.querySelector(".transfer-tag") ? "SI" : "NO";
-        const ean =
-          mapaEAN[normalizarNombre(producto)] || "Codigo no encontrado";
-        todasFilas.push({
-          Ean: ean,
-          Producto: producto,
-          Lista: lista,
-          PrecioNormal: "",
-          "Precio Final (sin IVA)": precioOferta,
-          Descuento: descuento,
-          Promo: promo,
-          Stock: "",
-        });
+//     const todasFilas = [];
+//     tablasHtml.forEach((html) => {
+//       if (!html) return;
+//       const div = document.createElement("div");
+//       div.innerHTML = html;
+//       const rows = div.querySelectorAll("tbody tr");
+//       Array.from(rows).forEach((row) => {
+//         const celdas = row.querySelectorAll("td");
+//         if (!celdas || celdas.length === 0) return;
+//         const nombreDet =
+//           row.querySelector(".product-name")?.textContent ||
+//           getTextoCelda(celdas[0]);
+//         const producto = (nombreDet || "").trim();
+//         const lista = getPrecioDesdeTd(celdas[3]);
+//         const precioOferta = getPrecioDesdeTd(celdas[4]);
+//         const descuento = (getTextoCelda(celdas[5]) || "").trim();
+//         const promo = row.querySelector(".transfer-tag") ? "SI" : "NO";
+//         const ean =
+//           mapaEAN[normalizarNombre(producto)] || "Codigo no encontrado";
+//         todasFilas.push({
+//           Ean: ean,
+//           Producto: producto,
+//           Lista: lista,
+//           PrecioNormal: "",
+//           "Precio Final (sin IVA)": precioOferta,
+//           Descuento: descuento,
+//           Promo: promo,
+//           Stock: "",
+//         });
+//       });
+//     });
+
+//     if (todasFilas.length === 0) {
+//       alert("No se encontraron filas para exportar.");
+//       return;
+//     }
+
+//     const ws = XLSX.utils.json_to_sheet(todasFilas);
+//     const wb = XLSX.utils.book_new();
+//     XLSX.utils.book_append_sheet(wb, ws, "Sud");
+//     XLSX.writeFile(wb, "delSud.xlsx");
+//   };
+const exportarExcel = () => {
+  if (tablasHtml.every((t) => !t)) {
+    alert("Pegá al menos una tabla HTML de Sud.");
+    return;
+  }
+  if (!txtContenido || Object.keys(mapaEAN).length === 0) {
+    if (
+      !confirm(
+        "No se cargó el .txt o no se detectaron EAN. ¿Continuar sin códigos?"
+      )
+    )
+      return;
+  }
+
+  const todasFilas = [];
+  tablasHtml.forEach((html) => {
+    if (!html) return;
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    const rows = div.querySelectorAll("tbody tr");
+    Array.from(rows).forEach((row) => {
+      const celdas = row.querySelectorAll("td");
+      if (!celdas || celdas.length === 0) return;
+
+      const nombreDet =
+        row.querySelector(".product-name")?.textContent ||
+        getTextoCelda(celdas[0]);
+      const producto = (nombreDet || "").trim();
+      const lista = getPrecioDesdeTd(celdas[3]);
+      const precioOferta = getPrecioDesdeTd(celdas[4]);
+      const descuento = (getTextoCelda(celdas[5]) || "").trim();
+      const promo = row.querySelector(".transfer-tag") ? "SI" : "NO";
+      const ean =
+        mapaEAN[normalizarNombre(producto)] || "Codigo no encontrado";
+
+      // 🔎 Stock (8º td)
+      const stockTd = celdas[7];
+      let stock = "";
+      if (stockTd) {
+        const spanStock = stockTd.querySelector(".product-stock-indicator");
+        if (spanStock) {
+          const txt = (spanStock.textContent || "").trim().toUpperCase();
+          stock = txt === "F" ? "NO" : "SI";
+        }
+      }
+
+      todasFilas.push({
+        Ean: ean,
+        Producto: producto,
+        Lista: lista,
+        PrecioNormal: "",
+        "Precio Final (sin IVA)": precioOferta,
+        Descuento: descuento,
+        Promo: promo,
+        Stock: stock, // ✅ ahora con SI / NO
       });
     });
+  });
 
-    if (todasFilas.length === 0) {
-      alert("No se encontraron filas para exportar.");
-      return;
-    }
+  if (todasFilas.length === 0) {
+    alert("No se encontraron filas para exportar.");
+    return;
+  }
 
-    const ws = XLSX.utils.json_to_sheet(todasFilas);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sud");
-    XLSX.writeFile(wb, "delSud.xlsx");
-  };
+  const ws = XLSX.utils.json_to_sheet(todasFilas);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Sud");
+  XLSX.writeFile(wb, "delSud.xlsx");
+};
 
   return (
     <div style={{ padding: 16, display: "grid", gap: 12 }}>

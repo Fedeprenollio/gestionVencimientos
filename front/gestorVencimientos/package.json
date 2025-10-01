@@ -41,6 +41,7 @@
     "react-zxing": "^2.1.0",
     "recharts": "3.1.0",
     "xlsx": "^0.18.5",
+    "xlsx-js-style": "^1.2.0",
     "yup": "^1.6.1",
     "zustand": "^5.0.6"
   },

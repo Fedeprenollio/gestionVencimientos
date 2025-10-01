@@ -7,6 +7,7 @@ import ComparadorPrecios from "../ComparadorPrecios/ComparadorPrecios";
 import TablaAExcel from "../ComparadorPrecios/TablaAExcel";
 import TablaAExcelCofa from "../ComparadorPrecios/TablaAExcelCofa";
 import TablaAExcelSud from "../ComparadorPrecios/TablaAExcelSud";
+import TablaAExcelKeller from "../ComparadorPrecios/TablaAExcelKeller";
 
 export default function ABCViewer() {
   const [ventas, setVentas] = useState([]);
@@ -657,6 +658,12 @@ Descargar tabla a excel de cofa
 
 ------------
   Descargar tabla de Suizo
+
+----------
+  
+Descargar tabla de Keller
+
+<TablaAExcelKeller/>
 
 <TablaAExcel/>
       ------------------------------------------
