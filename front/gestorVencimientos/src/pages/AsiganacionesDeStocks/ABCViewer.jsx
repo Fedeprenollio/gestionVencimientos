@@ -659,13 +659,13 @@ Descargar tabla a excel de cofa
 ------------
   Descargar tabla de Suizo
 
+<TablaAExcel/>
 ----------
   
 Descargar tabla de Keller
 
 <TablaAExcelKeller/>
 
-<TablaAExcel/>
       ------------------------------------------
       ComparadorPrecios
 

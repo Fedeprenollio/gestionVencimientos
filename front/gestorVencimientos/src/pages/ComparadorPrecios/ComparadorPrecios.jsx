@@ -17,12 +17,19 @@ function parseExcelNumber(raw) {
   return parseFloat(cleaned) || 0;
 }
 
+function ajustarCantidadSuizo(cantidadDeseada, bulto) {
+  if (!bulto || bulto <= 0) return cantidadDeseada; // seguridad
+  return Math.ceil(cantidadDeseada / bulto) ;
+}
+
+
 export default function ComparadorPrecios() {
   const [planCompra, setPlanCompra] = useState([]);
   const [preciosProveedores, setPreciosProveedores] = useState({});
   const [resultado, setResultado] = useState(null);
   const [errorSolver, setErrorSolver] = useState("");
   const [faltantes, setFaltantes] = useState([]);
+  const [minDelSud, setMinDelSud] = useState(375); // valor por defecto
 
   function buscarProveedor(preciosProv, aliases) {
     for (let code of aliases) {
@@ -449,119 +456,249 @@ export default function ComparadorPrecios() {
   };
 
   // --- Optimización (usa sinStock para ignorar ofertas sin stock) ---
-  const optimizarCompra = () => {
-    const model = {
-      optimize: "costo",
-      opType: "min",
-      constraints: {},
-      variables: {},
-      ints: {},
-    };
+  // const optimizarCompra = () => {
+  //   const model = {
+  //     optimize: "costo",
+  //     opType: "min",
+  //     constraints: {},
+  //     variables: {},
+  //     ints: {},
+  //   };
 
-    const delSud = preciosProveedores["delSud"] || {};
-    const suizo = preciosProveedores["suizoArg"] || {};
-    const cofa = preciosProveedores["cofarsur"] || {};
-    const delSudNoTrans = preciosProveedores["delSudNoTrans"] || {};
+  //   const delSud = preciosProveedores["delSud"] || {};
+  //   const suizo = preciosProveedores["suizoArg"] || {};
+  //   const cofa = preciosProveedores["cofarsur"] || {};
+  //   const delSudNoTrans = preciosProveedores["delSudNoTrans"] || {};
 
-    const tieneDelSud = !!Object.keys(delSud).length;
+  //   const tieneDelSud = !!Object.keys(delSud).length;
 
-    // Solo si hay DelSud cargado, filtramos productos donde convenga
-    const delSudValidos = tieneDelSud
-      ? planCompra.filter((p) => {
-          const precioDelSud = delSud[p.codebar]?.precioFinal ?? Infinity;
-          const precioSuizo = suizo[p.codebar]?.precioFinal ?? Infinity;
-          return precioDelSud < precioSuizo;
-        })
-      : [];
+  //   // Solo si hay DelSud cargado, filtramos productos donde convenga
+  //   const delSudValidos = tieneDelSud
+  //     ? planCompra.filter((p) => {
+  //         const precioDelSud = delSud[p.codebar]?.precioFinal ?? Infinity;
+  //         const precioSuizo = suizo[p.codebar]?.precioFinal ?? Infinity;
+  //         return precioDelSud < precioSuizo;
+  //       })
+  //     : [];
 
-    // Si existe DelSud, aplicamos restricción global de 375
-    if (tieneDelSud && delSudValidos.length) {
-      model.constraints["totalDelSud"] = { min: 375 };
+  //   // Si existe DelSud, aplicamos restricción global de 375
+  //   // if (tieneDelSud && delSudValidos.length) {
+  //   //   model.constraints["totalDelSud"] = { min: 375 };
+  //   // }
+
+  //   const nuevosFaltantes = [];
+
+  //   planCompra.forEach((p) => {
+  //     const restrNombre = `cant_${p.codebar}`;
+
+  //     // Verificamos si hay al menos un proveedor con precio Y con stock
+  //     const tienePrecioAlguno = Object.keys(preciosProveedores).some((prov) => {
+  //       const provData = buscarProveedor(preciosProveedores[prov], p.aliases);
+  //       return provData?.precioFinal > 0 && !provData?.sinStock;
+  //     });
+
+  //     if (!tienePrecioAlguno) {
+  //       nuevosFaltantes.push({
+  //         ean: p.codebar,
+  //         producto: p.producto,
+  //         proveedor: "sin precios o sin stock",
+  //       });
+  //       return; // saltar producto
+  //     }
+
+  //     model.constraints[restrNombre] = { min: p.minimo, max: p.maximo };
+
+  //     Object.keys(preciosProveedores).forEach((prov) => {
+  //       const provData = buscarProveedor(preciosProveedores[prov], p.aliases);
+  //       const precioUnidad = Number(provData?.precioFinal || 0);
+  //       const bulto = Number(provData?.bulto || 1);
+
+  //       if (!precioUnidad) return; // ignorar proveedor sin precio
+  //       if (provData?.sinStock) return; // IGNORAR proveedores sin stock
+
+  //       // Si existe DelSud, descartamos DelSud más caro que Suizo
+  //       if (prov === "delSud" && tieneDelSud) {
+  //         const suizoData = buscarProveedor(suizo, p.aliases);
+  //         if (suizoData?.precioFinal && precioUnidad >= suizoData.precioFinal) {
+  //           return;
+  //         }
+  //       }
+
+  //       const varName = `${p.codebar}_${prov}`;
+  //       model.variables[varName] = {
+  //         costo: precioUnidad * bulto,
+  //         [restrNombre]: bulto,
+  //       };
+
+  //       // Si hay DelSud y este producto está en los válidos, sumar a totalDelSud
+  //       if (
+  //         tieneDelSud &&
+  //         prov === "delSud" &&
+  //         delSudValidos.find((x) => x.codebar === p.codebar)
+  //       ) {
+  //         model.variables[varName]["totalDelSud"] = bulto;
+  //       }
+
+  //       model.ints[varName] = 1;
+  //     });
+  //   });
+
+  //   const result = solver.Solve(model);
+
+  //   if (!result.feasible) {
+  //     setErrorSolver(
+  //       "❌ No se encontró solución factible con los datos actuales."
+  //     );
+  //     setResultado(null);
+  //   } else {
+  //     setErrorSolver("");
+
+  //     // Calcular total de unidades compradas a DelSud (si existe)
+  //     const totalDelSud = tieneDelSud
+  //       ? Object.keys(result)
+  //           .filter((k) => k.includes("_delSud"))
+  //           .reduce((sum, k) => {
+  //             const code = k.split("_")[0];
+  //             const provData = buscarProveedor(delSud, [code]);
+  //             return sum + (result[k] || 0) * (provData?.bulto || 1);
+  //           }, 0)
+  //       : 0;
+
+  //     setResultado({ ...result, totalDelSud });
+  //   }
+
+  //   setFaltantes(nuevosFaltantes);
+  // };
+
+  // --- Optimización SIN solver ---
+  // Elige siempre el proveedor más barato con stock.
+  // Si el proveedor es Suizo, redondea al múltiplo de bulto (hacia arriba, salvo que < bulto = 0).
+  // const optimizarCompra = () => {
+  //   const nuevosFaltantes = [];
+  //   const nuevoResultado = {};
+
+  //   planCompra.forEach((p) => {
+  //     // buscar candidatos (con precio y con stock)
+  //     const candidatos = Object.keys(preciosProveedores)
+  //       .map((prov) => {
+  //         const provData = buscarProveedor(preciosProveedores[prov], p.aliases);
+  //         return provData?.precioFinal && !provData?.sinStock
+  //           ? { prov, ...provData }
+  //           : null;
+  //       })
+  //       .filter(Boolean);
+
+  //     if (!candidatos.length) {
+  //       nuevosFaltantes.push({
+  //         ean: p.codebar,
+  //         producto: p.producto,
+  //         proveedor: "sin precios o sin stock",
+  //       });
+  //       return;
+  //     }
+
+  //     // elegir el más barato
+  //     const mejor = candidatos.reduce((min, c) =>
+  //       c.precioFinal < min.precioFinal ? c : min
+  //     );
+
+  //     let cantidad = p.minimo; // usamos el mínimo como base
+
+  //     // si es Suizo → ajustar al múltiplo de bulto
+  //     // if (mejor.prov === "suizoArg") {
+  //     //   const bulto = mejor.bulto || 1;
+  //     //   if (cantidad < bulto) {
+  //     //     cantidad = 0; // si no llega al mínimo bulto → no comprar
+  //     //   } else {
+  //     //     cantidad = Math.ceil(cantidad / bulto) * bulto; // redondear para arriba
+  //     //   }
+  //     // }
+
+  //     // si es Suizo → ajustar al múltiplo de bulto
+  //     if (mejor.prov === "suizoArg") {
+  //       const bulto = mejor.bulto || 1;
+  //       if (cantidad < bulto) {
+  //         cantidad = bulto; // mínimo un bulto
+  //       } else {
+  //         cantidad = Math.ceil(cantidad / bulto) * bulto; // redondear para arriba
+  //       }
+  //     }
+
+  //     // asignamos al proveedor elegido
+  //     const varName = `${p.codebar}_${mejor.prov}`;
+  //     nuevoResultado[varName] = cantidad / (mejor.bulto || 1); // guardamos en "cantidad de bultos"
+  //   });
+
+  //   setResultado(nuevoResultado);
+  //   setFaltantes(nuevosFaltantes);
+  // };
+
+const optimizarCompra = (minTotalDelSud = 0) => {
+  const delSud = preciosProveedores["delSud"] || {};
+  const suizo = preciosProveedores["suizoArg"] || {};
+  const cofa = preciosProveedores["cofarsur"] || {};
+  const delSudNoTrans = preciosProveedores["delSudNoTrans"] || {};
+
+  const nuevosFaltantes = [];
+
+  // Calculamos total DelSud disponible
+  const totalDelSudDisponible = planCompra.reduce((sum, p) => {
+    const provData = buscarProveedor(delSud, p.aliases);
+    if (provData?.precioFinal && !provData?.sinStock) {
+      return sum + p.maximo; // sumamos cantidad máxima deseada
+    }
+    return sum;
+  }, 0);
+
+  // Si no alcanza mínimo, excluimos DelSud
+  const usarDelSud = totalDelSudDisponible >= minTotalDelSud;
+
+  const resultadoTemp = {};
+
+  planCompra.forEach((p) => {
+    const proveedoresValidos = Object.keys(preciosProveedores)
+      .map((prov) => {
+        const provData = buscarProveedor(preciosProveedores[prov], p.aliases);
+        if (!provData || provData.precioFinal <= 0 || provData.sinStock)
+          return null;
+        if (prov === "delSud" && !usarDelSud) return null; // excluir DelSud si no cumple mínimo
+        return { prov, ...provData };
+      })
+      .filter(Boolean);
+
+    if (!proveedoresValidos.length) {
+      nuevosFaltantes.push({
+        ean: p.codebar,
+        producto: p.producto,
+        proveedor: "sin precios o sin stock",
+      });
+      return;
     }
 
-    const nuevosFaltantes = [];
+    // Elegimos el proveedor con menor precio unitario
+    proveedoresValidos.sort((a, b) => a.precioFinal - b.precioFinal);
+    const mejorProv = proveedoresValidos[0];
 
-    planCompra.forEach((p) => {
-      const restrNombre = `cant_${p.codebar}`;
+    let unidades = p.maximo; // cantidad deseada
+    // if (mejorProv.prov === "suizoArg") {
+    //   const bulto = Number(mejorProv.bulto || 1);
+    //   let mult = Math.round(unidades / bulto);
+    //   unidades = mult * bulto;
+    //   if (unidades === 0) unidades = bulto;
+    // }
+if (mejorProv.prov === "suizoArg") {
+  const bulto = Number(mejorProv.bulto || 1);
+  unidades = ajustarCantidadSuizo(unidades, bulto);
+}
 
-      // Verificamos si hay al menos un proveedor con precio Y con stock
-      const tienePrecioAlguno = Object.keys(preciosProveedores).some((prov) => {
-        const provData = buscarProveedor(preciosProveedores[prov], p.aliases);
-        return provData?.precioFinal > 0 && !provData?.sinStock;
-      });
 
-      if (!tienePrecioAlguno) {
-        nuevosFaltantes.push({
-          ean: p.codebar,
-          producto: p.producto,
-          proveedor: "sin precios o sin stock",
-        });
-        return; // saltar producto
-      }
+    resultadoTemp[`${p.codebar}_${mejorProv.prov}`] = unidades;
+  });
 
-      model.constraints[restrNombre] = { min: p.minimo, max: p.maximo };
+  setResultado(resultadoTemp);
+  setFaltantes(nuevosFaltantes);
+};
 
-      Object.keys(preciosProveedores).forEach((prov) => {
-        const provData = buscarProveedor(preciosProveedores[prov], p.aliases);
-        const precioUnidad = Number(provData?.precioFinal || 0);
-        const bulto = Number(provData?.bulto || 1);
-
-        if (!precioUnidad) return; // ignorar proveedor sin precio
-        if (provData?.sinStock) return; // IGNORAR proveedores sin stock
-
-        // Si existe DelSud, descartamos DelSud más caro que Suizo
-        if (prov === "delSud" && tieneDelSud) {
-          const suizoData = buscarProveedor(suizo, p.aliases);
-          if (suizoData?.precioFinal && precioUnidad >= suizoData.precioFinal) {
-            return;
-          }
-        }
-
-        const varName = `${p.codebar}_${prov}`;
-        model.variables[varName] = {
-          costo: precioUnidad * bulto,
-          [restrNombre]: bulto,
-        };
-
-        // Si hay DelSud y este producto está en los válidos, sumar a totalDelSud
-        if (
-          tieneDelSud &&
-          prov === "delSud" &&
-          delSudValidos.find((x) => x.codebar === p.codebar)
-        ) {
-          model.variables[varName]["totalDelSud"] = bulto;
-        }
-
-        model.ints[varName] = 1;
-      });
-    });
-
-    const result = solver.Solve(model);
-
-    if (!result.feasible) {
-      setErrorSolver(
-        "❌ No se encontró solución factible con los datos actuales."
-      );
-      setResultado(null);
-    } else {
-      setErrorSolver("");
-
-      // Calcular total de unidades compradas a DelSud (si existe)
-      const totalDelSud = tieneDelSud
-        ? Object.keys(result)
-            .filter((k) => k.includes("_delSud"))
-            .reduce((sum, k) => {
-              const code = k.split("_")[0];
-              const provData = buscarProveedor(delSud, [code]);
-              return sum + (result[k] || 0) * (provData?.bulto || 1);
-            }, 0)
-        : 0;
-
-      setResultado({ ...result, totalDelSud });
-    }
-
-    setFaltantes(nuevosFaltantes);
-  };
 
   const nuevosFaltantes = [];
   // --- Filas DataGrid ---
@@ -750,6 +887,17 @@ export default function ComparadorPrecios() {
             onChange={(e) => handleFileUpload(e, "keller")}
           />
         </Button>
+      </div>
+      <div style={{ marginBottom: 10 }}>
+        <label>
+          Mínimo total Del Sud:
+          <input
+            type="number"
+            value={minDelSud}
+            onChange={(e) => setMinDelSud(Number(e.target.value))}
+            style={{ width: 80, marginLeft: 5 }}
+          />
+        </label>
       </div>
 
       <Button
