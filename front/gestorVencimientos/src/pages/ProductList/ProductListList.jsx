@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchBranches } from "../../api/branchApi";
-import { getProductListsByBranch,deleteProductList  } from "../../api/listApi";
+import { getProductListsByBranch, deleteProductList } from "../../api/listApi";
 import {
   Box,
   MenuItem,
@@ -23,6 +23,7 @@ import { Checkbox, FormControlLabel } from "@mui/material"; // Agregá esto
 import { useEffect } from "react";
 import AddIcon from "@mui/icons-material/Add"; // al inicio del archivo
 import DeleteIcon from "@mui/icons-material/Delete";
+import * as XLSX from "xlsx";
 
 export default function BranchListSelector() {
   const [selectedLists, setSelectedLists] = useState([]);
@@ -38,6 +39,23 @@ export default function BranchListSelector() {
       localStorage.setItem("lastSelectedBranch", selectedBranch);
     }
   }, [selectedBranch]);
+
+  function exportToExcel(rows, fileName = "productos.xlsx") {
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Productos");
+    XLSX.writeFile(workbook, fileName);
+  }
+
+  const handleExportExcel = (list) => {
+    const rows =
+      list.products?.map((p) => ({
+        Codebar: p.product?.barcode?.trim() || "",
+        Producto: p.product?.name || "",
+      })) || [];
+
+    exportToExcel(rows, `etiquetas_${list.name.replace(/\s+/g, "_")}.xlsx`);
+  };
 
   const toggleListSelection = (listId) => {
     setSelectedLists((prev) =>
@@ -72,8 +90,7 @@ export default function BranchListSelector() {
   //   }
   // }, [lists]);
 
-
-   // 🔥 Mutación para eliminar lista
+  // 🔥 Mutación para eliminar lista
   const deleteMutation = useMutation({
     mutationFn: (listId) => deleteProductList(listId),
     onSuccess: () => {
@@ -81,7 +98,6 @@ export default function BranchListSelector() {
       setListToDelete(null); // cerrar diálogo
     },
   });
-
 
   const handleExport = (list) => {
     const codes =
@@ -182,7 +198,7 @@ export default function BranchListSelector() {
                     {list.name}
                   </Typography>
                 </Box>
-             
+
                 {/* Botones con diseño responsive */}
                 <Box
                   display="flex"
@@ -218,6 +234,14 @@ export default function BranchListSelector() {
                     Generar txt para etiquetas
                   </Button>
 
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => handleExportExcel(list)}
+                  >
+                    Descargar Excel
+                  </Button>
+
                   {/* <Button
                     variant="outlined"
                     size="small"
@@ -236,7 +260,7 @@ export default function BranchListSelector() {
                   >
                     Ver historial de precios
                   </Button>
-                      <Button
+                  <Button
                     variant="outlined"
                     size="small"
                     color="error"
@@ -245,22 +269,19 @@ export default function BranchListSelector() {
                   >
                     Eliminar
                   </Button>
-
                 </Box>
               </Box>
             </Paper>
           ))}
         </List>
-
-        
       )}
 
-          {/* Diálogo de confirmación */}
+      {/* Diálogo de confirmación */}
       <Dialog open={!!listToDelete} onClose={() => setListToDelete(null)}>
         <DialogTitle>Confirmar eliminación</DialogTitle>
         <DialogContent>
-          ¿Seguro que deseas eliminar la lista{" "}
-          <b>{listToDelete?.name}</b>? Esta acción no se puede deshacer.
+          ¿Seguro que deseas eliminar la lista <b>{listToDelete?.name}</b>? Esta
+          acción no se puede deshacer.
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setListToDelete(null)}>Cancelar</Button>
@@ -278,5 +299,3 @@ export default function BranchListSelector() {
     </Box>
   );
 }
-
-
