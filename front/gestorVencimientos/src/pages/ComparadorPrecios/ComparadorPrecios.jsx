@@ -55,240 +55,387 @@ export default function ComparadorPrecios() {
   };
 
   // --- Exportar plan optimizado a Excel (con styling xlsx-js-style) ---
-  // const exportToExcel = () => {
-  //   if (!rows.length) return;
+  
 
-  //   // Preparar datos (incluye sinStock por proveedor)
-  //   const dataToExport = rows.map((row) => {
-  //     const proveedoresData = Object.keys(preciosProveedores).map((prov) => {
-  //       const provDataGlobal = buscarProveedor(preciosProveedores[prov] || {}, [
-  //         row.ean,
-  //       ]);
-  //       return {
-  //         prov,
-  //         unidades: row[prov] || 0,
-  //         precio: row[`${prov}_precio_unit`] || 0,
-  //         total: row[`costo_${prov}_num`] || 0,
-  //         sinStock: !!provDataGlobal?.sinStock,
-  //       };
-  //     });
-  //     // precioMinimo entre los que tienen stock y precio>0
-  //     const preciosConStock = proveedoresData
-  //       .filter((p) => p.precio > 0 && !p.sinStock)
-  //       .map((p) => p.precio);
-  //     const precioMinimo = preciosConStock.length
-  //       ? Math.min(...preciosConStock)
-  //       : 0;
 
-  //     return {
-  //       EAN: row.ean,
-  //       Producto: row.producto,
-  //       Minimo: row.minimo,
-  //       Maximo: row.maximo,
-  //       proveedoresData,
-  //       precioMinimo,
-  //     };
-  //   });
+// const exportToExcel = () => {
+//   if (!rows.length) return;
 
-  //   // Crear workbook y sheet
-  //   const wb = XLSX.utils.book_new();
-  //   const wsData = [];
+//   const wb = XLSX.utils.book_new();
+//   const wsData = [];
 
-  //   // Cabecera
-  //   const header = ["EAN", "Producto", "Minimo", "Maximo"];
-  //   Object.keys(preciosProveedores).forEach((prov) => {
-  //     header.push(`${prov} (unidades)`, `${prov} $/unidad`, `${prov} total`);
-  //   });
-  //   wsData.push(header);
+//   // Cabecera
+//   const header = ["EAN", "Producto", "Minimo", "Maximo"];
+//   Object.keys(preciosProveedores).forEach((prov) => {
+//     header.push(`${prov} (unidades)`, `${prov} $/unidad`, `${prov} total`);
+//   });
+//   header.push("Cant Optimizada", "delSudNoTrans $/unidad", "delSudNoTrans total");
+//   wsData.push(header);
 
-  //   // Filas
-  //   dataToExport.forEach((fila) => {
-  //     const row = [fila.EAN, fila.Producto, fila.Minimo, fila.Maximo];
-  //     Object.keys(preciosProveedores).forEach((prov) => {
-  //       const p = fila.proveedoresData.find((x) => x.prov === prov);
-  //       if (p) {
-  //         row.push(p.unidades, p.precio, p.total);
-  //       } else {
-  //         row.push(0, 0, 0);
-  //       }
-  //     });
-  //     wsData.push(row);
-  //   });
+//   // Preparar datos
+//   const dataToExport = rows.map((row) => {
+//     const proveedoresData = Object.keys(preciosProveedores).map((prov) => {
+//       const provDataGlobal = buscarProveedor(preciosProveedores[prov] || {}, [row.ean]);
+//       return {
+//         prov,
+//         unidades: row[prov] || 0,
+//         precio: row[`${prov}_precio_unit`] || 0,
+//         total: row[`costo_${prov}_num`] || 0,
+//         sinStock: !!provDataGlobal?.sinStock,
+//       };
+//     });
 
-  //   const ws = XLSX.utils.aoa_to_sheet(wsData);
+//     const preciosConStock = proveedoresData
+//       .filter((p) => p.precio > 0 && !p.sinStock)
+//       .map((p) => p.precio);
+//     const precioMinimo = preciosConStock.length ? Math.min(...preciosConStock) : 0;
 
-  //   // Estilos:
-  //   // - Si proveedor está sinStock -> fondo rojo + fuente verde (bold)
-  //   // - Entre los que tienen stock, marcar mejor y segundo mejor precio en fuente verde (bold), sin relleno
-  //   for (let r = 1; r < wsData.length; r++) {
-  //     const fila = dataToExport[r - 1];
+//     const cantUsada = proveedoresData.reduce((acc, p) => acc + (p.unidades || 0), 0);
 
-  //     // construir array de precios con stock (para determinar 1° y 2°)
-  //     const preciosValidados = []; // { precio, provIndex, cellRef }
-  //     Object.keys(preciosProveedores).forEach((prov, i) => {
-  //       const colPrecio = 4 + i * 3 + 1; // columna de precio unitario
-  //       const cellRef = XLSX.utils.encode_cell({ r, c: colPrecio });
-  //       if (!ws[cellRef]) return;
-  //       const precio = parseFloat(wsData[r][colPrecio]) || 0;
+//     return {
+//       EAN: row.ean,
+//       Producto: row.producto,
+//       Minimo: row.minimo,
+//       Maximo: row.maximo,
+//       proveedoresData,
+//       precioMinimo,
+//       cantUsada,
+//       delSudNoTransPrecio: row.delSudNoTrans_precio_unit || 0,
+//     };
+//   });
 
-  //       const provData = fila.proveedoresData.find((x) => x.prov === prov);
-  //       const sinStock = provData?.sinStock;
+//   // Crear filas
+//   dataToExport.forEach((fila) => {
+//     const row = [fila.EAN, fila.Producto, fila.Minimo, fila.Maximo];
+//     Object.keys(preciosProveedores).forEach((prov) => {
+//       const p = fila.proveedoresData.find((x) => x.prov === prov);
+//       if (p) row.push(p.unidades, p.precio, p.total);
+//       else row.push(0, 0, 0);
+//     });
 
-  //       if (sinStock) {
-  //         // marcar como sin stock: fondo rojo + fuente verde
-  //         ws[cellRef].s = {
-  //           fill: { fgColor: { rgb: "FFCCCC" } }, // rojo claro
-  //           font: { color: { rgb: "006100" }, bold: true },
-  //         };
-  //       } else {
-  //         // precios que sí tienen stock y precio>0 se consideran para ranking
-  //         if (precio > 0) {
-  //           preciosValidados.push({ precio, cellRef });
-  //         } else {
-  //           // no hay precio -> dejar neutro
-  //         }
-  //       }
-  //     });
+//     const delSudTotal = fila.cantUsada * fila.delSudNoTransPrecio;
+//     row.push(fila.cantUsada, fila.delSudNoTransPrecio, delSudTotal);
 
-  //     // ordenar validados por precio asc
-  //     preciosValidados.sort((a, b) => a.precio - b.precio);
+//     wsData.push(row);
+//   });
 
-  //     // marcar mejor y segundo mejor (si existen): fuente verde bold, sin relleno
-  //     if (preciosValidados[0]) {
-  //       ws[preciosValidados[0].cellRef].s = {
-  //         ...(ws[preciosValidados[0].cellRef].s || {}),
-  //         font: { color: { rgb: "006100" }, bold: true },
-  //       };
-  //     }
-  //     if (preciosValidados[1]) {
-  //       ws[preciosValidados[1].cellRef].s = {
-  //         ...(ws[preciosValidados[1].cellRef].s || {}),
-  //         font: { color: { rgb: "006100" }, bold: true },
-  //       };
-  //     }
-  //   }
+//   // 🔹 Totales por proveedor
+//   const totalRow = ["", "TOTAL", "", ""];
+//   Object.keys(preciosProveedores).forEach((prov, i) => {
+//     const colTotal = 4 + i * 3 + 2; // columna de total
+//     let sumTotal = 0;
+//     for (let r = 1; r <= dataToExport.length; r++) {
+//       sumTotal += wsData[r][colTotal] || 0;
+//     }
+//     totalRow.push("", "", sumTotal);
+//   });
 
-  //   XLSX.utils.book_append_sheet(wb, ws, "PlanCompraOptimizado");
-  //   XLSX.writeFile(wb, "PlanCompraOptimizado.xlsx");
-  // };
+//   // Totales de columna nueva: Cant optimizada y delSudNoTrans
+//   const colCantOpt = wsData[0].length - 3;
+//   const colDelSudPrecio = wsData[0].length - 2;
+//   const colDelSudTotal = wsData[0].length - 1;
 
-  const exportToExcel = () => {
-    if (!rows.length) return;
+//   let sumCantOpt = 0,
+//     sumDelSudTotal = 0;
+//   for (let r = 1; r <= dataToExport.length; r++) {
+//     sumCantOpt += wsData[r][colCantOpt] || 0;
+//     sumDelSudTotal += wsData[r][colDelSudTotal] || 0;
+//   }
+//   totalRow.push(sumCantOpt, "", sumDelSudTotal);
 
-    // Preparar datos (incluye sinStock por proveedor)
-    const dataToExport = rows.map((row) => {
-      const proveedoresData = Object.keys(preciosProveedores).map((prov) => {
-        const provDataGlobal = buscarProveedor(preciosProveedores[prov] || {}, [
-          row.ean,
-        ]);
-        return {
-          prov,
-          unidades: row[prov] || 0,
-          precio: row[`${prov}_precio_unit`] || 0,
-          total: row[`costo_${prov}_num`] || 0,
-          sinStock: !!provDataGlobal?.sinStock,
-        };
-      });
+//   wsData.push(totalRow);
 
-      // precioMinimo entre los que tienen stock y precio>0
-      const preciosConStock = proveedoresData
-        .filter((p) => p.precio > 0 && !p.sinStock)
-        .map((p) => p.precio);
-      const precioMinimo = preciosConStock.length
-        ? Math.min(...preciosConStock)
-        : 0;
+//   // 🔹 Resumen ahorro
+//   const compraOfertas = sumDelSudTotal; // Total usando delSudNoTrans (ya pusimos como comparación)
+//   const compraOptimizada = dataToExport.reduce(
+//     (acc, fila) => acc + fila.cantUsada * fila.precioMinimo,
+//     0
+//   );
+//   const ahorro = compraOfertas - compraOptimizada;
+//   const porcAhorro = compraOfertas ? (ahorro / compraOfertas) * 100 : 0;
 
+//   wsData.push([]);
+//   wsData.push(["Resumen"]);
+//   wsData.push(["Compra total con ofertas:", compraOptimizada]);
+//   wsData.push(["Compra total todo a delSudNoTrans:", compraOfertas]);
+//   wsData.push(["Ahorro:", ahorro]);
+//   wsData.push(["Porcentaje de ahorro:", `${porcAhorro.toFixed(2)}%`]);
+
+//   const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+//   // 🔹 Estilos (mantenemos los estilos anteriores, agregá si querés color/borde)
+//   for (let r = 1; r < wsData.length; r++) {
+//     if (r > dataToExport.length) break; // no estilizar totales/resumen todavía
+//     const fila = dataToExport[r - 1];
+//     const preciosValidados = [];
+
+//     Object.keys(preciosProveedores).forEach((prov, i) => {
+//       const startCol = 4 + i * 3;
+//       const endCol = startCol + 2;
+//       const colorFondo = "FFFFE0";
+
+//       for (let c = startCol; c <= endCol; c++) {
+//         const cellRef = XLSX.utils.encode_cell({ r, c });
+//         if (!ws[cellRef]) continue;
+
+//         const provData = fila.proveedoresData.find((x) => x.prov === prov);
+//         const sinStock = provData?.sinStock;
+
+//         ws[cellRef].s = {
+//           ...(ws[cellRef].s || {}),
+//           fill: { fgColor: { rgb: colorFondo } },
+//         };
+
+//         if (c === startCol + 1 && provData.precio > 0 && sinStock) {
+//           ws[cellRef].s.font = { color: { rgb: "FF0000" }, bold: true };
+//         }
+
+//         // Borde exterior
+//         const border = {};
+//         if (c === startCol) border.left = { style: "thick", color: { rgb: "000000" } };
+//         if (c === endCol) border.right = { style: "thick", color: { rgb: "000000" } };
+//         if (r === 1) border.top = { style: "thick", color: { rgb: "000000" } };
+//         if (r === wsData.length - 1) border.bottom = { style: "thick", color: { rgb: "000000" } };
+//         ws[cellRef].s.border = border;
+
+//         if (!sinStock && provData.precio > 0 && c === startCol + 1) {
+//           preciosValidados.push({ precio: provData.precio, cellRef });
+//         }
+//       }
+//     });
+
+//     // Mejor precio verde
+//     preciosValidados.sort((a, b) => a.precio - b.precio);
+//     if (preciosValidados[0]) ws[preciosValidados[0].cellRef].s.font = { color: { rgb: "006100" }, bold: true };
+
+//     // delSudNoTrans total rojo si mayor que optimizado
+//     const colDelSudTotal = wsData[0].length - 1;
+//     const delSudTotalCellRef = XLSX.utils.encode_cell({ r, c: colDelSudTotal });
+//     const delSudTotal = wsData[r][colDelSudTotal];
+//     const optimizadoTotal = fila.cantUsada * fila.precioMinimo;
+//     if (delSudTotal > optimizadoTotal) {
+//       ws[delSudTotalCellRef].s = {
+//         ...(ws[delSudTotalCellRef].s || {}),
+//         font: { color: { rgb: "FF0000" }, bold: true },
+//       };
+//     }
+//   }
+
+//   XLSX.utils.book_append_sheet(wb, ws, "PlanCompraOptimizado");
+//   XLSX.writeFile(wb, "PlanCompraOptimizado.xlsx");
+// };
+
+const exportToExcel = () => {
+  if (!rows.length) return;
+
+  // Preparar datos (incluye sinStock por proveedor)
+  const dataToExport = rows.map((row) => {
+    const proveedoresData = Object.keys(preciosProveedores).map((prov) => {
+      const provDataGlobal = buscarProveedor(preciosProveedores[prov] || {}, [
+        row.ean,
+      ]);
       return {
-        EAN: row.ean,
-        Producto: row.producto,
-        Minimo: row.minimo,
-        Maximo: row.maximo,
-        proveedoresData,
-        precioMinimo,
+        prov,
+        unidades: row[prov] || 0,
+        precio: row[`${prov}_precio_unit`] || 0,
+        total: row[`costo_${prov}_num`] || 0,
+        sinStock: !!provDataGlobal?.sinStock,
       };
     });
 
-    // Crear workbook y sheet
-    const wb = XLSX.utils.book_new();
-    const wsData = [];
+    // precioMinimo entre los que tienen stock y precio>0
+    const preciosConStock = proveedoresData
+      .filter((p) => p.precio > 0 && !p.sinStock)
+      .map((p) => p.precio);
+    const precioMinimo = preciosConStock.length
+      ? Math.min(...preciosConStock)
+      : 0;
 
-    // Cabecera
-    const header = ["EAN", "Producto", "Minimo", "Maximo"];
+    // Cantidad usada según optimización
+    const cantUsada = proveedoresData.reduce(
+      (acc, p) => acc + (p.unidades || 0),
+      0
+    );
+
+    return {
+      EAN: row.ean,
+      Producto: row.producto,
+      Minimo: row.minimo,
+      Maximo: row.maximo,
+      proveedoresData,
+      precioMinimo,
+      cantUsada,
+      delSudNoTransPrecio: row.delSudNoTrans_precio_unit || 0,
+    };
+  });
+
+  // Crear workbook y sheet
+  const wb = XLSX.utils.book_new();
+  const wsData = [];
+
+  // Cabecera
+  const header = ["EAN", "Producto", "Minimo", "Maximo"];
+  Object.keys(preciosProveedores).forEach((prov) => {
+    header.push(`${prov} (unidades)`, `${prov} $/unidad`, `${prov} total`);
+  });
+  header.push("Cant Optimizada", "delSudNoTrans $/unidad", "delSudNoTrans total");
+  wsData.push(header);
+
+  // Filas
+  dataToExport.forEach((fila) => {
+    const row = [fila.EAN, fila.Producto, fila.Minimo, fila.Maximo];
     Object.keys(preciosProveedores).forEach((prov) => {
-      header.push(`${prov} (unidades)`, `${prov} $/unidad`, `${prov} total`);
+      const p = fila.proveedoresData.find((x) => x.prov === prov);
+      if (p) {
+        row.push(p.unidades, p.precio, p.total);
+      } else {
+        row.push(0, 0, 0);
+      }
     });
-    wsData.push(header);
+    // Columna comparativa
+    const delSudTotal = fila.cantUsada * fila.delSudNoTransPrecio;
+    row.push(fila.cantUsada, fila.delSudNoTransPrecio, delSudTotal);
+    wsData.push(row);
+  });
 
-    // Filas
+  // Totales por proveedor
+  const totalRow = ["Totales", "", "", ""];
+  Object.keys(preciosProveedores).forEach((prov, i) => {
+    let total = 0;
     dataToExport.forEach((fila) => {
-      const row = [fila.EAN, fila.Producto, fila.Minimo, fila.Maximo];
-      Object.keys(preciosProveedores).forEach((prov) => {
-        const p = fila.proveedoresData.find((x) => x.prov === prov);
-        if (p) {
-          row.push(p.unidades, p.precio, p.total);
-        } else {
-          row.push(0, 0, 0);
-        }
-      });
-      wsData.push(row);
+      const p = fila.proveedoresData.find((x) => x.prov === prov);
+      if (p) total += p.total || 0;
     });
+    totalRow.push("", "", total);
+  });
+  // Totales columna comparativa delSudNoTrans
+  let totalDelSudNoTrans = 0;
+  let totalOptimizado = 0;
+  dataToExport.forEach((fila) => {
+    totalDelSudNoTrans += fila.cantUsada * fila.delSudNoTransPrecio;
+    totalOptimizado += fila.cantUsada * fila.precioMinimo;
+  });
+  totalRow.push("", "", totalDelSudNoTrans);
+  wsData.push(totalRow);
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
+  // Resumen de ahorro
+  const ahorro = totalDelSudNoTrans - totalOptimizado;
+  const porcentaje = totalDelSudNoTrans
+    ? ((ahorro / totalDelSudNoTrans) * 100).toFixed(2)
+    : 0;
+  wsData.push(["Compra total con ofertas:", totalOptimizado]);
+  wsData.push(["Compra total todo a delSudNoTrans:", totalDelSudNoTrans]);
+  wsData.push(["Ahorro:", ahorro]);
+  wsData.push(["Porcentaje de ahorro:", porcentaje + "%"]);
 
-    // 🔹 Estilos
-    for (let r = 1; r < wsData.length; r++) {
-      const fila = dataToExport[r - 1];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-      // recolectar precios con info de stock
-      const preciosValidados = []; // { precio, cellRef, sinStock }
-      Object.keys(preciosProveedores).forEach((prov, i) => {
-        const colPrecio = 4 + i * 3 + 1; // columna de precio unitario
-        const cellRef = XLSX.utils.encode_cell({ r, c: colPrecio });
-        if (!ws[cellRef]) return;
+  // 🔹 Estilos cabecera
+  for (let c = 0; c < wsData[0].length; c++) {
+    const cellRef = XLSX.utils.encode_cell({ r: 0, c });
+    if (!ws[cellRef]) continue;
+    ws[cellRef].s = {
+      font: { bold: true, sz: 12 },
+      alignment: { horizontal: "center" },
+    };
+  }
 
-        const precio = parseFloat(wsData[r][colPrecio]) || 0;
-        const provData = fila.proveedoresData.find((x) => x.prov === prov);
-        const sinStock = provData?.sinStock;
-
-        if (sinStock) {
-          // ❌ sin stock → fondo rojo + fuente negra
-          ws[cellRef].s = {
-            fill: { fgColor: { rgb: "FFCCCC" } },
-            font: { color: { rgb: "000000" }, bold: true },
-          };
-        } else if (precio > 0) {
-          preciosValidados.push({ precio, cellRef });
-        }
-      });
-
-      // ordenar disponibles por precio asc
-      preciosValidados.sort((a, b) => a.precio - b.precio);
-
-      // ✅ Mejor disponible → verde + bold
-      if (preciosValidados[0]) {
-        ws[preciosValidados[0].cellRef].s = {
-          ...(ws[preciosValidados[0].cellRef].s || {}),
-          font: { color: { rgb: "006100" }, bold: true },
+  // 🔹 Colorear celdas por proveedor y poner borde exterior
+  Object.keys(preciosProveedores).forEach((prov, i) => {
+    const startCol = 4 + i * 3;
+    const endCol = startCol + 2;
+    for (let r = 1; r <= dataToExport.length; r++) {
+      for (let c = startCol; c <= endCol; c++) {
+        const cellRef = XLSX.utils.encode_cell({ r, c });
+        if (!ws[cellRef]) continue;
+        ws[cellRef].s = {
+          ...(ws[cellRef].s || {}),
+          fill: { fgColor: { rgb: "FFF2CC" } },
+          border: {
+            top: { style: "thin", color: { rgb: "000000" } },
+            bottom: { style: "thin", color: { rgb: "000000" } },
+            left: c === startCol ? { style: "medium", color: { rgb: "000000" } } : { style: "thin", color: { rgb: "000000" } },
+            right: c === endCol ? { style: "medium", color: { rgb: "000000" } } : { style: "thin", color: { rgb: "000000" } },
+          },
         };
       }
-
-      // ✅ Segundo mejor → solo si el primero de la fila estaba sin stock
-      if (preciosValidados[1]) {
-        const mejorOriginal = fila.proveedoresData.find(
-          (x) => x.precio === fila.precioMinimo
-        );
-        if (mejorOriginal?.sinStock) {
-          ws[preciosValidados[1].cellRef].s = {
-            ...(ws[preciosValidados[1].cellRef].s || {}),
-            font: { color: { rgb: "006100" } },
-          };
-        }
-      }
     }
+  });
 
-    XLSX.utils.book_append_sheet(wb, ws, "PlanCompraOptimizado");
-    XLSX.writeFile(wb, "PlanCompraOptimizado.xlsx");
-  };
+  // 🔹 Estilos precios: sin stock rojo, mejor verde
+  for (let r = 1; r <= dataToExport.length; r++) {
+    const fila = dataToExport[r - 1];
+    const preciosValidados = [];
+    Object.keys(preciosProveedores).forEach((prov, i) => {
+      const colPrecio = 4 + i * 3 + 1;
+      const cellRef = XLSX.utils.encode_cell({ r, c: colPrecio });
+      if (!ws[cellRef]) return;
+      const precio = parseFloat(wsData[r][colPrecio]) || 0;
+      const provData = fila.proveedoresData.find((x) => x.prov === prov);
+      if (provData?.sinStock) {
+        ws[cellRef].s = {
+          ...(ws[cellRef].s || {}),
+          font: { color: { rgb: "FF0000" }, bold: true },
+        };
+      } else if (precio > 0) {
+        preciosValidados.push({ precio, cellRef });
+      }
+    });
+    preciosValidados.sort((a, b) => a.precio - b.precio);
+    if (preciosValidados[0]) {
+      ws[preciosValidados[0].cellRef].s = {
+        ...(ws[preciosValidados[0].cellRef].s || {}),
+        font: { color: { rgb: "006100" }, bold: true },
+      };
+    }
+  }
+
+// 🔴 Letras rojas si delSudNoTrans total > compra optimizada
+for (let r = 1; r <= dataToExport.length; r++) {
+  const fila = dataToExport[r - 1];
+  const colDelSudTotal = wsData[0].length - 1; // última columna: delSudNoTrans total
+  const cellRef = XLSX.utils.encode_cell({ r, c: colDelSudTotal });
+  const delSudTotal = wsData[r][colDelSudTotal];
+  const optimizadoTotal = fila.cantUsada * fila.precioMinimo;
+
+  if (delSudTotal > optimizadoTotal) {
+    if (!ws[cellRef]) return;
+    ws[cellRef].s = {
+      ...(ws[cellRef].s || {}),
+      font: { color: { rgb: "FF0000" }, bold: true }, // letra roja
+    };
+  }
+}
+
+  
+  // 🔹 Estilos fila de totales
+  const totalRowIndex = dataToExport.length + 1;
+  for (let c = 0; c < wsData[totalRowIndex].length; c++) {
+    const cellRef = XLSX.utils.encode_cell({ r: totalRowIndex, c });
+    if (!ws[cellRef]) continue;
+    ws[cellRef].s = { font: { bold: true }, fill: { fgColor: { rgb: "E0E0E0" } } };
+  }
+
+  // 🔹 Estilos resumen de ahorro (últimas 4 filas)
+  for (let r = totalRowIndex + 1; r < wsData.length; r++) {
+    const cellLabel = XLSX.utils.encode_cell({ r, c: 0 });
+    const cellValor = XLSX.utils.encode_cell({ r, c: 1 });
+    if (ws[cellLabel]) ws[cellLabel].s = { font: { bold: true } };
+    if (ws[cellValor]) ws[cellValor].s = {
+      font: { bold: true },
+      fill: { fgColor: { rgb: "C6EFCE" } },
+      alignment: { horizontal: "right" },
+    };
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, "PlanCompraOptimizado");
+  XLSX.writeFile(wb, "PlanCompraOptimizado.xlsx");
+};
+
+
+
+
+
 
   useEffect(() => {
     setFaltantes(nuevosFaltantes);

@@ -456,6 +456,15 @@ export default function ABCViewer() {
     },
   ];
 
+  const tablasTabs = [
+  { label: "Sud", component: <TablaAExcelSud /> },
+  { label: "Cofa", component: <TablaAExcelCofa /> },
+  { label: "Suizo", component: <TablaAExcel /> },
+  { label: "Keller", component: <TablaAExcelKeller /> },
+];
+const [tabActual, setTabActual] = useState(0);
+
+
   return (
     <Box sx={{ p: 2 }}>
       <style>
@@ -644,27 +653,27 @@ export default function ABCViewer() {
 
       <ProductosSinVentas />
 
--------
-  Descargar tablas Del Sud
+<Box sx={{ mt: 4 }}>
+  <Typography variant="h6" gutterBottom>
+    📄 Tablas para Descargar
+  </Typography>
 
-  <TablaAExcelSud/>
+  <Tabs
+    value={tabActual}
+    onChange={(e, nv) => setTabActual(nv)}
+    variant="scrollable"
+    scrollButtons="auto"
+    sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}
+  >
+    {tablasTabs.map((t, index) => (
+      <Tab key={index} label={t.label} value={index} />
+    ))}
+  </Tabs>
 
-
----------
-
-Descargar tabla a excel de cofa
-
-<TablaAExcelCofa/>
-
-------------
-  Descargar tabla de Suizo
-
-<TablaAExcel/>
-----------
-  
-Descargar tabla de Keller
-
-<TablaAExcelKeller/>
+  <Box sx={{ mt: 2 }}>
+    {tablasTabs[tabActual].component}
+  </Box>
+</Box>
 
       ------------------------------------------
       ComparadorPrecios
