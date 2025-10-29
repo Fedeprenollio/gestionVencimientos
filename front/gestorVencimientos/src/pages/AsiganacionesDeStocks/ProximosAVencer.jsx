@@ -832,6 +832,9 @@ export default function TrasladoProductos() {
     return isNaN(n) ? 0 : n;
   };
 
+
+
+
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -848,165 +851,717 @@ export default function TrasladoProductos() {
     reader.readAsBinaryString(file);
   };
 
-  // const assignProducts = (rows) => {
-  //   const productsMap = {}; // key: codigo -> {producto, origins, destinations, ventasOrigen}
+// const assignProducts = (rows) => {
+//   const productsMap = {};
 
-  //   rows.forEach((r) => {
-  //     const codigo = (r["Código de Barra"] ?? "").toString().trim();
-  //     if (!codigo) return;
+//   // 1️⃣ Armamos el mapa de productos
+//   rows.forEach((r) => {
+//     const codigo = (r["Código de Barra"] ?? "").toString().trim();
+//     if (!codigo) return;
 
-  //     const producto = r["Producto"] ?? "";
-  //     const mes = (r["Mes"] ?? "").toString().trim();
-  //     const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN")
-  //       .toString()
-  //       .trim();
-  //     const sucursalDestino = (r["Sucursal de destino"] ?? "")
-  //       .toString()
-  //       .trim();
+//     const producto = r["Producto"] ?? "";
+//     const mes = (r["Mes"] ?? "").toString().trim();
+//     const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN").toString().trim();
+//     const sucursalDestino = (r["Sucursal de destino"] ?? "").toString().trim();
+//     const cantidad = Number(r["Cantidad"]) || 0;
+//     const ventas = Number(r["Unidades vendidas en destino"]) || 0;
+//     const stockDestino = Number(r["Stock en destino"]) || 0;
 
-  //     const cantidad = Number(r["Cantidad"]) || 0;
-  //     const ventas = Number(r["Unidades vendidas en destino"]) || 0;
+//     if (!productsMap[codigo]) {
+//       productsMap[codigo] = {
+//         producto,
+//         origins: {},       // sucursalOrigen -> {cantidad, mes}
+//         destinations: {},  // sucursalDestino -> {ventas, stockDestino}
+//         ventasOrigen: {},  // sucursalOrigen -> ventas propias
+//       };
+//     }
 
-  //     if (!productsMap[codigo]) {
-  //       productsMap[codigo] = {
-  //         producto,
-  //         origins: {}, // sucursalOrigen -> {cantidad, mes}
-  //         destinations: {}, // sucursalDestino -> ventas
-  //         ventasOrigen: {}, // sucursalOrigen -> ventas en su propia sucursal
-  //       };
-  //     }
+//     const prod = productsMap[codigo];
 
-  //     const prod = productsMap[codigo];
+//     if (sucursalOrigen === sucursalDestino) {
+//       prod.ventasOrigen[sucursalOrigen] =
+//         (prod.ventasOrigen[sucursalOrigen] || 0) + ventas;
+//     } else {
+//       if (cantidad > 0) prod.origins[sucursalOrigen] = { cantidad, mes };
+//       if (sucursalDestino && ventas >= 5)
+//         prod.destinations[sucursalDestino] = { ventas, stockDestino };
+//     }
+//   });
 
-  //     if (sucursalOrigen === sucursalDestino) {
-  //       prod.ventasOrigen[sucursalOrigen] =
-  //         (prod.ventasOrigen[sucursalOrigen] || 0) + ventas;
-  //     } else {
-  //       if (cantidad > 0) prod.origins[sucursalOrigen] = { cantidad, mes };
-  //       if (sucursalDestino && ventas >= 5)
-  //         prod.destinations[sucursalDestino] = ventas;
-  //     }
-  //   });
+//   const result = {};
+//   const origenesResult = {};
 
-  //   const result = {};
-  //   const origenesResult = {};
+//   // 2️⃣ Procesamos cada producto
+//   Object.entries(productsMap).forEach(([codigo, prod]) => {
+//     const originsArr = Object.entries(prod.origins).map(([origen, info]) => ({
+//       sucursalOrigen: origen,
+//       cantidad: info.cantidad,
+//       mes: info.mes,
+//       ventasOrigen: prod.ventasOrigen[origen] || 0,
+//     }));
 
-  //   Object.entries(productsMap).forEach(([codigo, prod]) => {
-  //     const originsArr = Object.entries(prod.origins).map(([origen, info]) => ({
-  //       sucursalOrigen: origen,
-  //       cantidad: info.cantidad,
-  //       mes: info.mes,
-  //       ventasOrigen: prod.ventasOrigen[origen] || 0,
-  //     }));
+//     // Ordenamos los destinos por ventas (prioridad)
+//     const destinosArr = Object.entries(prod.destinations)
+//       .map(([dest, info]) => ({
+//         sucursalDestino: dest,
+//         ventas: info.ventas,
+//         stockDestino: info.stockDestino,
+//       }))
+//       .sort((a, b) => b.ventas - a.ventas);
 
-  //     const destinosArr = Object.entries(prod.destinations)
-  //       .map(([dest, ventas]) => ({ sucursalDestino: dest, ventas }))
-  //       .sort((a, b) => b.ventas - a.ventas); // ordenar de mayor a menor ventas
+//     // 🚫 Evitamos "pases de manos" (destinos que también son origen del mismo producto)
+//     const destinosOrdenados = destinosArr.filter(
+//       (d) => !prod.origins[d.sucursalDestino]
+//     );
 
-  //     const blockedDestinations = new Set(Object.keys(prod.origins)); // sucursales con producto por vencer
+//     let idxDestino = 0;
 
-  //     let idxDestino = 0;
-  //     originsArr.forEach((origen) => {
-  //       if (origen.cantidad <= 0) return;
+//     // 3️⃣ Asignamos orígenes -> destinos
+//     originsArr.forEach((origen) => {
+//       const notas = [];
 
-  //       // Buscar primer destino válido
-  //       let destino = null;
-  //       for (let i = 0; i < destinosArr.length; i++) {
-  //         const cand = destinosArr[(idxDestino + i) % destinosArr.length];
-  //         if (
-  //           !blockedDestinations.has(cand.sucursalDestino) &&
-  //           cand.sucursalDestino !== origen.sucursalOrigen
-  //         ) {
-  //           destino = cand;
-  //           idxDestino = (idxDestino + i + 1) % destinosArr.length;
-  //           break;
-  //         }
-  //       }
+//       if (origen.cantidad <= 0) return;
 
-  //       // No hay destino válido
-  //       if (!destino) {
-  //         if (!origenesResult[origen.sucursalOrigen])
-  //           origenesResult[origen.sucursalOrigen] = [];
-  //         origenesResult[origen.sucursalOrigen].push({
-  //           codigo,
-  //           producto: prod.producto + " ❌ Sin destino",
-  //           sucursalDestino: "",
-  //           vence: origen.mes,
-  //           cantidadTrasladar: origen.cantidad,
-  //           ventasOrigen: origen.ventasOrigen,
-  //           ventasDestino: 0,
-  //         });
-  //         return;
-  //       }
+//       if (destinosOrdenados.length === 0) {
+//         notas.push("❌ No hay destinos potables disponibles");
+//       }
 
-  //       // Guardar en result por destino
-  //       if (!result[destino.sucursalDestino])
-  //         result[destino.sucursalDestino] = [];
-  //       result[destino.sucursalDestino].push({
-  //         codigo,
-  //         producto: prod.producto,
-  //         sucursalOrigen: origen.sucursalOrigen,
-  //         vence: origen.mes,
-  //         cantidadTrasladar: origen.cantidad,
-  //         ventasDestino: destino.ventas,
-  //         ventasOrigen: origen.ventasOrigen,
-  //       });
+//       const destino = destinosOrdenados[idxDestino % destinosOrdenados.length];
+//       idxDestino++;
+//       if (!destino) return;
 
-  //       // Guardar en origen
-  //       if (!origenesResult[origen.sucursalOrigen])
-  //         origenesResult[origen.sucursalOrigen] = [];
-  //       origenesResult[origen.sucursalOrigen].push({
-  //         codigo,
-  //         producto: prod.producto,
-  //         sucursalDestino: destino.sucursalDestino,
-  //         vence: origen.mes,
-  //         cantidadTrasladar: origen.cantidad,
-  //         ventasOrigen: origen.ventasOrigen,
-  //         ventasDestino: destino.ventas,
-  //       });
-  //     });
-  //   });
+//       if (!origenesResult[origen.sucursalOrigen])
+//         origenesResult[origen.sucursalOrigen] = [];
+//       if (!result[destino.sucursalDestino])
+//         result[destino.sucursalDestino] = [];
 
-  //   // Después de llenar `result`
-  //   Object.entries(result).forEach(([destino, items]) => {
-  //     // Contamos cuántas sucursales de origen envían cada código de barra a este destino
-  //     const counts = {};
-  //     items.forEach((item) => {
-  //       const key = item.codigo;
-  //       counts[key] = (counts[key] || 0) + 1;
-  //     });
+//       // ⚠ Si el destino también tiene stock por vencer (aún después del filtro)
+//       if (prod.origins[destino.sucursalDestino]) {
+//         notas.push("⚠ Destino ya tiene producto por vencer");
+//       }
 
-  //     // Agregamos la nota si hay más de una sucursal de origen enviando el mismo código
-  //     items.forEach((item) => {
-  //       if (counts[item.codigo] > 1) {
-  //         item.nota = "Destino de varias sucursales";
-  //       } else {
-  //         item.nota = "";
-  //       }
-  //     });
-  //   });
-  //   Object.entries(origenesResult).forEach(([origen, items]) => {
-  //     const counts = {};
+//       const registro = {
+//         codigo,
+//         producto: prod.producto,
+//         sucursalOrigen: origen.sucursalOrigen,
+//         sucursalDestino: destino.sucursalDestino,
+//         vence: origen.mes,
+//         cantidadTrasladar: origen.cantidad,
+//         ventasOrigen: origen.ventasOrigen,
+//         ventasDestino: destino.ventas,
+//         stockDestino: destino.stockDestino,
+//         nota: notas.length ? notas.join("\n") : "",
+//       };
 
-  //     items.forEach((item) => {
-  //       const key = item.codigo;
-  //       if (!counts[key]) counts[key] = new Set();
-  //       if (item.sucursalDestino) counts[key].add(item.sucursalDestino);
-  //     });
+//       result[destino.sucursalDestino].push(registro);
+//       origenesResult[origen.sucursalOrigen].push(registro);
+//     });
 
-  //     items.forEach((item) => {
-  //       item.nota =
-  //         counts[item.codigo].size > 1 ? "Destino de varias sucursales" : "";
-  //     });
-  //   });
+//     // 🔁 Nota informativa: si una sucursal recibe y también envía (detectado)
+//     Object.keys(prod.origins).forEach((origenKey) => {
+//       if (prod.destinations[origenKey]) {
+//         if (!origenesResult[origenKey]) origenesResult[origenKey] = [];
 
-  //   setGroupedBySucursal(result);
-  //   setGroupedByOrigen(origenesResult);
-  // };
+//         origenesResult[origenKey].push({
+//           codigo,
+//           producto: prod.producto,
+//           sucursalOrigen: origenKey,
+//           sucursalDestino: "",
+//           vence: prod.origins[origenKey].mes,
+//           cantidadTrasladar: prod.origins[origenKey].cantidad,
+//           ventasOrigen: prod.ventasOrigen[origenKey] || 0,
+//           ventasDestino: 0,
+//           stockDestino: 0,
+//           nota: "⚠ Optimizar reparto: esta sucursal recibe y también envía el mismo producto",
+//         });
+//       }
+//     });
+//   });
+
+//   // 4️⃣ Detección de conflictos: varios orígenes enviando al mismo destino
+//   const conflictMap = {};
+//   Object.entries(result).forEach(([destino, items]) => {
+//     items.forEach((item) => {
+//       const key = `${item.codigo}|${destino}`;
+//       conflictMap[key] = (conflictMap[key] || 0) + 1;
+//     });
+//   });
+
+//   Object.entries(result).forEach(([destino, items]) => {
+//     items.forEach((item) => {
+//       const key = `${item.codigo}|${destino}`;
+//       if (conflictMap[key] > 1) {
+//         if (!item.nota.includes("⚠ Probable problema")) {
+//           item.nota =
+//             (item.nota ? item.nota + "\n" : "") +
+//             "⚠ Probable problema: varias sucursales enviando";
+//         }
+//       }
+//     });
+//   });
+
+//   Object.entries(origenesResult).forEach(([origen, items]) => {
+//     items.forEach((item) => {
+//       if (!item.sucursalDestino) return;
+//       const key = `${item.codigo}|${item.sucursalDestino}`;
+//       if (conflictMap[key] > 1) {
+//         if (!item.nota.includes("⚠ Probable problema")) {
+//           item.nota =
+//             (item.nota ? item.nota + "\n" : "") +
+//             "⚠ Probable problema: varias sucursales enviando";
+//         }
+//       }
+//     });
+//   });
+
+//   // 5️⃣ Guardamos resultados
+//   setGroupedBySucursal(result);
+//   setGroupedByOrigen(origenesResult);
+// };
+
+// const assignProducts = (rows) => {
+//   const productsMap = {};
+
+//   // 1️⃣ Armamos el mapa de productos
+//   rows.forEach((r) => {
+//     const codigo = (r["Código de Barra"] ?? "").toString().trim();
+//     if (!codigo) return;
+
+//     const producto = r["Producto"] ?? "";
+//     const mes = (r["Mes"] ?? "").toString().trim();
+//     const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN").toString().trim();
+//     const sucursalDestino = (r["Sucursal de destino"] ?? "").toString().trim();
+//     const cantidad = Number(r["Cantidad"]) || 0;
+//     const ventas = Number(r["Unidades vendidas en destino"]) || 0;
+//     const stockDestino = Number(r["Stock en destino"]) || 0;
+
+//     if (!productsMap[codigo]) {
+//       productsMap[codigo] = {
+//         producto,
+//         origins: {},       // sucursalOrigen -> {cantidad, mes}
+//         destinations: {},  // sucursalDestino -> {ventas, stockDestino}
+//         ventasOrigen: {},  // sucursalOrigen -> ventas propias
+//       };
+//     }
+
+//     const prod = productsMap[codigo];
+
+//     if (sucursalOrigen === sucursalDestino) {
+//       prod.ventasOrigen[sucursalOrigen] =
+//         (prod.ventasOrigen[sucursalOrigen] || 0) + ventas;
+//     } else {
+//       if (cantidad > 0) prod.origins[sucursalOrigen] = { cantidad, mes };
+//       if (sucursalDestino && ventas >= 5)
+//         prod.destinations[sucursalDestino] = { ventas, stockDestino };
+//     }
+//   });
+
+//   const result = {};
+//   const origenesResult = {};
+
+//   // 2️⃣ Procesamos cada producto
+//   Object.entries(productsMap).forEach(([codigo, prod]) => {
+//     const originsArr = Object.entries(prod.origins).map(([origen, info]) => ({
+//       sucursalOrigen: origen,
+//       cantidad: info.cantidad,
+//       mes: info.mes,
+//       ventasOrigen: prod.ventasOrigen[origen] || 0,
+//     }));
+
+//     // Ordenamos los destinos por ventas (prioridad)
+//     const destinosArr = Object.entries(prod.destinations)
+//       .map(([dest, info]) => ({
+//         sucursalDestino: dest,
+//         ventas: info.ventas,
+//         stockDestino: info.stockDestino,
+//       }))
+//       .sort((a, b) => b.ventas - a.ventas);
+
+//     // 🚫 Evitamos "pases de manos" (destinos que también son origen del mismo producto)
+//     const destinosOrdenados = destinosArr.filter(
+//       (d) => !prod.origins[d.sucursalDestino]
+//     );
+
+//     // 3️⃣ Asignamos orígenes -> destinos de forma ponderada por ventas
+//     originsArr.forEach((origen) => {
+//       if (origen.cantidad <= 0) return;
+
+//       const notas = [];
+//       const totalVentasDestinos = destinosOrdenados.reduce(
+//         (sum, d) => sum + (d.ventas || 0),
+//         0
+//       );
+
+//       if (totalVentasDestinos === 0 || destinosOrdenados.length === 0) {
+//         notas.push("❌ No hay destinos potables disponibles");
+//         return;
+//       }
+
+//       // Calcular proporciones según ventas
+//       const proporciones = destinosOrdenados.map((dest) => ({
+//         ...dest,
+//         peso: dest.ventas / totalVentasDestinos,
+//       }));
+
+//       // Asignación inicial redondeada
+//     // Asignación inicial
+// let totalAsignado = 0;
+// const asignaciones = proporciones.map((p) => {
+//   let cant = Math.floor(origen.cantidad * p.peso);
+//   // Si tiene ventas > 5 y quedó en 0, le doy al menos 1
+//   if (cant === 0 && p.ventas > 5) cant = 1;
+//   totalAsignado += cant;
+//   return { ...p, cantidad: cant };
+// });
+
+// // Si nos pasamos del total, recortamos empezando por los de menor ventas
+// let exceso = totalAsignado - origen.cantidad;
+// if (exceso > 0) {
+//   const ordenadosPorMenor = [...asignaciones].sort(
+//     (a, b) => a.ventas - b.ventas
+//   );
+//   for (let i = 0; i < ordenadosPorMenor.length && exceso > 0; i++) {
+//     if (ordenadosPorMenor[i].cantidad > 1) {
+//       ordenadosPorMenor[i].cantidad -= 1;
+//       exceso--;
+//     }
+//   }
+// }
+
+
+//       // Crear registros de traslado
+//       asignaciones.forEach((destino) => {
+//         if (destino.cantidad <= 0) return;
+
+//         if (!origenesResult[origen.sucursalOrigen])
+//           origenesResult[origen.sucursalOrigen] = [];
+//         if (!result[destino.sucursalDestino])
+//           result[destino.sucursalDestino] = [];
+
+//         const notasLocales = [...notas];
+//         if (prod.origins[destino.sucursalDestino]) {
+//           notasLocales.push("⚠ Destino ya tiene producto por vencer");
+//         }
+
+//         const registro = {
+//           codigo,
+//           producto: prod.producto,
+//           sucursalOrigen: origen.sucursalOrigen,
+//           sucursalDestino: destino.sucursalDestino,
+//           vence: origen.mes,
+//           cantidadTrasladar: destino.cantidad,
+//           ventasOrigen: origen.ventasOrigen,
+//           ventasDestino: destino.ventas,
+//           stockDestino: destino.stockDestino,
+//           nota: notasLocales.length ? notasLocales.join("\n") : "",
+//         };
+
+//         result[destino.sucursalDestino].push(registro);
+//         origenesResult[origen.sucursalOrigen].push(registro);
+//       });
+//     });
+
+//     // 🔁 Nota informativa: si una sucursal recibe y también envía (detectado)
+//     Object.keys(prod.origins).forEach((origenKey) => {
+//       if (prod.destinations[origenKey]) {
+//         if (!origenesResult[origenKey]) origenesResult[origenKey] = [];
+
+//         origenesResult[origenKey].push({
+//           codigo,
+//           producto: prod.producto,
+//           sucursalOrigen: origenKey,
+//           sucursalDestino: "",
+//           vence: prod.origins[origenKey].mes,
+//           cantidadTrasladar: prod.origins[origenKey].cantidad,
+//           ventasOrigen: prod.ventasOrigen[origenKey] || 0,
+//           ventasDestino: 0,
+//           stockDestino: 0,
+//           nota: "⚠ Optimizar reparto: esta sucursal recibe y también envía el mismo producto",
+//         });
+//       }
+//     });
+//   });
+
+//   // 4️⃣ Detección de conflictos: varios orígenes enviando al mismo destino
+//   const conflictMap = {};
+//   Object.entries(result).forEach(([destino, items]) => {
+//     items.forEach((item) => {
+//       const key = `${item.codigo}|${destino}`;
+//       conflictMap[key] = (conflictMap[key] || 0) + 1;
+//     });
+//   });
+
+//   Object.entries(result).forEach(([destino, items]) => {
+//     items.forEach((item) => {
+//       const key = `${item.codigo}|${destino}`;
+//       if (conflictMap[key] > 1) {
+//         if (!item.nota.includes("⚠ Probable problema")) {
+//           item.nota =
+//             (item.nota ? item.nota + "\n" : "") +
+//             "⚠ Probable problema: varias sucursales enviando";
+//         }
+//       }
+//     });
+//   });
+
+//   Object.entries(origenesResult).forEach(([origen, items]) => {
+//     items.forEach((item) => {
+//       if (!item.sucursalDestino) return;
+//       const key = `${item.codigo}|${item.sucursalDestino}`;
+//       if (conflictMap[key] > 1) {
+//         if (!item.nota.includes("⚠ Probable problema")) {
+//           item.nota =
+//             (item.nota ? item.nota + "\n" : "") +
+//             "⚠ Probable problema: varias sucursales enviando";
+//         }
+//       }
+//     });
+//   });
+
+//   // 5️⃣ Guardamos resultados
+//   setGroupedBySucursal(result);
+//   setGroupedByOrigen(origenesResult);
+// };
+
+
+
+
+// //ANDA BIEN
+// const assignProducts = (rows) => {
+//   const productsMap = {};
+
+//   // 1️⃣ Armamos el mapa de productos
+//   rows.forEach((r) => {
+//     const codigo = (r["Código de Barra"] ?? "").toString().trim();
+//     if (!codigo) return;
+
+//     const producto = r["Producto"] ?? "";
+//     const mes = (r["Mes"] ?? "").toString().trim();
+//     const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN").toString().trim();
+//     const sucursalDestino = (r["Sucursal de destino"] ?? "").toString().trim();
+//     const cantidad = Number(r["Cantidad"]) || 0;
+//     const ventas = Number(r["Unidades vendidas en destino"]) || 0;
+//     const stockDestino = Number(r["Stock en destino"]) || 0;
+
+//     if (!productsMap[codigo]) {
+//       productsMap[codigo] = {
+//         producto,
+//         origins: {},
+//         destinations: {},
+//         ventasOrigen: {},
+//       };
+//     }
+
+//     const prod = productsMap[codigo];
+
+//     if (sucursalOrigen === sucursalDestino) {
+//       prod.ventasOrigen[sucursalOrigen] =
+//         (prod.ventasOrigen[sucursalOrigen] || 0) + ventas;
+//     } else {
+//       if (cantidad > 0) prod.origins[sucursalOrigen] = { cantidad, mes };
+//       if (sucursalDestino && ventas >= 5)
+//         prod.destinations[sucursalDestino] = { ventas, stockDestino, mes };
+//     }
+//   });
+
+//   const result = {};
+//   const origenesResult = {};
+
+//   // 2️⃣ Procesamos cada producto
+//   Object.entries(productsMap).forEach(([codigo, prod]) => {
+//     const originsArr = Object.entries(prod.origins).map(([origen, info]) => ({
+//       sucursalOrigen: origen,
+//       cantidad: info.cantidad,
+//       mes: info.mes,
+//       ventasOrigen: prod.ventasOrigen[origen] || 0,
+//     }));
+
+//     // Destinos ordenados por ventas y vencimiento
+//     const destinosArr = Object.entries(prod.destinations)
+//       .map(([dest, info]) => ({
+//         sucursalDestino: dest,
+//         ventas: info.ventas,
+//         stockDestino: info.stockDestino,
+//         mes: info.mes,
+//       }))
+//       .sort((a, b) => b.ventas - a.ventas || b.mes - a.mes);
+
+//     // Evitamos "pases de manos"
+//     const destinosOrdenados = destinosArr.filter(
+//       (d) => !prod.origins[d.sucursalDestino]
+//     );
+
+//     // --- Round-robin global por destino ---
+//     let destinoIdx = 0; // índice de destino actual
+
+//     originsArr.forEach((origen) => {
+//       if (origen.cantidad <= 0) return;
+
+//       let restante = origen.cantidad;
+//       const notas = [];
+
+//       while (restante > 0 && destinosOrdenados.length > 0) {
+//         const destino = destinosOrdenados[destinoIdx % destinosOrdenados.length];
+
+//         if (!result[destino.sucursalDestino]) result[destino.sucursalDestino] = [];
+//         if (!origenesResult[origen.sucursalOrigen])
+//           origenesResult[origen.sucursalOrigen] = [];
+
+//         const notasLocales = [...notas];
+//         if (prod.origins[destino.sucursalDestino]) {
+//           notasLocales.push("⚠ Destino ya tiene producto por vencer");
+//         }
+
+//         const registro = {
+//           codigo,
+//           producto: prod.producto,
+//           sucursalOrigen: origen.sucursalOrigen,
+//           sucursalDestino: destino.sucursalDestino,
+//           vence: origen.mes,
+//           cantidadTrasladar: 1, // asignamos de a 1
+//           ventasOrigen: origen.ventasOrigen,
+//           ventasDestino: destino.ventas,
+//           stockDestino: destino.stockDestino,
+//           nota: notasLocales.length ? notasLocales.join("\n") : "",
+//         };
+
+//         result[destino.sucursalDestino].push(registro);
+//         origenesResult[origen.sucursalOrigen].push(registro);
+
+//         restante--;
+//         destinoIdx++; // siguiente destino
+//       }
+//     });
+
+//     // Nota si sucursal envía y recibe
+//     Object.keys(prod.origins).forEach((origenKey) => {
+//       if (prod.destinations[origenKey]) {
+//         if (!origenesResult[origenKey]) origenesResult[origenKey] = [];
+
+//         origenesResult[origenKey].push({
+//           codigo,
+//           producto: prod.producto,
+//           sucursalOrigen: origenKey,
+//           sucursalDestino: "",
+//           vence: prod.origins[origenKey].mes,
+//           cantidadTrasladar: prod.origins[origenKey].cantidad,
+//           ventasOrigen: prod.ventasOrigen[origenKey] || 0,
+//           ventasDestino: 0,
+//           stockDestino: 0,
+//           nota: "⚠ Optimizar reparto: esta sucursal recibe y también envía el mismo producto",
+//         });
+//       }
+//     });
+//   });
+
+//   // 4️⃣ Detección de conflictos
+//   const conflictMap = {};
+//   Object.entries(result).forEach(([destino, items]) => {
+//     items.forEach((item) => {
+//       const key = `${item.codigo}|${destino}`;
+//       conflictMap[key] = (conflictMap[key] || 0) + 1;
+//     });
+//   });
+
+//   Object.entries(result).forEach(([destino, items]) => {
+//     items.forEach((item) => {
+//       const key = `${item.codigo}|${destino}`;
+//       if (conflictMap[key] > 1) {
+//         if (!item.nota.includes("⚠ Probable problema")) {
+//           item.nota =
+//             (item.nota ? item.nota + "\n" : "") +
+//             "⚠ Probable problema: varias sucursales enviando";
+//         }
+//       }
+//     });
+//   });
+
+//   Object.entries(origenesResult).forEach(([origen, items]) => {
+//     items.forEach((item) => {
+//       if (!item.sucursalDestino) return;
+//       const key = `${item.codigo}|${item.sucursalDestino}`;
+//       if (conflictMap[key] > 1) {
+//         if (!item.nota.includes("⚠ Probable problema")) {
+//           item.nota =
+//             (item.nota ? item.nota + "\n" : "") +
+//             "⚠ Probable problema: varias sucursales enviando";
+//         }
+//       }
+//     });
+//   });
+
+//   setGroupedBySucursal(result);
+//   setGroupedByOrigen(origenesResult);
+// };
+
+
+//TMB ANDA MUY BIEN
+// const assignProducts = (rows) => {
+//   const productsMap = {};
+
+//   // 1️⃣ Armamos el mapa de productos
+//   rows.forEach((r) => {
+//     const codigo = (r["Código de Barra"] ?? "").toString().trim();
+//     if (!codigo) return;
+
+//     const producto = r["Producto"] ?? "";
+//     const mes = (r["Mes"] ?? "").toString().trim();
+//     const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN").toString().trim();
+//     const sucursalDestino = (r["Sucursal de destino"] ?? "").toString().trim();
+//     const cantidad = Number(r["Cantidad"]) || 0;
+//     const ventas = Number(r["Unidades vendidas en destino"]) || 0;
+//     const stockDestino = Number(r["Stock en destino"]) || 0;
+
+//     if (!productsMap[codigo]) {
+//       productsMap[codigo] = {
+//         producto,
+//         origins: {},
+//         destinations: {},
+//         ventasOrigen: {},
+//       };
+//     }
+
+//     const prod = productsMap[codigo];
+
+//     if (sucursalOrigen === sucursalDestino) {
+//       prod.ventasOrigen[sucursalOrigen] =
+//         (prod.ventasOrigen[sucursalOrigen] || 0) + ventas;
+//     } else {
+//       if (cantidad > 0) prod.origins[sucursalOrigen] = { cantidad, mes };
+//       if (sucursalDestino && ventas >= 5)
+//         prod.destinations[sucursalDestino] = { ventas, stockDestino, mes };
+//     }
+//   });
+
+//   const result = {};
+//   const origenesResult = {};
+
+//   // 2️⃣ Procesamos cada producto
+//   Object.entries(productsMap).forEach(([codigo, prod]) => {
+//     const originsArr = Object.entries(prod.origins).map(([origen, info]) => ({
+//       sucursalOrigen: origen,
+//       cantidad: info.cantidad,
+//       mes: info.mes,
+//       ventasOrigen: prod.ventasOrigen[origen] || 0,
+//     }));
+
+//     // Destinos válidos, evitando que sean origen
+//     const destinosArr = Object.entries(prod.destinations)
+//       .filter(([dest]) => !prod.origins[dest])
+//       .map(([dest, info]) => ({
+//         sucursalDestino: dest,
+//         ventas: info.ventas,
+//         stockDestino: info.stockDestino,
+//         mes: info.mes,
+//       }))
+//       .sort((a, b) => b.ventas - a.ventas || b.mes - a.mes); // prioridad ventas y vencimiento
+
+//     if (destinosArr.length === 0) return; // ningún destino válido
+
+//     // 3️⃣ Round-robin por unidad entre todos los destinos
+//     let destinoIdx = 0;
+//     originsArr.forEach((origen) => {
+//       let restante = origen.cantidad;
+//       while (restante > 0) {
+//         const destino = destinosArr[destinoIdx % destinosArr.length];
+
+//         if (!result[destino.sucursalDestino]) result[destino.sucursalDestino] = [];
+//         if (!origenesResult[origen.sucursalOrigen])
+//           origenesResult[origen.sucursalOrigen] = [];
+
+//         const notas = [];
+//         if (prod.origins[destino.sucursalDestino]) {
+//           notas.push("⚠ Destino ya tiene producto por vencer");
+//         }
+
+//         const registro = {
+//           codigo,
+//           producto: prod.producto,
+//           sucursalOrigen: origen.sucursalOrigen,
+//           sucursalDestino: destino.sucursalDestino,
+//           vence: origen.mes,
+//           cantidadTrasladar: 1,
+//           ventasOrigen: origen.ventasOrigen,
+//           ventasDestino: destino.ventas,
+//           stockDestino: destino.stockDestino,
+//           nota: notas.length ? notas.join("\n") : "",
+//         };
+
+//         result[destino.sucursalDestino].push(registro);
+//         origenesResult[origen.sucursalOrigen].push(registro);
+
+//         restante--;
+//         destinoIdx++;
+//       }
+//     });
+
+//     // Nota si sucursal envía y recibe
+//     Object.keys(prod.origins).forEach((origenKey) => {
+//       if (prod.destinations[origenKey]) {
+//         if (!origenesResult[origenKey]) origenesResult[origenKey] = [];
+
+//         origenesResult[origenKey].push({
+//           codigo,
+//           producto: prod.producto,
+//           sucursalOrigen: origenKey,
+//           sucursalDestino: "",
+//           vence: prod.origins[origenKey].mes,
+//           cantidadTrasladar: prod.origins[origenKey].cantidad,
+//           ventasOrigen: prod.ventasOrigen[origenKey] || 0,
+//           ventasDestino: 0,
+//           stockDestino: 0,
+//           nota: "⚠ Optimizar reparto: esta sucursal recibe y también envía el mismo producto",
+//         });
+//       }
+//     });
+//   });
+
+//   // 4️⃣ Detección de conflictos
+//   const conflictMap = {};
+//   Object.entries(result).forEach(([destino, items]) => {
+//     items.forEach((item) => {
+//       const key = `${item.codigo}|${destino}`;
+//       conflictMap[key] = (conflictMap[key] || 0) + 1;
+//     });
+//   });
+
+//   Object.entries(result).forEach(([destino, items]) => {
+//     items.forEach((item) => {
+//       const key = `${item.codigo}|${destino}`;
+//       if (conflictMap[key] > 1) {
+//         if (!item.nota.includes("⚠ Probable problema")) {
+//           item.nota =
+//             (item.nota ? item.nota + "\n" : "") +
+//             "⚠ Probable problema: varias sucursales enviando";
+//         }
+//       }
+//     });
+//   });
+
+//   Object.entries(origenesResult).forEach(([origen, items]) => {
+//     items.forEach((item) => {
+//       if (!item.sucursalDestino) return;
+//       const key = `${item.codigo}|${item.sucursalDestino}`;
+//       if (conflictMap[key] > 1) {
+//         if (!item.nota.includes("⚠ Probable problema")) {
+//           item.nota =
+//             (item.nota ? item.nota + "\n" : "") +
+//             "⚠ Probable problema: varias sucursales enviando";
+//         }
+//       }
+//     });
+//   });
+
+//   setGroupedBySucursal(result);
+//   setGroupedByOrigen(origenesResult);
+// };
+
+
 
 const assignProducts = (rows) => {
-  const productsMap = {}; // key: codigo -> {producto, origins, destinations, ventasOrigen}
+  const productsMap = {};
 
+  // 1️⃣ Armamos el mapa de productos
   rows.forEach((r) => {
     const codigo = (r["Código de Barra"] ?? "").toString().trim();
     if (!codigo) return;
@@ -1015,7 +1570,6 @@ const assignProducts = (rows) => {
     const mes = (r["Mes"] ?? "").toString().trim();
     const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN").toString().trim();
     const sucursalDestino = (r["Sucursal de destino"] ?? "").toString().trim();
-
     const cantidad = Number(r["Cantidad"]) || 0;
     const ventas = Number(r["Unidades vendidas en destino"]) || 0;
     const stockDestino = Number(r["Stock en destino"]) || 0;
@@ -1023,25 +1577,28 @@ const assignProducts = (rows) => {
     if (!productsMap[codigo]) {
       productsMap[codigo] = {
         producto,
-        origins: {},       // sucursalOrigen -> {cantidad, mes}
-        destinations: {},  // sucursalDestino -> ventas
-        ventasOrigen: {},  // sucursalOrigen -> ventas en su propia sucursal
+        origins: {},
+        destinations: {},
+        ventasOrigen: {},
       };
     }
 
     const prod = productsMap[codigo];
 
     if (sucursalOrigen === sucursalDestino) {
-      prod.ventasOrigen[sucursalOrigen] = (prod.ventasOrigen[sucursalOrigen] || 0) + ventas;
+      prod.ventasOrigen[sucursalOrigen] =
+        (prod.ventasOrigen[sucursalOrigen] || 0) + ventas;
     } else {
       if (cantidad > 0) prod.origins[sucursalOrigen] = { cantidad, mes };
-      if (sucursalDestino && ventas >= 5) prod.destinations[sucursalDestino] = { ventas, stockDestino };
+      if (sucursalDestino && ventas >= 5)
+        prod.destinations[sucursalDestino] = { ventas, stockDestino, mes };
     }
   });
 
   const result = {};
   const origenesResult = {};
 
+  // 2️⃣ Procesamos cada producto
   Object.entries(productsMap).forEach(([codigo, prod]) => {
     const originsArr = Object.entries(prod.origins).map(([origen, info]) => ({
       sucursalOrigen: origen,
@@ -1051,71 +1608,100 @@ const assignProducts = (rows) => {
     }));
 
     const destinosArr = Object.entries(prod.destinations)
-      .map(([dest, info]) => ({ sucursalDestino: dest, ventas: info.ventas, stockDestino: info.stockDestino }))
-      .sort((a, b) => b.ventas - a.ventas);
+      .map(([dest, info]) => ({
+        sucursalDestino: dest,
+        ventas: info.ventas,
+        stockDestino: info.stockDestino,
+        mes: info.mes,
+      }))
+      .sort((a, b) => b.ventas - a.ventas || b.mes - a.mes);
 
-    const blockedDestinations = new Set(Object.keys(prod.origins));
+    const destinosOrdenados = destinosArr.filter(
+      (d) => !prod.origins[d.sucursalDestino]
+    );
 
-    let idxDestino = 0;
     originsArr.forEach((origen) => {
       if (origen.cantidad <= 0) return;
 
-      let destino = null;
-      for (let i = 0; i < destinosArr.length; i++) {
-        const cand = destinosArr[(idxDestino + i) % destinosArr.length];
-        if (!blockedDestinations.has(cand.sucursalDestino) && cand.sucursalDestino !== origen.sucursalOrigen) {
-          destino = cand;
-          idxDestino = (idxDestino + i + 1) % destinosArr.length;
-          break;
-        }
+      let restante = origen.cantidad;
+      const notas = [];
+
+      // ✅ Reparto proporcional ajustado
+      const totalVentas = destinosOrdenados.reduce((sum, d) => sum + d.ventas, 0);
+
+      // Paso 1: asignación proporcional inicial
+      const asignaciones = destinosOrdenados.map((dest) => {
+        const cant = Math.floor(restante * (dest.ventas / totalVentas));
+        return { ...dest, cantidad: cant };
+      });
+
+      // Paso 2: calcular remanente
+      let totalAsignado = asignaciones.reduce((sum, a) => sum + a.cantidad, 0);
+      let remanente = restante - totalAsignado;
+
+      // Paso 3: repartir remanente de mayor a menor ventas
+      asignaciones.sort((a, b) => b.ventas - a.ventas);
+      let idx = 0;
+      while (remanente > 0 && asignaciones.length > 0) {
+        asignaciones[idx % asignaciones.length].cantidad += 1;
+        remanente--;
+        idx++;
       }
 
-      if (!destino) {
-        if (!origenesResult[origen.sucursalOrigen]) origenesResult[origen.sucursalOrigen] = [];
-        origenesResult[origen.sucursalOrigen].push({
+      // Crear registros finales
+      asignaciones.forEach((destino) => {
+        if (destino.cantidad <= 0) return;
+
+        if (!result[destino.sucursalDestino]) result[destino.sucursalDestino] = [];
+        if (!origenesResult[origen.sucursalOrigen])
+          origenesResult[origen.sucursalOrigen] = [];
+
+        const notasLocales = [...notas];
+        if (prod.origins[destino.sucursalDestino]) {
+          notasLocales.push("⚠ Destino ya tiene producto por vencer");
+        }
+
+        const registro = {
           codigo,
-          producto: prod.producto + " ❌ Sin destino",
-          sucursalDestino: "",
+          producto: prod.producto,
+          sucursalOrigen: origen.sucursalOrigen,
+          sucursalDestino: destino.sucursalDestino,
           vence: origen.mes,
-          cantidadTrasladar: origen.cantidad,
+          cantidadTrasladar: destino.cantidad,
           ventasOrigen: origen.ventasOrigen,
+          ventasDestino: destino.ventas,
+          stockDestino: destino.stockDestino,
+          nota: notasLocales.length ? notasLocales.join("\n") : "",
+        };
+
+        result[destino.sucursalDestino].push(registro);
+        origenesResult[origen.sucursalOrigen].push(registro);
+      });
+    });
+
+    // Nota si sucursal envía y recibe
+    Object.keys(prod.origins).forEach((origenKey) => {
+      if (prod.destinations[origenKey]) {
+        if (!origenesResult[origenKey]) origenesResult[origenKey] = [];
+
+        origenesResult[origenKey].push({
+          codigo,
+          producto: prod.producto,
+          sucursalOrigen: origenKey,
+          sucursalDestino: "",
+          vence: prod.origins[origenKey].mes,
+          cantidadTrasladar: prod.origins[origenKey].cantidad,
+          ventasOrigen: prod.ventasOrigen[origenKey] || 0,
           ventasDestino: 0,
           stockDestino: 0,
-          nota: "",
+          nota: "⚠ Optimizar reparto: esta sucursal recibe y también envía el mismo producto",
         });
-        return;
       }
-
-      if (!result[destino.sucursalDestino]) result[destino.sucursalDestino] = [];
-      result[destino.sucursalDestino].push({
-        codigo,
-        producto: prod.producto,
-        sucursalOrigen: origen.sucursalOrigen,
-        vence: origen.mes,
-        cantidadTrasladar: origen.cantidad,
-        ventasDestino: destino.ventas,
-        ventasOrigen: origen.ventasOrigen,
-        stockDestino: destino.stockDestino,
-        nota: "",
-      });
-
-      if (!origenesResult[origen.sucursalOrigen]) origenesResult[origen.sucursalOrigen] = [];
-      origenesResult[origen.sucursalOrigen].push({
-        codigo,
-        producto: prod.producto,
-        sucursalDestino: destino.sucursalDestino,
-        vence: origen.mes,
-        cantidadTrasladar: origen.cantidad,
-        ventasOrigen: origen.ventasOrigen,
-        ventasDestino: destino.ventas,
-        stockDestino: destino.stockDestino,
-        nota: "",
-      });
     });
   });
 
-  // 1. Contamos envíos por producto y destino para generar la alerta
-  const conflictMap = {}; // codigo|destino -> cantidad de sucursales enviando
+  // 4️⃣ Detección de conflictos
+  const conflictMap = {};
   Object.entries(result).forEach(([destino, items]) => {
     items.forEach((item) => {
       const key = `${item.codigo}|${destino}`;
@@ -1123,23 +1709,29 @@ const assignProducts = (rows) => {
     });
   });
 
-  // 2. Asignamos la nota en Distribución por Destino
   Object.entries(result).forEach(([destino, items]) => {
     items.forEach((item) => {
       const key = `${item.codigo}|${destino}`;
       if (conflictMap[key] > 1) {
-        item.nota = "⚠ Probable problema: varias sucursales enviando";
+        if (!item.nota.includes("⚠ Probable problema")) {
+          item.nota =
+            (item.nota ? item.nota + "\n" : "") +
+            "⚠ Probable problema: varias sucursales enviando";
+        }
       }
     });
   });
 
-  // 3. Asignamos la nota en Pedidos por Origen
   Object.entries(origenesResult).forEach(([origen, items]) => {
     items.forEach((item) => {
       if (!item.sucursalDestino) return;
       const key = `${item.codigo}|${item.sucursalDestino}`;
       if (conflictMap[key] > 1) {
-        item.nota = "⚠ Probable problema: varias sucursales enviando";
+        if (!item.nota.includes("⚠ Probable problema")) {
+          item.nota =
+            (item.nota ? item.nota + "\n" : "") +
+            "⚠ Probable problema: varias sucursales enviando";
+        }
       }
     });
   });
@@ -1147,6 +1739,12 @@ const assignProducts = (rows) => {
   setGroupedBySucursal(result);
   setGroupedByOrigen(origenesResult);
 };
+
+
+
+
+
+
 
  const exportToExcel = (data, isDestino) => {
   const wb = XLSX.utils.book_new();
