@@ -1558,6 +1558,383 @@ export default function TrasladoProductos() {
 
 
 
+// const assignProducts = (rows) => {
+//   const productsMap = {};
+
+//   // 1️⃣ Armamos el mapa de productos
+//   rows.forEach((r) => {
+//     const codigo = (r["Código de Barra"] ?? "").toString().trim();
+//     if (!codigo) return;
+
+//     const producto = r["Producto"] ?? "";
+//     const mes = (r["Mes"] ?? "").toString().trim();
+//     const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN").toString().trim();
+//     const sucursalDestino = (r["Sucursal de destino"] ?? "").toString().trim();
+//     const cantidad = Number(r["Cantidad"]) || 0;
+//     const ventas = Number(r["Unidades vendidas en destino"]) || 0;
+//     const stockDestino = Number(r["Stock en destino"]) || 0;
+
+//     if (!productsMap[codigo]) {
+//       productsMap[codigo] = {
+//         producto,
+//         origins: {},
+//         destinations: {},
+//         ventasOrigen: {},
+//       };
+//     }
+
+//     const prod = productsMap[codigo];
+
+//     if (sucursalOrigen === sucursalDestino) {
+//       prod.ventasOrigen[sucursalOrigen] =
+//         (prod.ventasOrigen[sucursalOrigen] || 0) + ventas;
+//     } else {
+//       if (cantidad > 0) prod.origins[sucursalOrigen] = { cantidad, mes };
+//       if (sucursalDestino && ventas >= 5)
+//         prod.destinations[sucursalDestino] = { ventas, stockDestino, mes };
+//     }
+//   });
+
+//   const result = {};
+//   const origenesResult = {};
+
+//   // 2️⃣ Procesamos cada producto
+//   Object.entries(productsMap).forEach(([codigo, prod]) => {
+//     const originsArr = Object.entries(prod.origins).map(([origen, info]) => ({
+//       sucursalOrigen: origen,
+//       cantidad: info.cantidad,
+//       mes: info.mes,
+//       ventasOrigen: prod.ventasOrigen[origen] || 0,
+//     }));
+
+//     const destinosArr = Object.entries(prod.destinations)
+//       .map(([dest, info]) => ({
+//         sucursalDestino: dest,
+//         ventas: info.ventas,
+//         stockDestino: info.stockDestino,
+//         mes: info.mes,
+//       }))
+//       .sort((a, b) => b.ventas - a.ventas || b.mes - a.mes);
+
+//     const destinosOrdenados = destinosArr.filter(
+//       (d) => !prod.origins[d.sucursalDestino]
+//     );
+
+//     originsArr.forEach((origen) => {
+//       if (origen.cantidad <= 0) return;
+
+//       let restante = origen.cantidad;
+//       const notas = [];
+
+//       // ✅ Reparto proporcional ajustado
+//       const totalVentas = destinosOrdenados.reduce((sum, d) => sum + d.ventas, 0);
+
+//       // Paso 1: asignación proporcional inicial
+//       const asignaciones = destinosOrdenados.map((dest) => {
+//         const cant = Math.floor(restante * (dest.ventas / totalVentas));
+//         return { ...dest, cantidad: cant };
+//       });
+
+//       // Paso 2: calcular remanente
+//       let totalAsignado = asignaciones.reduce((sum, a) => sum + a.cantidad, 0);
+//       let remanente = restante - totalAsignado;
+
+//       // Paso 3: repartir remanente de mayor a menor ventas
+//       asignaciones.sort((a, b) => b.ventas - a.ventas);
+//       let idx = 0;
+//       while (remanente > 0 && asignaciones.length > 0) {
+//         asignaciones[idx % asignaciones.length].cantidad += 1;
+//         remanente--;
+//         idx++;
+//       }
+
+//       // Crear registros finales
+//       asignaciones.forEach((destino) => {
+//         if (destino.cantidad <= 0) return;
+
+//         if (!result[destino.sucursalDestino]) result[destino.sucursalDestino] = [];
+//         if (!origenesResult[origen.sucursalOrigen])
+//           origenesResult[origen.sucursalOrigen] = [];
+
+//         const notasLocales = [...notas];
+//         if (prod.origins[destino.sucursalDestino]) {
+//           notasLocales.push("⚠ Destino ya tiene producto por vencer");
+//         }
+
+//         const registro = {
+//           codigo,
+//           producto: prod.producto,
+//           sucursalOrigen: origen.sucursalOrigen,
+//           sucursalDestino: destino.sucursalDestino,
+//           vence: origen.mes,
+//           cantidadTrasladar: destino.cantidad,
+//           ventasOrigen: origen.ventasOrigen,
+//           ventasDestino: destino.ventas,
+//           stockDestino: destino.stockDestino,
+//           nota: notasLocales.length ? notasLocales.join("\n") : "",
+//         };
+
+//         result[destino.sucursalDestino].push(registro);
+//         origenesResult[origen.sucursalOrigen].push(registro);
+//       });
+//     });
+
+//     // Nota si sucursal envía y recibe
+//     Object.keys(prod.origins).forEach((origenKey) => {
+//       if (prod.destinations[origenKey]) {
+//         if (!origenesResult[origenKey]) origenesResult[origenKey] = [];
+
+//         origenesResult[origenKey].push({
+//           codigo,
+//           producto: prod.producto,
+//           sucursalOrigen: origenKey,
+//           sucursalDestino: "",
+//           vence: prod.origins[origenKey].mes,
+//           cantidadTrasladar: prod.origins[origenKey].cantidad,
+//           ventasOrigen: prod.ventasOrigen[origenKey] || 0,
+//           ventasDestino: 0,
+//           stockDestino: 0,
+//           nota: "⚠ Optimizar reparto: esta sucursal recibe y también envía el mismo producto",
+//         });
+//       }
+//     });
+//   });
+
+//   // 4️⃣ Detección de conflictos
+//   const conflictMap = {};
+//   Object.entries(result).forEach(([destino, items]) => {
+//     items.forEach((item) => {
+//       const key = `${item.codigo}|${destino}`;
+//       conflictMap[key] = (conflictMap[key] || 0) + 1;
+//     });
+//   });
+
+//   Object.entries(result).forEach(([destino, items]) => {
+//     items.forEach((item) => {
+//       const key = `${item.codigo}|${destino}`;
+//       if (conflictMap[key] > 1) {
+//         if (!item.nota.includes("⚠ Probable problema")) {
+//           item.nota =
+//             (item.nota ? item.nota + "\n" : "") +
+//             "⚠ Probable problema: varias sucursales enviando";
+//         }
+//       }
+//     });
+//   });
+
+//   Object.entries(origenesResult).forEach(([origen, items]) => {
+//     items.forEach((item) => {
+//       if (!item.sucursalDestino) return;
+//       const key = `${item.codigo}|${item.sucursalDestino}`;
+//       if (conflictMap[key] > 1) {
+//         if (!item.nota.includes("⚠ Probable problema")) {
+//           item.nota =
+//             (item.nota ? item.nota + "\n" : "") +
+//             "⚠ Probable problema: varias sucursales enviando";
+//         }
+//       }
+//     });
+//   });
+
+//   setGroupedBySucursal(result);
+//   setGroupedByOrigen(origenesResult);
+// };
+
+
+//CODIGO FINAL 1
+// const assignProducts = (rows) => {
+//   const productsMap = {};
+
+//   // 1️⃣ Armamos el mapa de productos
+//   rows.forEach((r) => {
+//     const codigo = (r["Código de Barra"] ?? "").toString().trim();
+//     if (!codigo) return;
+
+//     const producto = r["Producto"] ?? "";
+//     const mes = (r["Mes"] ?? "").toString().trim();
+//     const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN").toString().trim();
+//     const sucursalDestino = (r["Sucursal de destino"] ?? "").toString().trim();
+//     const cantidad = Number(r["Cantidad"]) || 0;
+//     const ventas = Number(r["Unidades vendidas en destino"]) || 0;
+//     const stockDestino = Number(r["Stock en destino"]) || 0;
+
+//     if (!productsMap[codigo]) {
+//       productsMap[codigo] = {
+//         producto,
+//         origins: {},
+//         destinations: {},
+//         ventasOrigen: {},
+//       };
+//     }
+
+//     const prod = productsMap[codigo];
+
+//     if (sucursalOrigen === sucursalDestino) {
+//       prod.ventasOrigen[sucursalOrigen] =
+//         (prod.ventasOrigen[sucursalOrigen] || 0) + ventas;
+//     } else {
+//       if (cantidad > 0) prod.origins[sucursalOrigen] = { cantidad, mes };
+//       if (sucursalDestino && ventas >= 5)
+//         prod.destinations[sucursalDestino] = { ventas, stockDestino, mes };
+//     }
+//   });
+
+//   const result = {};
+//   const origenesResult = {};
+
+//   // 2️⃣ Procesamos cada producto globalmente
+//   Object.entries(productsMap).forEach(([codigo, prod]) => {
+//     const producto = prod.producto;
+//     const originsArr = Object.entries(prod.origins).map(([s, d]) => ({
+//       sucursal: s,
+//       cantidad: d.cantidad,
+//       mes: d.mes,
+//       ventasOrigen: prod.ventasOrigen[s] || 0,
+//     }));
+
+//     // Destinos válidos: ventas > umbral
+//     const destinosArr = Object.entries(prod.destinations).map(([s, d]) => ({
+//       sucursal: s,
+//       ventas: d.ventas,
+//       stockDestino: d.stockDestino,
+//       mes: d.mes,
+//       tieneVencidos: !!prod.origins[s], // marcar si destino tiene stock por vencer
+//     }));
+
+//     if (destinosArr.length === 0) {
+//       // Sin destinos válidos
+//       originsArr.forEach((origen) => {
+//         if (!origenesResult[origen.sucursal]) origenesResult[origen.sucursal] = [];
+//         origenesResult[origen.sucursal].push({
+//           codigo,
+//           producto,
+//           sucursalOrigen: origen.sucursal,
+//           sucursalDestino: "",
+//           vence: origen.mes,
+//           cantidadTrasladar: origen.cantidad,
+//           ventasOrigen: origen.ventasOrigen,
+//           ventasDestino: 0,
+//           stockDestino: 0,
+//           nota: "❌ No hay destinos potables disponibles",
+//         });
+//       });
+//       return;
+//     }
+
+//     // 🔢 Paso 1: total global disponible y total ventas destinos
+//     const totalDisponible = originsArr.reduce((s, o) => s + o.cantidad, 0);
+//     const totalVentas = destinosArr.reduce((s, d) => s + d.ventas, 0);
+
+//     // Paso 2: distribución proporcional
+//     let asignaciones = destinosArr.map((d) => ({
+//       ...d,
+//       cantidad: Math.floor((totalDisponible * d.ventas) / totalVentas),
+//     }));
+
+//     // Paso 3: repartir remanente
+//     let totalAsignado = asignaciones.reduce((s, a) => s + a.cantidad, 0);
+//     let remanente = totalDisponible - totalAsignado;
+//     let i = 0;
+//     while (remanente > 0 && asignaciones.length > 0) {
+//       asignaciones[i % asignaciones.length].cantidad++;
+//       remanente--;
+//       i++;
+//     }
+
+//     // Paso 4: distribuir físicamente desde orígenes
+//     const colaOrigenes = [...originsArr];
+//     asignaciones.forEach((dest) => {
+//       let cantidadDestino = dest.cantidad;
+//       if (cantidadDestino <= 0) return;
+
+//       if (!result[dest.sucursal]) result[dest.sucursal] = [];
+
+//       while (cantidadDestino > 0 && colaOrigenes.length > 0) {
+//         const origen = colaOrigenes[0];
+//         const mover = Math.min(origen.cantidad, cantidadDestino);
+
+//         const notas = [];
+//         if (dest.tieneVencidos) {
+//           notas.push("⚠ Destino ya tiene producto por vencer");
+//         }
+
+//         const registro = {
+//           codigo,
+//           producto,
+//           sucursalOrigen: origen.sucursal,
+//           sucursalDestino: dest.sucursal,
+//           vence: origen.mes,
+//           cantidadTrasladar: mover,
+//           ventasOrigen: origen.ventasOrigen,
+//           ventasDestino: dest.ventas,
+//           stockDestino: dest.stockDestino,
+//           nota: notas.join("\n"),
+//         };
+
+//         if (!origenesResult[origen.sucursal]) origenesResult[origen.sucursal] = [];
+//         origenesResult[origen.sucursal].push(registro);
+//         result[dest.sucursal].push(registro);
+
+//         origen.cantidad -= mover;
+//         cantidadDestino -= mover;
+
+//         if (origen.cantidad <= 0) colaOrigenes.shift();
+//       }
+//     });
+
+//     // ⚠ Caso: sucursal que envía y recibe
+//     Object.keys(prod.origins).forEach((origenKey) => {
+//       if (prod.destinations[origenKey]) {
+//         if (!origenesResult[origenKey]) origenesResult[origenKey] = [];
+//         origenesResult[origenKey].push({
+//           codigo,
+//           producto,
+//           sucursalOrigen: origenKey,
+//           sucursalDestino: "",
+//           vence: prod.origins[origenKey].mes,
+//           cantidadTrasladar: prod.origins[origenKey].cantidad,
+//           ventasOrigen: prod.ventasOrigen[origenKey] || 0,
+//           ventasDestino: 0,
+//           stockDestino: 0,
+//           nota:
+//             "⚠ Optimizar reparto: esta sucursal recibe y también envía el mismo producto",
+//         });
+//       }
+//     });
+//   });
+
+//   // 5️⃣ Detección de conflictos (mismo destino con múltiples orígenes)
+//   const conflictMap = {};
+//   Object.entries(result).forEach(([destino, items]) => {
+//     items.forEach((item) => {
+//       const key = `${item.codigo}|${destino}`;
+//       conflictMap[key] = (conflictMap[key] || 0) + 1;
+//     });
+//   });
+
+//   Object.entries(result).forEach(([destino, items]) => {
+//     items.forEach((item) => {
+//       const key = `${item.codigo}|${destino}`;
+//       if (conflictMap[key] > 1 && !item.nota.includes("⚠ Probable problema")) {
+//         item.nota = (item.nota ? item.nota + "\n" : "") + "⚠ Probable problema: varias sucursales enviando";
+//       }
+//     });
+//   });
+
+//   Object.entries(origenesResult).forEach(([origen, items]) => {
+//     items.forEach((item) => {
+//       if (!item.sucursalDestino) return;
+//       const key = `${item.codigo}|${item.sucursalDestino}`;
+//       if (conflictMap[key] > 1 && !item.nota.includes("⚠ Probable problema")) {
+//         item.nota = (item.nota ? item.nota + "\n" : "") + "⚠ Probable problema: varias sucursales enviando";
+//       }
+//     });
+//   });
+
+//   setGroupedBySucursal(result);
+//   setGroupedByOrigen(origenesResult);
+// };
+
 const assignProducts = (rows) => {
   const productsMap = {};
 
@@ -1598,109 +1975,133 @@ const assignProducts = (rows) => {
   const result = {};
   const origenesResult = {};
 
-  // 2️⃣ Procesamos cada producto
+  // 2️⃣ Procesamos cada producto globalmente
   Object.entries(productsMap).forEach(([codigo, prod]) => {
-    const originsArr = Object.entries(prod.origins).map(([origen, info]) => ({
-      sucursalOrigen: origen,
-      cantidad: info.cantidad,
-      mes: info.mes,
-      ventasOrigen: prod.ventasOrigen[origen] || 0,
+    const producto = prod.producto;
+    const originsArr = Object.entries(prod.origins).map(([s, d]) => ({
+      sucursal: s,
+      cantidad: d.cantidad,
+      mes: d.mes,
+      ventasOrigen: prod.ventasOrigen[s] || 0,
     }));
 
-    const destinosArr = Object.entries(prod.destinations)
-      .map(([dest, info]) => ({
-        sucursalDestino: dest,
-        ventas: info.ventas,
-        stockDestino: info.stockDestino,
-        mes: info.mes,
-      }))
-      .sort((a, b) => b.ventas - a.ventas || b.mes - a.mes);
+    // Destinos válidos
+    const destinosArr = Object.entries(prod.destinations).map(([s, d]) => ({
+      sucursal: s,
+      ventas: d.ventas,
+      stockDestino: d.stockDestino,
+      mes: d.mes,
+      tieneVencidos: !!prod.origins[s],
+    }));
 
-    const destinosOrdenados = destinosArr.filter(
-      (d) => !prod.origins[d.sucursalDestino]
-    );
-
-    originsArr.forEach((origen) => {
-      if (origen.cantidad <= 0) return;
-
-      let restante = origen.cantidad;
-      const notas = [];
-
-      // ✅ Reparto proporcional ajustado
-      const totalVentas = destinosOrdenados.reduce((sum, d) => sum + d.ventas, 0);
-
-      // Paso 1: asignación proporcional inicial
-      const asignaciones = destinosOrdenados.map((dest) => {
-        const cant = Math.floor(restante * (dest.ventas / totalVentas));
-        return { ...dest, cantidad: cant };
+    if (destinosArr.length === 0) {
+      // Sin destinos válidos
+      originsArr.forEach((origen) => {
+        if (!origenesResult[origen.sucursal]) origenesResult[origen.sucursal] = [];
+        origenesResult[origen.sucursal].push({
+          codigo,
+          producto,
+          sucursalOrigen: origen.sucursal,
+          sucursalDestino: "",
+          vence: origen.mes,
+          cantidadTrasladar: origen.cantidad,
+          ventasOrigen: origen.ventasOrigen,
+          ventasDestino: 0,
+          stockDestino: 0,
+          nota: "❌ No hay destinos potables disponibles",
+        });
       });
+      return;
+    }
 
-      // Paso 2: calcular remanente
-      let totalAsignado = asignaciones.reduce((sum, a) => sum + a.cantidad, 0);
-      let remanente = restante - totalAsignado;
+    const totalDisponible = originsArr.reduce((s, o) => s + o.cantidad, 0);
 
-      // Paso 3: repartir remanente de mayor a menor ventas
-      asignaciones.sort((a, b) => b.ventas - a.ventas);
-      let idx = 0;
-      while (remanente > 0 && asignaciones.length > 0) {
-        asignaciones[idx % asignaciones.length].cantidad += 1;
-        remanente--;
-        idx++;
-      }
+    // 🔹 Separar destinos limpios y con stock por vencer
+    let destinosLimpios = destinosArr.filter(d => !d.tieneVencidos);
+    let destinosConVencidos = destinosArr.filter(d => d.tieneVencidos);
 
-      // Crear registros finales
-      asignaciones.forEach((destino) => {
-        if (destino.cantidad <= 0) return;
+    let destinosFinales = destinosLimpios.length > 0 ? destinosLimpios : destinosArr;
 
-        if (!result[destino.sucursalDestino]) result[destino.sucursalDestino] = [];
-        if (!origenesResult[origen.sucursalOrigen])
-          origenesResult[origen.sucursalOrigen] = [];
+    // Paso 2: total de ventas para distribución proporcional
+    const totalVentas = destinosFinales.reduce((s, d) => s + d.ventas, 0);
+    let asignaciones = destinosFinales.map((d) => ({
+      ...d,
+      cantidad: Math.floor((totalDisponible * d.ventas) / totalVentas),
+    }));
 
-        const notasLocales = [...notas];
-        if (prod.origins[destino.sucursalDestino]) {
-          notasLocales.push("⚠ Destino ya tiene producto por vencer");
+    // Paso 3: repartir remanente
+    let totalAsignado = asignaciones.reduce((s, a) => s + a.cantidad, 0);
+    let remanente = totalDisponible - totalAsignado;
+    let i = 0;
+    while (remanente > 0 && asignaciones.length > 0) {
+      asignaciones[i % asignaciones.length].cantidad++;
+      remanente--;
+      i++;
+    }
+
+    // Paso 4: distribuir físicamente desde orígenes
+    const colaOrigenes = [...originsArr];
+    asignaciones.forEach((dest) => {
+      let cantidadDestino = dest.cantidad;
+      if (cantidadDestino <= 0) return;
+
+      if (!result[dest.sucursal]) result[dest.sucursal] = [];
+
+      while (cantidadDestino > 0 && colaOrigenes.length > 0) {
+        const origen = colaOrigenes[0];
+        const mover = Math.min(origen.cantidad, cantidadDestino);
+
+        const notas = [];
+        if (dest.tieneVencidos) {
+          notas.push("⚠ Destino ya tiene producto por vencer");
         }
 
         const registro = {
           codigo,
-          producto: prod.producto,
-          sucursalOrigen: origen.sucursalOrigen,
-          sucursalDestino: destino.sucursalDestino,
+          producto,
+          sucursalOrigen: origen.sucursal,
+          sucursalDestino: dest.sucursal,
           vence: origen.mes,
-          cantidadTrasladar: destino.cantidad,
+          cantidadTrasladar: mover,
           ventasOrigen: origen.ventasOrigen,
-          ventasDestino: destino.ventas,
-          stockDestino: destino.stockDestino,
-          nota: notasLocales.length ? notasLocales.join("\n") : "",
+          ventasDestino: dest.ventas,
+          stockDestino: dest.stockDestino,
+          nota: notas.join("\n"),
         };
 
-        result[destino.sucursalDestino].push(registro);
-        origenesResult[origen.sucursalOrigen].push(registro);
-      });
+        if (!origenesResult[origen.sucursal]) origenesResult[origen.sucursal] = [];
+        origenesResult[origen.sucursal].push(registro);
+        result[dest.sucursal].push(registro);
+
+        origen.cantidad -= mover;
+        cantidadDestino -= mover;
+
+        if (origen.cantidad <= 0) colaOrigenes.shift();
+      }
     });
 
-    // Nota si sucursal envía y recibe
+    // ⚠ Caso: sucursal que envía y recibe
     Object.keys(prod.origins).forEach((origenKey) => {
       if (prod.destinations[origenKey]) {
         if (!origenesResult[origenKey]) origenesResult[origenKey] = [];
-
         origenesResult[origenKey].push({
           codigo,
-          producto: prod.producto,
+          producto,
           sucursalOrigen: origenKey,
-          sucursalDestino: "",
+          sucursalDestino: origenKey,
           vence: prod.origins[origenKey].mes,
-          cantidadTrasladar: prod.origins[origenKey].cantidad,
+          cantidadTrasladar: 0,
           ventasOrigen: prod.ventasOrigen[origenKey] || 0,
-          ventasDestino: 0,
-          stockDestino: 0,
+          ventasDestino: prod.destinations[origenKey].ventas || 0,
+          stockDestino: prod.destinations[origenKey].stockDestino || 0,
           nota: "⚠ Optimizar reparto: esta sucursal recibe y también envía el mismo producto",
+          tipo: "advertencia",
         });
       }
     });
   });
 
-  // 4️⃣ Detección de conflictos
+  // 5️⃣ Detección de conflictos (mismo destino con múltiples orígenes)
   const conflictMap = {};
   Object.entries(result).forEach(([destino, items]) => {
     items.forEach((item) => {
@@ -1712,12 +2113,8 @@ const assignProducts = (rows) => {
   Object.entries(result).forEach(([destino, items]) => {
     items.forEach((item) => {
       const key = `${item.codigo}|${destino}`;
-      if (conflictMap[key] > 1) {
-        if (!item.nota.includes("⚠ Probable problema")) {
-          item.nota =
-            (item.nota ? item.nota + "\n" : "") +
-            "⚠ Probable problema: varias sucursales enviando";
-        }
+      if (conflictMap[key] > 1 && !item.nota.includes("⚠ Probable problema")) {
+        item.nota = (item.nota ? item.nota + "\n" : "") + "⚠ Probable problema: varias sucursales enviando";
       }
     });
   });
@@ -1726,12 +2123,8 @@ const assignProducts = (rows) => {
     items.forEach((item) => {
       if (!item.sucursalDestino) return;
       const key = `${item.codigo}|${item.sucursalDestino}`;
-      if (conflictMap[key] > 1) {
-        if (!item.nota.includes("⚠ Probable problema")) {
-          item.nota =
-            (item.nota ? item.nota + "\n" : "") +
-            "⚠ Probable problema: varias sucursales enviando";
-        }
+      if (conflictMap[key] > 1 && !item.nota.includes("⚠ Probable problema")) {
+        item.nota = (item.nota ? item.nota + "\n" : "") + "⚠ Probable problema: varias sucursales enviando";
       }
     });
   });
@@ -1739,7 +2132,6 @@ const assignProducts = (rows) => {
   setGroupedBySucursal(result);
   setGroupedByOrigen(origenesResult);
 };
-
 
 
 
