@@ -17,6 +17,7 @@ import {
   TableRow,
   TableCell,
   TableBody,
+  Collapse,
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import axios from "axios";
@@ -128,7 +129,10 @@ export default function UploadStockExcel() {
           {uploading ? <CircularProgress size={20} /> : "Subir Excel"}
         </Button>
 
-        {message && <Alert severity={message.type}>{message.text}</Alert>}
+        <Collapse in={!!message}>
+          <Alert severity={message?.type}>{message?.text}</Alert>
+        </Collapse>
+        {/* {message && <Alert severity={message.type}>{message.text}</Alert>} */}
       </Stack>
 
       {newProducts.length > 0 && (
