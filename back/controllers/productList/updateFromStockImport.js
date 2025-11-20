@@ -10,7 +10,6 @@ import "dayjs/plugin/timezone.js";
 import "dayjs/plugin/utc.js";
 import { runBatches } from "../productListController.js";
 
-
 export const updateFromStockImport = async (req, res) => {
   try {
     const { importId, listIds } = req.body;
@@ -592,7 +591,7 @@ export const applyImportToBarcodes = async (req, res) => {
 
     // --- 0) Expandir el set de códigos para incluir códigos relacionados
     // (si el front envió 1065400082 y en productos está como principal o alternativo)
-    const allBarcodes = new Set(barcodes.map(b => String(b).trim()));
+    const allBarcodes = new Set(barcodes.map((b) => String(b).trim()));
 
     // buscar productos relacionados para agregar sus códigos al set
     const relatedProducts = await Product.find({
@@ -605,11 +604,18 @@ export const applyImportToBarcodes = async (req, res) => {
     }).lean();
 
     for (const p of relatedProducts) {
-      if (p.barcode) allBarcodes.add(String(p.barcode).trim());
-      if (Array.isArray(p.barcodes)) p.barcodes.forEach(c => allBarcodes.add(String(c).trim()));
-      if (Array.isArray(p.alternateCodes)) p.alternateCodes.forEach(c => allBarcodes.add(String(c).trim()));
-      if (Array.isArray(p.alternateBarcodes)) p.alternateBarcodes.forEach(c => allBarcodes.add(String(c).trim()));
-    }
+  if (p.barcode) allBarcodes.add(String(p.barcode).trim());
+
+  if (Array.isArray(p.barcodes))
+    p.barcodes.forEach(c => allBarcodes.add(String(c).trim()));
+
+  if (Array.isArray(p.alternateCodes))
+    p.alternateCodes.forEach(c => allBarcodes.add(String(c).trim()));
+
+  if (Array.isArray(p.alternateBarcodes))
+    p.alternateBarcodes.forEach(c => allBarcodes.add(String(c).trim()));
+}
+
 
     // --- 1) Construir rowsMap usando allBarcodes (no solo barcodes entrantes)
     const rowsMap = new Map();
@@ -626,7 +632,10 @@ export const applyImportToBarcodes = async (req, res) => {
     // --- 2) Seleccionar finalRows (tu lógica existente)
     const finalRows = [];
     for (const [barcode, rows] of rowsMap.entries()) {
-      const valid = rows.filter((r) => !isNaN(Number(r.price)) && r.price !== null && r.price !== undefined);
+      const valid = rows.filter(
+        (r) =>
+          !isNaN(Number(r.price)) && r.price !== null && r.price !== undefined
+      );
       if (valid.length === 0) continue;
 
       const best =
@@ -659,9 +668,14 @@ export const applyImportToBarcodes = async (req, res) => {
     const productsMap = new Map();
     for (const p of products) {
       if (p.barcode) productsMap.set(String(p.barcode).trim(), p);
-      if (Array.isArray(p.barcodes)) for (const c of p.barcodes) if (c) productsMap.set(String(c).trim(), p);
-      if (Array.isArray(p.alternateCodes)) for (const c of p.alternateCodes) if (c) productsMap.set(String(c).trim(), p);
-      if (Array.isArray(p.alternateBarcodes)) for (const c of p.alternateBarcodes) if (c) productsMap.set(String(c).trim(), p);
+      if (Array.isArray(p.barcodes))
+        for (const c of p.barcodes) if (c) productsMap.set(String(c).trim(), p);
+      if (Array.isArray(p.alternateCodes))
+        for (const c of p.alternateCodes)
+          if (c) productsMap.set(String(c).trim(), p);
+      if (Array.isArray(p.alternateBarcodes))
+        for (const c of p.alternateBarcodes)
+          if (c) productsMap.set(String(c).trim(), p);
     }
 
     // --- 4) Stocks actuales para branch (usar products encontrados)
@@ -669,7 +683,9 @@ export const applyImportToBarcodes = async (req, res) => {
       branch: stockImport.branch,
       product: { $in: products.map((p) => p._id) },
     });
-    const stockMap = new Map(existingStocks.map((s) => [`${s.product}_${s.branch}`, s]));
+    const stockMap = new Map(
+      existingStocks.map((s) => [`${s.product}_${s.branch}`, s])
+    );
 
     // --- 5) Preparar bulk ops
     const bulkProductUpdates = [];
@@ -707,9 +723,10 @@ export const applyImportToBarcodes = async (req, res) => {
           : product.name;
 
       // actualizar alternate arrays: si el row tiene barcodes (array de alternativos) los usamos
-      const newAlternateArr = Array.isArray(row.barcodes) && row.barcodes.length > 0
-        ? row.barcodes.map(x => String(x).trim())
-        : product.alternateCodes || product.alternateBarcodes || [];
+      const newAlternateArr =
+        Array.isArray(row.barcodes) && row.barcodes.length > 0
+          ? row.barcodes.map((x) => String(x).trim())
+          : product.alternateCodes || product.alternateBarcodes || [];
 
       bulkProductUpdates.push({
         updateOne: {
@@ -721,7 +738,10 @@ export const applyImportToBarcodes = async (req, res) => {
               name: safeName,
               category: row.category || product.category,
               lab: row.lab || product.lab,
-              alternateCodes: newAlternateArr,
+              // alternateCodes: newAlternateArr,
+              alternateBarcodes: newAlternateArr,
+
+
             },
           },
         },
