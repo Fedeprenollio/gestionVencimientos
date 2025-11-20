@@ -68,6 +68,110 @@ export const listStockImports = async (req, res) => {
 
 
 
+// export const importStock = async (req, res) => {
+//   try {
+//     const fileBuffer = req.file.buffer;
+//     const parsedRows = parseExcelBuffer(fileBuffer); // Convierte Excel a JSON
+
+//     // Extraemos todos los códigos únicos para buscar de una vez
+//     const uniqueCodesSet = new Set();
+//     parsedRows.forEach((row) => {
+//       const barcodeRaw = row['Codebar']?.toString().trim() || "";
+//       const idProductoRaw = row['IDProducto']?.toString().trim() || "";
+
+//       if (barcodeRaw && barcodeRaw !== "0") uniqueCodesSet.add(barcodeRaw);
+//       if (idProductoRaw && idProductoRaw !== "0") uniqueCodesSet.add(idProductoRaw);
+//     });
+//     const uniqueCodes = Array.from(uniqueCodesSet);
+
+//     // Buscar todos los productos existentes de una sola vez
+//     const existingProducts = await Product.find({
+//       barcode: { $in: uniqueCodes },
+//     }).lean();
+
+//     // Map para búsqueda rápida por barcode
+//     const existingMap = new Map(
+//       existingProducts.map((p) => [p.barcode, p])
+//     );
+
+//     const newProductsToInsert = [];
+//     const formattedRows = [];
+
+//     for (const row of parsedRows) {
+//       const barcodeRaw = row['Codebar']?.toString().trim() || "";
+//       const barcode = barcodeRaw && barcodeRaw !== "0" ? barcodeRaw : null;
+//       const idProductoRaw = row['IDProducto']?.toString().trim() || "";
+//       const idProducto = idProductoRaw && idProductoRaw !== "0" ? idProductoRaw : null;
+
+//       const barcodes = row['CodigosBarra']
+//         ? row['CodigosBarra'].toString().split('-').map(code => code.trim())
+//         : [];
+
+//       // Ignorar filas sin código válido
+//       if (!barcode && !idProducto) continue;
+
+//       // Chequear si ya existe producto (por barcode o idProducto)
+//       let productExists = false;
+//       if (barcode && existingMap.has(barcode)) {
+//         productExists = true;
+//       } else if (idProducto && existingMap.has(idProducto)) {
+//         productExists = true;
+//       }
+
+//       // Crear producto nuevo si no existe y hay idProducto válido
+//       if (!productExists && idProducto) {
+//         newProductsToInsert.push({
+//           barcode: idProducto,
+//           alternateBarcodes: barcodes,
+//           name: row['producto']?.toString().trim() || "Sin nombre",
+//           type: row['Rubro']?.toString().trim() || "medicamento",
+//           currentPrice: Number(row['Precio']) || 0,
+//         });
+
+//         // Marcar como existente para no crear duplicados si se repite fila
+//         existingMap.set(idProducto, true);
+//       }
+
+//       // Guardar fila formateada para importación
+//       formattedRows.push({
+//         barcode: barcode || idProducto,
+//         name: row['producto']?.toString().trim() || "Sin nombre",
+//         stock: Number(row['Cantidad']) || 0,
+//         category: row['Rubro']?.toString().trim() || "",
+//         price: Number(row['Precio']) || 0,
+//         cost: Number(row['costo']) || 0,
+//         lab: row['Laboratorio']?.toString().trim() || "",
+//         barcodes,
+//       });
+//     }
+
+//     // Insertar productos nuevos en bulk si hay
+//     let newProducts = [];
+//     if (newProductsToInsert.length > 0) {
+//       newProducts = await Product.insertMany(newProductsToInsert);
+//     }
+
+//     // Guardar la importación con las filas (stock, precio)
+//     const newImport = new StockImport({
+//       user: req.user?._id,
+//       branch: req.body.branchId,
+//       rows: formattedRows,
+//     });
+
+//     await newImport.save();
+
+//     return res.status(201).json({
+//       message: "Importación de stock guardada correctamente",
+//       importId: newImport._id,
+//       totalRows: formattedRows.length,
+//       newProducts, // <-- retorno para frontend
+//     });
+//   } catch (error) {
+//     console.error("Error al importar stock:", error);
+//     return res.status(500).json({ error: "Error al procesar el Excel de stock" });
+//   }
+// };
+
 export const importStock = async (req, res) => {
   try {
     const fileBuffer = req.file.buffer;
@@ -89,7 +193,7 @@ export const importStock = async (req, res) => {
       barcode: { $in: uniqueCodes },
     }).lean();
 
-    // Map para búsqueda rápida por barcode
+    // Mapa para búsqueda rápida por barcode
     const existingMap = new Map(
       existingProducts.map((p) => [p.barcode, p])
     );
@@ -107,32 +211,51 @@ export const importStock = async (req, res) => {
         ? row['CodigosBarra'].toString().split('-').map(code => code.trim())
         : [];
 
-      // Ignorar filas sin código válido
+      // Ignorar filas sin códigos válidos
       if (!barcode && !idProducto) continue;
 
-      // Chequear si ya existe producto (por barcode o idProducto)
-      let productExists = false;
+      // Buscar producto existente
+      let product = null;
+
       if (barcode && existingMap.has(barcode)) {
-        productExists = true;
+        product = existingMap.get(barcode);
       } else if (idProducto && existingMap.has(idProducto)) {
-        productExists = true;
+        product = existingMap.get(idProducto);
       }
 
-      // Crear producto nuevo si no existe y hay idProducto válido
+      const productExists = !!product;
+
+      // --- 🔧 REPARAR NOMBRES "SIN NOMBRE" SI EL EXCEL TRAE UNO CORRECTO ---
+      if (productExists) {
+        const excelName = row['producto']?.toString().trim() || "";
+        const hasRealName = excelName && excelName !== "Sin nombre";
+
+        if (product.name === "Sin nombre" && hasRealName) {
+          await Product.updateOne(
+            { _id: product._id },
+            { $set: { name: excelName } }
+          );
+          product.name = excelName; // también actualizar en memoria
+        }
+      }
+
+      // Crear producto nuevo si no existe
       if (!productExists && idProducto) {
+        const productName = row['producto']?.toString().trim() || "Sin nombre";
+
         newProductsToInsert.push({
           barcode: idProducto,
           alternateBarcodes: barcodes,
-          name: row['producto']?.toString().trim() || "Sin nombre",
+          name: productName,
           type: row['Rubro']?.toString().trim() || "medicamento",
           currentPrice: Number(row['Precio']) || 0,
         });
 
-        // Marcar como existente para no crear duplicados si se repite fila
-        existingMap.set(idProducto, true);
+        // Añadir al mapa para evitar duplicados en el mismo Excel
+        existingMap.set(idProducto, { barcode: idProducto, name: productName });
       }
 
-      // Guardar fila formateada para importación
+      // Guardar fila formateada para registrar la importación
       formattedRows.push({
         barcode: barcode || idProducto,
         name: row['producto']?.toString().trim() || "Sin nombre",
@@ -145,13 +268,13 @@ export const importStock = async (req, res) => {
       });
     }
 
-    // Insertar productos nuevos en bulk si hay
+    // Insertar productos nuevos si hay
     let newProducts = [];
     if (newProductsToInsert.length > 0) {
       newProducts = await Product.insertMany(newProductsToInsert);
     }
 
-    // Guardar la importación con las filas (stock, precio)
+    // Guardar la importación con filas e info de stock
     const newImport = new StockImport({
       user: req.user?._id,
       branch: req.body.branchId,
@@ -164,13 +287,15 @@ export const importStock = async (req, res) => {
       message: "Importación de stock guardada correctamente",
       importId: newImport._id,
       totalRows: formattedRows.length,
-      newProducts, // <-- retorno para frontend
+      newProducts,
     });
+
   } catch (error) {
     console.error("Error al importar stock:", error);
     return res.status(500).json({ error: "Error al procesar el Excel de stock" });
   }
 };
+
 export const compareStockImport = async (req, res) => {
   try {
     const { importId } = req.params;

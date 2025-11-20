@@ -63,7 +63,7 @@ const [especiales, setEspeciales] = useState(() => {
   const [scale, setScale] = useState(1); // valor por defecto = 1
 
   const { selectedBranchId } = useBranchStore();
-
+console.log("clasico sin stock", clasicosConStock)
 
   useEffect(() => {
     localStorage.setItem("labels_clasicos", JSON.stringify(clasicos));
@@ -354,7 +354,7 @@ const [especiales, setEspeciales] = useState(() => {
       alert("Error aplicando importación");
     }
   };
-
+console.log("clasicosConStock",clasicosConStock)
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h5">Generador de Etiquetas</Typography>
