@@ -36,9 +36,7 @@ export function calculateDSI(movements, stockData) {
 
 // utils/calculations.js
 
-const esVenta = (operacion) =>
-  typeof operacion === "string" &&
-  operacion.toLowerCase().startsWith("Facturacion FV");
+
 
 // helper para la fecha Excel
 function convertirExcelDateToJSDate(excelDate) {
@@ -47,12 +45,20 @@ function convertirExcelDateToJSDate(excelDate) {
 }
 
 export function agruparVentas(movimientos) {
+  console.log("Holita")
   const ventasPorProducto = {};
   const hoy = new Date();
   const unAnioAtras = new Date(hoy);
   unAnioAtras.setFullYear(hoy.getFullYear() - 1);
+const quraId = 1015700016;
+
+const existe = movimientos.some(m => m.IDProducto == quraId);
+console.log("¿Existe Qura Plus en movimientos?", existe);
 
   for (const mov of movimientos) {
+    
+   
+
     const id = mov.IDProducto;
     const cantidad = parseFloat(mov.Cantidad || 0);
     const operacion = mov.Operacion;
@@ -75,6 +81,9 @@ export function agruparVentas(movimientos) {
       ventasPorProducto[id] = (ventasPorProducto[id] || 0) + Math.abs(cantidad);
       // }
     }
+     if (mov.IDProducto == 1015700016) {
+  console.log("📦 Qura:", mov, "Fecha:", fecha, "Es venta:", esVenta);
+}
   }
 
   return ventasPorProducto;
