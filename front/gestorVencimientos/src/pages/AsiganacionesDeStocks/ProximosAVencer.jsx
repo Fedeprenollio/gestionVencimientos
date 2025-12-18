@@ -1776,7 +1776,9 @@ const assignProducts = (rows) => {
     if (!codigo) return;
 
     const producto = r["Producto"] ?? "";
-    const mes = (r["Mes"] ?? "").toString().trim();
+    // const mes = (r["Mes"] ?? "").toString().trim();
+    const mes = parseExcelMonth(r["Mes"]);
+
     const sucursalOrigen = (r["Sucursal"] ?? "ORIGEN_UNKNOWN").toString().trim();
     const sucursalDestino = (r["Sucursal de destino"] ?? "").toString().trim();
     const cantidad = Number(r["Cantidad"]) || 0;
@@ -1967,6 +1969,30 @@ const assignProducts = (rows) => {
 };
 
 
+const parseExcelMonth = (value) => {
+  if (value == null || value === "") return "";
+
+  // Caso 1: texto (ej: "Marzo", "Marzo 2026")
+  if (typeof value === "string") return value.trim();
+
+  // Caso 2: número de fecha Excel
+  if (typeof value === "number") {
+    const date = XLSX.SSF.parse_date_code(value);
+    if (!date) return value.toString();
+
+    const meses = [
+      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
+
+    const mes = meses[date.m - 1];
+    const anio = date.y;
+
+    return mes && anio ? `${mes} ${anio}` : value.toString();
+  }
+
+  return value.toString();
+};
 
 
  const exportToExcel = (data, isDestino) => {
@@ -1993,8 +2019,8 @@ const assignProducts = (rows) => {
         };
       } else {
         return {
-          "Sucursal Destino (Ventas)": item.sucursalDestino
-            ? `${item.sucursalDestino} (${item.ventasDestino})`
+          "Sucursal Destino": item.sucursalDestino
+            ? `${item.sucursalDestino}`
             : "",
           Código: item.codigo,
           Producto: item.producto,
@@ -2019,7 +2045,7 @@ const assignProducts = (rows) => {
   );
 };
 
-  console.log("groupedByOrigen", groupedByOrigen);
+ 
   return (
     <Box p={3}>
       <Typography variant="h5" gutterBottom>
