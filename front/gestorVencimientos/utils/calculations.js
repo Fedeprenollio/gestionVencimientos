@@ -36,8 +36,6 @@ export function calculateDSI(movements, stockData) {
 
 // utils/calculations.js
 
-
-
 // helper para la fecha Excel
 function convertirExcelDateToJSDate(excelDate) {
   const fechaBase = new Date(1899, 11, 30);
@@ -45,20 +43,13 @@ function convertirExcelDateToJSDate(excelDate) {
 }
 
 export function agruparVentas(movimientos) {
-  console.log("Holita")
+  console.log("Holita");
   const ventasPorProducto = {};
   const hoy = new Date();
   const unAnioAtras = new Date(hoy);
   unAnioAtras.setFullYear(hoy.getFullYear() - 1);
-const quraId = 1015700016;
-
-const existe = movimientos.some(m => m.IDProducto == quraId);
-console.log("¿Existe Qura Plus en movimientos?", existe);
 
   for (const mov of movimientos) {
-    
-   
-
     const id = mov.IDProducto;
     const cantidad = parseFloat(mov.Cantidad || 0);
     const operacion = mov.Operacion;
@@ -73,17 +64,18 @@ console.log("¿Existe Qura Plus en movimientos?", existe);
     if (isNaN(fecha.getTime())) continue;
 
     const esVenta =
-      typeof operacion === "string" &&
-      operacion.toLowerCase().includes("facturacion") &&
-      operacion.toLowerCase().includes("fv");
+      (typeof operacion === "string" &&
+        operacion.toLowerCase().includes("facturacion") &&
+        operacion.toLowerCase().includes("fv")) ||
+      operacion.toLowerCase().includes("dispensacion al paciente");
     if (esVenta && !isNaN(cantidad)) {
       // if (fecha >= unAnioAtras && fecha <= hoy) {
       ventasPorProducto[id] = (ventasPorProducto[id] || 0) + Math.abs(cantidad);
       // }
     }
-     if (mov.IDProducto == 1015700016) {
-  console.log("📦 Qura:", mov, "Fecha:", fecha, "Es venta:", esVenta);
-}
+    if (mov.IDProducto == 1015700016) {
+      console.log("📦 Qura:", mov, "Fecha:", fecha, "Es venta:", esVenta);
+    }
   }
 
   return ventasPorProducto;
@@ -644,6 +636,6 @@ export function analizarStockEntreSucursales(
       }
     }
   }
-  console.log("EL RESULTADO", resultado)
+  console.log("EL RESULTADO", resultado);
   return resultado;
 }
