@@ -813,6 +813,62 @@ export const applyImportToBarcodes = async (req, res) => {
       }
     }
 
+    // --- 6) Marcar import como aplicada
+await StockImport.findByIdAndUpdate(importId, {
+  $set: { status: "applied", appliedAt: now },
+});
+
+// --- 7) Cleanup: dejar solo las últimas 2 imports applied por sucursal
+// --- 7) Cleanup: dejar solo las últimas 2 imports applied por sucursal
+
+const keep = await StockImport.find({
+  branch: stockImport.branch,
+  status: "applied",
+})
+  .sort({ appliedAt: -1 })
+  .limit(2)
+  .select("_id")
+  .lean();
+
+const keepIds = keep.map((x) => x._id);
+
+console.log(
+  `📦 Imports applied branch=${stockImport.branch}: mantengo ${keepIds.length}`,
+  keepIds
+);
+
+const deleteResult = await StockImport.deleteMany({
+  branch: stockImport.branch,
+  status: "applied",
+  _id: { $nin: keepIds },
+});
+
+console.log(
+  `🧹 Cleanup applied imports: deletedCount=${deleteResult.deletedCount}`
+);
+
+// --- 8) Cleanup: PENDING -> dejar solo la más nueva
+const keepPending = await StockImport.find({
+  branch: stockImport.branch,
+  status: "pending",
+})
+  .sort({ importedAt: -1 })
+  .limit(1)
+  .select("_id")
+  .lean();
+
+const keepPendingIds = keepPending.map((x) => x._id);
+
+const deletePending = await StockImport.deleteMany({
+  branch: stockImport.branch,
+  status: "pending",
+  _id: { $nin: keepPendingIds },
+});
+
+console.log(
+  `🧹 Cleanup PENDING: mantengo=${keepPendingIds.length} borradas=${deletePending.deletedCount}`
+);
+
     // Devolver rows según lo que acabamos de aplicar (precio tomado del import)
     return res.json({
       message: "Productos actualizados correctamente desde la importación",

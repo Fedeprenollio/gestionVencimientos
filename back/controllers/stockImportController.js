@@ -24,154 +24,6 @@ export const listStockImports = async (req, res) => {
   }
 };
 
-// export const importStock = async (req, res) => {
-//   try {
-//     const fileBuffer = req.file.buffer;
-//     const parsedRows = parseExcelBuffer(fileBuffer); // Utilidad que convierte Excel a JSON
-
-//     const formattedRows = parsedRows.map((row) => {
-//       const barcodes = row['CodigosBarra']
-//         ? row['CodigosBarra'].toString().split('-').map(code => code.trim())
-//         : [];
-
-//       return {
-//         barcode: row['Codebar']?.toString().trim(),
-//         name: row['producto']?.toString().trim(),
-//         stock: Number(row['Cantidad']) || 0,
-//         category: row['Rubro']?.toString().trim() || '',
-//         price: Number(row['Precio']) || 0,
-//         cost: Number(row['costo']) || 0,
-//         lab: row['Laboratorio']?.toString().trim() || '',
-//         barcodes,
-//       };
-//     });
-
-//     const newImport = new StockImport({
-//       user: req.user?._id,           // Si tenés auth, si no, omitilo
-//       branch: req.body.branchId,     // O podés omitirlo si no usás sucursales
-//       rows: formattedRows,
-//     });
-
-//     await newImport.save();
-
-//     res.status(201).json({
-//       message: 'Importación de stock guardada correctamente',
-//       importId: newImport._id,
-//       totalRows: formattedRows.length,
-//     });
-//   } catch (error) {
-//     console.error("Error al importar stock:", error);
-//     res.status(500).json({ error: "Error al procesar el Excel de stock" });
-//   }
-// };
-
-
-
-
-// export const importStock = async (req, res) => {
-//   try {
-//     const fileBuffer = req.file.buffer;
-//     const parsedRows = parseExcelBuffer(fileBuffer); // Convierte Excel a JSON
-
-//     // Extraemos todos los códigos únicos para buscar de una vez
-//     const uniqueCodesSet = new Set();
-//     parsedRows.forEach((row) => {
-//       const barcodeRaw = row['Codebar']?.toString().trim() || "";
-//       const idProductoRaw = row['IDProducto']?.toString().trim() || "";
-
-//       if (barcodeRaw && barcodeRaw !== "0") uniqueCodesSet.add(barcodeRaw);
-//       if (idProductoRaw && idProductoRaw !== "0") uniqueCodesSet.add(idProductoRaw);
-//     });
-//     const uniqueCodes = Array.from(uniqueCodesSet);
-
-//     // Buscar todos los productos existentes de una sola vez
-//     const existingProducts = await Product.find({
-//       barcode: { $in: uniqueCodes },
-//     }).lean();
-
-//     // Map para búsqueda rápida por barcode
-//     const existingMap = new Map(
-//       existingProducts.map((p) => [p.barcode, p])
-//     );
-
-//     const newProductsToInsert = [];
-//     const formattedRows = [];
-
-//     for (const row of parsedRows) {
-//       const barcodeRaw = row['Codebar']?.toString().trim() || "";
-//       const barcode = barcodeRaw && barcodeRaw !== "0" ? barcodeRaw : null;
-//       const idProductoRaw = row['IDProducto']?.toString().trim() || "";
-//       const idProducto = idProductoRaw && idProductoRaw !== "0" ? idProductoRaw : null;
-
-//       const barcodes = row['CodigosBarra']
-//         ? row['CodigosBarra'].toString().split('-').map(code => code.trim())
-//         : [];
-
-//       // Ignorar filas sin código válido
-//       if (!barcode && !idProducto) continue;
-
-//       // Chequear si ya existe producto (por barcode o idProducto)
-//       let productExists = false;
-//       if (barcode && existingMap.has(barcode)) {
-//         productExists = true;
-//       } else if (idProducto && existingMap.has(idProducto)) {
-//         productExists = true;
-//       }
-
-//       // Crear producto nuevo si no existe y hay idProducto válido
-//       if (!productExists && idProducto) {
-//         newProductsToInsert.push({
-//           barcode: idProducto,
-//           alternateBarcodes: barcodes,
-//           name: row['producto']?.toString().trim() || "Sin nombre",
-//           type: row['Rubro']?.toString().trim() || "medicamento",
-//           currentPrice: Number(row['Precio']) || 0,
-//         });
-
-//         // Marcar como existente para no crear duplicados si se repite fila
-//         existingMap.set(idProducto, true);
-//       }
-
-//       // Guardar fila formateada para importación
-//       formattedRows.push({
-//         barcode: barcode || idProducto,
-//         name: row['producto']?.toString().trim() || "Sin nombre",
-//         stock: Number(row['Cantidad']) || 0,
-//         category: row['Rubro']?.toString().trim() || "",
-//         price: Number(row['Precio']) || 0,
-//         cost: Number(row['costo']) || 0,
-//         lab: row['Laboratorio']?.toString().trim() || "",
-//         barcodes,
-//       });
-//     }
-
-//     // Insertar productos nuevos en bulk si hay
-//     let newProducts = [];
-//     if (newProductsToInsert.length > 0) {
-//       newProducts = await Product.insertMany(newProductsToInsert);
-//     }
-
-//     // Guardar la importación con las filas (stock, precio)
-//     const newImport = new StockImport({
-//       user: req.user?._id,
-//       branch: req.body.branchId,
-//       rows: formattedRows,
-//     });
-
-//     await newImport.save();
-
-//     return res.status(201).json({
-//       message: "Importación de stock guardada correctamente",
-//       importId: newImport._id,
-//       totalRows: formattedRows.length,
-//       newProducts, // <-- retorno para frontend
-//     });
-//   } catch (error) {
-//     console.error("Error al importar stock:", error);
-//     return res.status(500).json({ error: "Error al procesar el Excel de stock" });
-//   }
-// };
-
 export const importStock = async (req, res) => {
   try {
     const fileBuffer = req.file.buffer;
@@ -180,11 +32,12 @@ export const importStock = async (req, res) => {
     // Extraemos todos los códigos únicos para buscar de una vez
     const uniqueCodesSet = new Set();
     parsedRows.forEach((row) => {
-      const barcodeRaw = row['Codebar']?.toString().trim() || "";
-      const idProductoRaw = row['IDProducto']?.toString().trim() || "";
+      const barcodeRaw = row["Codebar"]?.toString().trim() || "";
+      const idProductoRaw = row["IDProducto"]?.toString().trim() || "";
 
       if (barcodeRaw && barcodeRaw !== "0") uniqueCodesSet.add(barcodeRaw);
-      if (idProductoRaw && idProductoRaw !== "0") uniqueCodesSet.add(idProductoRaw);
+      if (idProductoRaw && idProductoRaw !== "0")
+        uniqueCodesSet.add(idProductoRaw);
     });
     const uniqueCodes = Array.from(uniqueCodesSet);
 
@@ -194,21 +47,23 @@ export const importStock = async (req, res) => {
     }).lean();
 
     // Mapa para búsqueda rápida por barcode
-    const existingMap = new Map(
-      existingProducts.map((p) => [p.barcode, p])
-    );
+    const existingMap = new Map(existingProducts.map((p) => [p.barcode, p]));
 
     const newProductsToInsert = [];
     const formattedRows = [];
 
     for (const row of parsedRows) {
-      const barcodeRaw = row['Codebar']?.toString().trim() || "";
+      const barcodeRaw = row["Codebar"]?.toString().trim() || "";
       const barcode = barcodeRaw && barcodeRaw !== "0" ? barcodeRaw : null;
-      const idProductoRaw = row['IDProducto']?.toString().trim() || "";
-      const idProducto = idProductoRaw && idProductoRaw !== "0" ? idProductoRaw : null;
+      const idProductoRaw = row["IDProducto"]?.toString().trim() || "";
+      const idProducto =
+        idProductoRaw && idProductoRaw !== "0" ? idProductoRaw : null;
 
-      const barcodes = row['CodigosBarra']
-        ? row['CodigosBarra'].toString().split('-').map(code => code.trim())
+      const barcodes = row["CodigosBarra"]
+        ? row["CodigosBarra"]
+            .toString()
+            .split("-")
+            .map((code) => code.trim())
         : [];
 
       // Ignorar filas sin códigos válidos
@@ -227,13 +82,13 @@ export const importStock = async (req, res) => {
 
       // --- 🔧 REPARAR NOMBRES "SIN NOMBRE" SI EL EXCEL TRAE UNO CORRECTO ---
       if (productExists) {
-        const excelName = row['producto']?.toString().trim() || "";
+        const excelName = row["producto"]?.toString().trim() || "";
         const hasRealName = excelName && excelName !== "Sin nombre";
 
         if (product.name === "Sin nombre" && hasRealName) {
           await Product.updateOne(
             { _id: product._id },
-            { $set: { name: excelName } }
+            { $set: { name: excelName } },
           );
           product.name = excelName; // también actualizar en memoria
         }
@@ -241,14 +96,14 @@ export const importStock = async (req, res) => {
 
       // Crear producto nuevo si no existe
       if (!productExists && idProducto) {
-        const productName = row['producto']?.toString().trim() || "Sin nombre";
+        const productName = row["producto"]?.toString().trim() || "Sin nombre";
 
         newProductsToInsert.push({
           barcode: idProducto,
           alternateBarcodes: barcodes,
           name: productName,
-          type: row['Rubro']?.toString().trim() || "medicamento",
-          currentPrice: Number(row['Precio']) || 0,
+          type: row["Rubro"]?.toString().trim() || "medicamento",
+          currentPrice: Number(row["Precio"]) || 0,
         });
 
         // Añadir al mapa para evitar duplicados en el mismo Excel
@@ -258,12 +113,12 @@ export const importStock = async (req, res) => {
       // Guardar fila formateada para registrar la importación
       formattedRows.push({
         barcode: barcode || idProducto,
-        name: row['producto']?.toString().trim() || "Sin nombre",
-        stock: Number(row['Cantidad']) || 0,
-        category: row['Rubro']?.toString().trim() || "",
-        price: Number(row['Precio']) || 0,
-        cost: Number(row['costo']) || 0,
-        lab: row['Laboratorio']?.toString().trim() || "",
+        name: row["producto"]?.toString().trim() || "Sin nombre",
+        stock: Number(row["Cantidad"]) || 0,
+        category: row["Rubro"]?.toString().trim() || "",
+        price: Number(row["Precio"]) || 0,
+        cost: Number(row["costo"]) || 0,
+        lab: row["Laboratorio"]?.toString().trim() || "",
         barcodes,
       });
     }
@@ -283,16 +138,52 @@ export const importStock = async (req, res) => {
 
     await newImport.save();
 
+    // 🧹 CLEANUP: borrar imports pending viejas de la sucursal
+const pendingDelete = await StockImport.deleteMany({
+  branch: req.body.branchId,
+  status: { $ne: "applied" }, // pending u otros
+  _id: { $ne: newImport._id },
+});
+
+console.log(
+  `🧹 Pending imports borradas: ${pendingDelete.deletedCount} (branch ${req.body.branchId})`
+);
+
+// 🧹 CLEANUP: dejar solo las últimas 2 applied por sucursal
+const applied = await StockImport.find({
+  branch: req.body.branchId,
+  status: "applied",
+})
+  .sort({ appliedAt: -1, importedAt: -1, createdAt: -1 })
+  .select("_id")
+  .lean();
+
+const toDeleteApplied = applied.slice(2);
+
+if (toDeleteApplied.length > 0) {
+  const appliedDelete = await StockImport.deleteMany({
+    _id: { $in: toDeleteApplied.map((x) => x._id) },
+  });
+
+  console.log(
+    `🧹 Applied imports borradas: ${appliedDelete.deletedCount} (branch ${req.body.branchId})`
+  );
+} else {
+  console.log("🧹 No hay applied viejas para borrar (<=2).");
+}
+
+
     return res.status(201).json({
       message: "Importación de stock guardada correctamente",
       importId: newImport._id,
       totalRows: formattedRows.length,
       newProducts,
     });
-
   } catch (error) {
     console.error("Error al importar stock:", error);
-    return res.status(500).json({ error: "Error al procesar el Excel de stock" });
+    return res
+      .status(500)
+      .json({ error: "Error al procesar el Excel de stock" });
   }
 };
 
@@ -301,7 +192,7 @@ export const compareStockImport = async (req, res) => {
     const { importId } = req.params;
     const importData = await StockImport.findById(importId);
     if (!importData) {
-      return res.status(404).json({ error: 'Importación no encontrada' });
+      return res.status(404).json({ error: "Importación no encontrada" });
     }
 
     const { rows, branch } = importData;
@@ -350,28 +241,36 @@ export const compareStockImport = async (req, res) => {
   }
 };
 
-
 export const applyStockImport = async (req, res) => {
   try {
     const { importId, listIds, branchId } = req.body;
 
     if (!importId || !branchId) {
-      return res.status(400).json({ error: "Faltan datos importId o branchId" });
+      return res
+        .status(400)
+        .json({ error: "Faltan datos importId o branchId" });
     }
 
     const importData = await StockImport.findById(importId);
-    if (!importData) return res.status(404).json({ error: "Importación no encontrada" });
+    if (!importData)
+      return res.status(404).json({ error: "Importación no encontrada" });
 
     if (importData.status === "applied") {
-      return res.status(400).json({ error: "Esta importación ya fue aplicada" });
+      return res
+        .status(400)
+        .json({ error: "Esta importación ya fue aplicada" });
     }
 
     if (!importData.branch) {
-      return res.status(400).json({ error: "La importación no tiene sucursal asociada" });
+      return res
+        .status(400)
+        .json({ error: "La importación no tiene sucursal asociada" });
     }
 
     // Mapear productos por barcode para buscar rápido
-    const barcodes = importData.rows.map((r) => r.barcode?.trim()).filter(Boolean);
+    const barcodes = importData.rows
+      .map((r) => r.barcode?.trim())
+      .filter(Boolean);
     const products = await Product.find({ barcode: { $in: barcodes } });
     const productsMap = new Map(products.map((p) => [p.barcode.trim(), p]));
 
@@ -380,7 +279,9 @@ export const applyStockImport = async (req, res) => {
       branch: branchId,
       product: { $in: products.map((p) => p._id) },
     });
-    const stockMap = new Map(stocks.map((s) => [`${s.product}_${s.branch}`, s]));
+    const stockMap = new Map(
+      stocks.map((s) => [`${s.product}_${s.branch}`, s]),
+    );
 
     let updatedProducts = 0;
     let createdProducts = 0;
@@ -502,6 +403,38 @@ export const applyStockImport = async (req, res) => {
 
     importData.status = "applied";
     await importData.save();
+console.log("HOLA")
+    // 🧹 Limpiar imports applied viejos (dejar solo los últimos 2 por sucursal)
+    const appliedImports = await StockImport.find({
+      branch: importData.branch,
+      status: "applied",
+    })
+      .sort({ importedAt: -1 })
+      .select("_id")
+      .lean();
+
+    console.log(
+      `[StockImport Cleanup] branch=${importData.branch} appliedFound=${appliedImports.length}`,
+    );
+
+    const keep = appliedImports.slice(0, 2);
+    const toDelete = appliedImports.slice(2).map((x) => x._id);
+
+    console.log(
+      `[StockImport Cleanup] keeping=${keep.map((x) => `${x._id}(${x.importedAt})`).join(" | ")}`,
+    );
+
+    if (toDelete.length > 0) {
+      const deleteResult = await StockImport.deleteMany({
+        _id: { $in: toDelete },
+      });
+
+      console.log(
+        `[StockImport Cleanup] deleted=${deleteResult.deletedCount} expected=${toDelete.length}`,
+      );
+    } else {
+      console.log(`[StockImport Cleanup] nothing to delete`);
+    }
 
     res.json({
       message: "Importación aplicada correctamente",
@@ -555,7 +488,9 @@ export const updateAlternateBarcodesFromExcel = async (req, res) => {
     }
 
     if (bulkOps.length === 0) {
-      return res.status(400).json({ message: "No se encontraron filas válidas para actualizar." });
+      return res
+        .status(400)
+        .json({ message: "No se encontraron filas válidas para actualizar." });
     }
 
     const result = await Product.bulkWrite(bulkOps);

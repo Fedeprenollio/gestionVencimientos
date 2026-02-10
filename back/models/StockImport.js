@@ -1,4 +1,3 @@
-// models/StockImport.js
 import mongoose from 'mongoose';
 
 const stockRowSchema = new mongoose.Schema({
@@ -20,7 +19,8 @@ const stockImportSchema = new mongoose.Schema({
   rows: [stockRowSchema],
 });
 
-stockImportSchema.index({ importedAt: -1 });
+// stockImportSchema.index({ importedAt: -1 });
+stockImportSchema.index({ branch: 1, status: 1, importedAt: -1 });
 
 
 export default mongoose.model('StockImport', stockImportSchema);
