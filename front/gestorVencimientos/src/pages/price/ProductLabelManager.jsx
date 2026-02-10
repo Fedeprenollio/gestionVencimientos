@@ -41,13 +41,13 @@ import useBranchStore from "../../store/useBranchStore";
 const ProductLabelManager = () => {
   const { updateBulkStock } = useStockStore();
   const [clasicos, setClasicos] = useState(() => {
-  const saved = localStorage.getItem("labels_clasicos");
-  return saved ? JSON.parse(saved) : [];
-});
-const [especiales, setEspeciales] = useState(() => {
-  const saved = localStorage.getItem("labels_especiales");
-  return saved ? JSON.parse(saved) : [];
-});
+    const saved = localStorage.getItem("labels_clasicos");
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [especiales, setEspeciales] = useState(() => {
+    const saved = localStorage.getItem("labels_especiales");
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [tabIndex, setTabIndex] = useState(0); // Estado para la pestaña activa
   // Nuevo estado
@@ -63,12 +63,11 @@ const [especiales, setEspeciales] = useState(() => {
   const [scale, setScale] = useState(1); // valor por defecto = 1
 
   const { selectedBranchId } = useBranchStore();
-console.log("clasico sin stock", clasicosConStock)
+  console.log("clasico sin stock", clasicosConStock);
 
   useEffect(() => {
     localStorage.setItem("labels_clasicos", JSON.stringify(clasicos));
   }, [clasicos]);
-
 
   useEffect(() => {
     localStorage.setItem("labels_especiales", JSON.stringify(especiales));
@@ -79,13 +78,24 @@ console.log("clasico sin stock", clasicosConStock)
   };
 
   const updateEspecialField = (index, field, value) => {
-      console.log("updateEspecialField -> index:", index, "field:", field, "value:", value);
+    console.log(
+      "updateEspecialField -> index:",
+      index,
+      "field:",
+      field,
+      "value:",
+      value,
+    );
 
     setEspeciales((prev) => {
       if (index < 0) {
-      console.warn("No se encontró el producto para actualizar", field, value);
-      return prev;
-    }
+        console.warn(
+          "No se encontró el producto para actualizar",
+          field,
+          value,
+        );
+        return prev;
+      }
       const updated = [...prev];
       updated[index][field] = value;
 
@@ -94,12 +104,12 @@ console.log("clasico sin stock", clasicosConStock)
         updated[index].manualPreviousPrice > 0
           ? updated[index].manualPreviousPrice
           : updated[index].manualPrice && updated[index].manualPrice > 0
-          ? updated[index].manualPrice
-          : updated[index].currentPrice || 0;
+            ? updated[index].manualPrice
+            : updated[index].currentPrice || 0;
 
       const discount = updated[index].discount || 0;
       updated[index].discountedPrice = Number(
-        (base * (1 - discount / 100)).toFixed(2)
+        (base * (1 - discount / 100)).toFixed(2),
       );
 
       return updated;
@@ -135,7 +145,7 @@ console.log("clasico sin stock", clasicosConStock)
           // );
           const match = data.find((row) => {
             const importCodebar = String(
-              row.Codebar || row.IDProducto || ""
+              row.Codebar || row.IDProducto || "",
             ).trim();
             const productCodebar = String(p.barcode || "").trim();
 
@@ -200,7 +210,7 @@ console.log("clasico sin stock", clasicosConStock)
         const fila = fileData.find(
           (f) =>
             String(f.Codebar)?.trim() === String(p.barcode)?.trim() ||
-            String(f.IDProducto)?.trim() === String(p.barcode)?.trim()
+            String(f.IDProducto)?.trim() === String(p.barcode)?.trim(),
         );
 
         if (fila && fila.precio) {
@@ -213,7 +223,7 @@ console.log("clasico sin stock", clasicosConStock)
             discountedPrice:
               p.discount && p.discount > 0
                 ? Number(
-                    (Number(fila.precio) * (1 - p.discount / 100)).toFixed(2)
+                    (Number(fila.precio) * (1 - p.discount / 100)).toFixed(2),
                   )
                 : undefined, // si no hay descuento, se borra el precio con descuento
           };
@@ -230,7 +240,6 @@ console.log("clasico sin stock", clasicosConStock)
     // setOpenUpdateModal(false);
     alert(`Precios actualizados para ${actualizados} productos`);
   };
- 
 
   const handleClearAll = () => {
     localStorage.removeItem("labels_clasicos");
@@ -280,8 +289,8 @@ console.log("clasico sin stock", clasicosConStock)
     //   .filter((b) => b);
 
     const barcodes = productos
-  .map((p) => p.barcode?.toString().trim())
-  .filter((b) => b && b !== "0"); // evitar vacíos y 0
+      .map((p) => p.barcode?.toString().trim())
+      .filter((b) => b && b !== "0"); // evitar vacíos y 0
 
     if (barcodes.length === 0) {
       alert("No hay productos cargados para aplicar la importación.");
@@ -298,9 +307,15 @@ console.log("clasico sin stock", clasicosConStock)
       console.log("res:", res);
 
       const updatedClasicos = clasicos.map((p) => {
+        //PRUEBA
+        // const match = res?.rows.find(
+        //   (r) => r.barcode?.toString().trim() === p.barcode?.toString().trim()
+        // );
+
         const match = res?.rows.find(
-          (r) => r.barcode?.toString().trim() === p.barcode?.toString().trim()
+          (r) => String(r.productId) === String(p._id),
         );
+
         if (!match) return p;
 
         return {
@@ -316,10 +331,9 @@ console.log("clasico sin stock", clasicosConStock)
 
       const updatedEspeciales = especiales.map((p) => {
         const match = res?.rows.find(
-          (r) => r.barcode?.toString().trim() === p.barcode?.toString().trim()
+          (r) => String(r.productId) === String(p._id),
         );
         if (!match) return p;
-
         return {
           ...p,
           currentPrice: match.price,
@@ -347,14 +361,14 @@ console.log("clasico sin stock", clasicosConStock)
           name: r.name,
           new: r.price,
           stock: r.stock,
-        }))
+        })),
       );
     } catch (error) {
       console.error("Error aplicando importación a productos:", error);
       alert("Error aplicando importación");
     }
   };
-console.log("clasicosConStock",clasicosConStock)
+  console.log("clasicosConStock", clasicosConStock);
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h5">Generador de Etiquetas</Typography>
@@ -480,8 +494,7 @@ console.log("clasicosConStock",clasicosConStock)
         </Box>
       )}
 
-
- {/* 🔧 Input para scale */}
+      {/* 🔧 Input para scale */}
       {tabIndex === 1 && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle2">Escala de impresión</Typography>
@@ -494,8 +507,6 @@ console.log("clasicosConStock",clasicosConStock)
           />
         </Box>
       )}
-
-
 
       {tabIndex === 1 && (
         <Box>
@@ -519,12 +530,12 @@ console.log("clasicosConStock",clasicosConStock)
                         updateEspecialField(
                           especiales.findIndex((ep) => ep._id === p._id),
                           field,
-                          value
+                          value,
                         )
                       }
                       onRemove={() =>
                         handleRemoveEspecial(
-                          especiales.findIndex((ep) => ep._id === p._id)
+                          especiales.findIndex((ep) => ep._id === p._id),
                         )
                       }
                     />
@@ -559,12 +570,12 @@ console.log("clasicosConStock",clasicosConStock)
                         updateEspecialField(
                           especiales.findIndex((ep) => ep._id === p._id),
                           field,
-                          value
+                          value,
                         )
                       }
                       onRemove={() =>
                         handleRemoveEspecial(
-                          especiales.findIndex((ep) => ep._id === p._id)
+                          especiales.findIndex((ep) => ep._id === p._id),
                         )
                       }
                     />
