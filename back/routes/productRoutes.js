@@ -57,9 +57,17 @@ productRoutes.post("/by-codebars", async (req, res) => {
       return res.status(400).json({ message: "Se requiere un array de codebars." });
     }
 
+    // const products = await Product.find({
+    //   barcode: { $in: codebars },
+    // });
+
     const products = await Product.find({
-      barcode: { $in: codebars },
-    });
+  $or: [
+    { barcode: { $in: codebars } },
+    { alternateBarcodes: { $in: codebars } },
+  ],
+});
+
 
     res.json(products);
   } catch (error) {

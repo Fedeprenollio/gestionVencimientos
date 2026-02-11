@@ -181,6 +181,7 @@ import dayjs from "dayjs";
 // };
 
 export const generatePDF_Clasicas = ({ clasicos }) => {
+  console.log("CLASICOS,", clasicos)
   alert("NO TE OLVIDES DE SUBIR EL STOCK ACTUAL (UNA VEZ EN EL DIA) PARA TENER LOS PRECIOS ACTUALIZADOS, y HACER CLICK EN 'APLICAR IMPORTACIÓN A PRODUCTOS CARGADOS' antes de generar el pdf ")
   const doc = new jsPDF({ unit: "mm", format: "a4" });
 

@@ -63,7 +63,7 @@ const ExcelDiscountUploader = ({
           .filter(Boolean);
         const codebarsExistentes = productos.map((p) => String(p.barcode));
         const codebarsDesconocidos = codebarsExcel.filter(
-          (cb) => !codebarsExistentes.includes(cb)
+          (cb) => !codebarsExistentes.includes(cb),
         );
 
         let productosDesdeAPI = [];
@@ -71,7 +71,7 @@ const ExcelDiscountUploader = ({
           if (codebarsDesconocidos.length > 0) {
             const res = await axios.post(
               `${import.meta.env.VITE_API_URL}/products/by-codebars`,
-              { codebars: codebarsDesconocidos }
+              { codebars: codebarsDesconocidos },
             );
             productosDesdeAPI = res.data;
           }
@@ -92,8 +92,14 @@ const ExcelDiscountUploader = ({
             continue;
           }
 
+          // const indexExistente = productos.findIndex(
+          //   (p) => String(p.barcode) === codebar
+          // );
+
           const indexExistente = productos.findIndex(
-            (p) => String(p.barcode) === codebar
+            (p) =>
+              String(p.barcode) === codebar ||
+              (p.alternateBarcodes && p.alternateBarcodes.includes(codebar)),
           );
 
           if (indexExistente !== -1) {
@@ -126,9 +132,16 @@ const ExcelDiscountUploader = ({
               discount: nuevoDescuento,
             });
           } else {
+            // const productoAPI = productosDesdeAPI.find(
+            //   (p) => String(p.barcode) === codebar,
+            // );
+
             const productoAPI = productosDesdeAPI.find(
-              (p) => String(p.barcode) === codebar
-            );
+  (p) =>
+    String(p.barcode) === codebar ||
+    (p.alternateBarcodes && p.alternateBarcodes.includes(codebar))
+);
+
 
             if (productoAPI) {
               const nuevoPrecio =
@@ -138,7 +151,7 @@ const ExcelDiscountUploader = ({
               const nuevoDescuentoPrecio =
                 nuevoDescuento > 0
                   ? Number(
-                      (nuevoPrecio * (1 - nuevoDescuento / 100)).toFixed(2)
+                      (nuevoPrecio * (1 - nuevoDescuento / 100)).toFixed(2),
                     )
                   : nuevoPrecio;
 
@@ -161,7 +174,7 @@ const ExcelDiscountUploader = ({
                 const nuevoDescuentoPrecio =
                   nuevoDescuento > 0
                     ? Number(
-                        (nuevoPrecio * (1 - nuevoDescuento / 100)).toFixed(2)
+                        (nuevoPrecio * (1 - nuevoDescuento / 100)).toFixed(2),
                       )
                     : nuevoPrecio;
 
@@ -212,10 +225,8 @@ const ExcelDiscountUploader = ({
       <DialogContent>
         <Typography variant="body2" gutterBottom>
           Subí un archivo Excel con columnas <strong>Codebar</strong>,{" "}
-
-          {/* <strong>Unitario</strong> */}
-           y <strong>Descuento</strong> (Nombre es
-          opcional)
+          {/* <strong>Unitario</strong> */}y <strong>Descuento</strong> (Nombre
+          es opcional)
         </Typography>
         <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
         {loading && <Typography>Cargando...</Typography>}

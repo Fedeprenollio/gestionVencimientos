@@ -14,6 +14,8 @@ import {
   TableRow,
   TableBody,
   TextField,
+  Checkbox,
+  Paper,
 } from "@mui/material";
 import ClasicasInput from "./ClasicasInput";
 import EspecialesInput from "./EspecialesInput";
@@ -37,17 +39,34 @@ import {
 } from "../../../utils/etiquetas/generatePDF";
 import api from "../../api/axiosInstance";
 import useBranchStore from "../../store/useBranchStore";
+import DeleteIcon from "@mui/icons-material/Delete";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import IconButton from "@mui/material/IconButton";
+import Chip from "@mui/material/Chip";
+import { Select, MenuItem } from "@mui/material";
+import EtiquetasTable from "./EtiquetasTable";
+import EtiquetasInput from "./EtiquetasInput";
 
 const ProductLabelManager = () => {
-  const { updateBulkStock } = useStockStore();
-  const [clasicos, setClasicos] = useState(() => {
+  const [tipoVista, setTipoVista] = useState("clasicas");
+  // "clasicas" | "especiales"
+
+  const [selectedEspeciales, setSelectedEspeciales] = useState(() => new Set());
+  const [clasicas, setClasicas] = useState(() => {
     const saved = localStorage.getItem("labels_clasicos");
     return saved ? JSON.parse(saved) : [];
   });
+
+  const [selectedClasicas, setSelectedClasicas] = useState(new Set());
+  const { updateBulkStock } = useStockStore();
+
   const [especiales, setEspeciales] = useState(() => {
     const saved = localStorage.getItem("labels_especiales");
     return saved ? JSON.parse(saved) : [];
   });
+  useEffect(() => {
+    localStorage.setItem("labels_clasicos", JSON.stringify(clasicas));
+  }, [clasicas]);
 
   const [tabIndex, setTabIndex] = useState(0); // Estado para la pestaña activa
   // Nuevo estado
@@ -55,19 +74,13 @@ const ProductLabelManager = () => {
   const [updateResults, setUpdateResults] = useState([]);
   const [openDiscountModal, setOpenDiscountModal] = useState(false);
   const [openClearDialog, setOpenClearDialog] = useState(false);
-  const clasicosConStock = clasicos.filter((p) => p.stock > 0);
-  const clasicosSinStock = clasicos.filter((p) => !p.stock || p.stock <= 0);
-  const especialesConStock = especiales.filter((p) => p.stock > 0);
-  const especialesSinStock = especiales.filter((p) => !p.stock || p.stock <= 0);
-  const [importId, setImportId] = useState(false);
   const [scale, setScale] = useState(1); // valor por defecto = 1
 
   const { selectedBranchId } = useBranchStore();
-  console.log("clasico sin stock", clasicosConStock);
-
-  useEffect(() => {
-    localStorage.setItem("labels_clasicos", JSON.stringify(clasicos));
-  }, [clasicos]);
+  const clasicasConStock = clasicas.filter((p) => Number(p.stock) > 0);
+  const clasicasSinStock = clasicas.filter(
+    (p) => !p.stock || Number(p.stock) <= 0,
+  );
 
   useEffect(() => {
     localStorage.setItem("labels_especiales", JSON.stringify(especiales));
@@ -75,6 +88,22 @@ const ProductLabelManager = () => {
 
   const handleRemoveEspecial = (index) => {
     setEspeciales((prev) => prev.filter((_, i) => i !== index));
+  };
+  const toggleSelectEspecial = (id) => {
+    setSelectedEspeciales((prev) => {
+      const copy = new Set(prev);
+      if (copy.has(id)) copy.delete(id);
+      else copy.add(id);
+      return copy;
+    });
+  };
+
+  const selectAllEspeciales = () => {
+    setSelectedEspeciales(new Set(especiales.map((p) => p._id)));
+  };
+
+  const clearSelectedEspeciales = () => {
+    setSelectedEspeciales(new Set());
   };
 
   const updateEspecialField = (index, field, value) => {
@@ -187,7 +216,6 @@ const ProductLabelManager = () => {
         setProductos(updated);
       };
 
-      updateProductos(clasicos, setClasicos);
       updateProductos(especiales, setEspeciales);
       setUpdateResults(updatedItems);
       setFileData(data);
@@ -234,7 +262,7 @@ const ProductLabelManager = () => {
       setLista(nuevaLista);
     };
 
-    actualizar(clasicos, setClasicos);
+    actualizar(clasicas, setClasicas);
     actualizar(especiales, setEspeciales);
 
     // setOpenUpdateModal(false);
@@ -244,7 +272,7 @@ const ProductLabelManager = () => {
   const handleClearAll = () => {
     localStorage.removeItem("labels_clasicos");
     localStorage.removeItem("labels_especiales");
-    setClasicos([]);
+    setClasicas([]);
     setEspeciales([]);
     setFileData([]);
     setUpdateResults([]);
@@ -270,7 +298,7 @@ const ProductLabelManager = () => {
         return null;
       }
 
-      setImportId(importData._id);
+      // setImportId(importData._id);
       return importData;
     } catch (error) {
       console.error("Error trayendo importación:", error);
@@ -283,14 +311,11 @@ const ProductLabelManager = () => {
     const importData = await updateFromImport();
     if (!importData) return;
 
-    const productos = tabIndex === 0 ? clasicos : especiales;
-    // const barcodes = productos
-    //   .map((p) => p.barcode?.toString().trim())
-    //   .filter((b) => b);
+    const productos = tipoVista === "clasicas" ? clasicas : especiales;
 
     const barcodes = productos
       .map((p) => p.barcode?.toString().trim())
-      .filter((b) => b && b !== "0"); // evitar vacíos y 0
+      .filter((b) => b && b !== "0");
 
     if (barcodes.length === 0) {
       alert("No hay productos cargados para aplicar la importación.");
@@ -306,49 +331,65 @@ const ProductLabelManager = () => {
       alert(`Actualización exitosa. ${res.updated} productos actualizados.`);
       console.log("res:", res);
 
-      const updatedClasicos = clasicos.map((p) => {
-        //PRUEBA
-        // const match = res?.rows.find(
-        //   (r) => r.barcode?.toString().trim() === p.barcode?.toString().trim()
-        // );
+      const rows = res.rows || [];
 
-        const match = res?.rows.find(
-          (r) => String(r.productId) === String(p._id),
-        );
+      // 🔥 actualizar la lista correcta según tipoVista
+      if (tipoVista === "especiales") {
+        const updated = especiales.map((p) => {
+          let match = rows.find((r) => String(r.productId) === String(p._id));
 
-        if (!match) return p;
+          // si no lo encontró, buscar por barcode principal o alternativos
+          if (!match) {
+            match = rows.find(
+              (r) =>
+                r.barcode === p.barcode ||
+                (p.alternateBarcodes &&
+                  p.alternateBarcodes.includes(r.barcode)),
+            );
+          }
 
-        return {
-          ...p,
-          currentPrice: match.price,
-          manualPrice: match.price,
-          discountedPrice: p.discount
-            ? Number((match.price * (1 - p.discount / 100)).toFixed(2))
-            : match.price,
-          stock: typeof match.stock === "number" ? match.stock : p.stock,
-        };
-      });
+          if (!match) return p;
 
-      const updatedEspeciales = especiales.map((p) => {
-        const match = res?.rows.find(
-          (r) => String(r.productId) === String(p._id),
-        );
-        if (!match) return p;
-        return {
-          ...p,
-          currentPrice: match.price,
-          manualPrice: match.price,
-          discountedPrice: p.discount
-            ? Number((match.price * (1 - p.discount / 100)).toFixed(2))
-            : match.price,
-          stock: typeof match.stock === "number" ? match.stock : p.stock,
-        };
-      });
+          return {
+            ...p,
+            currentPrice: match.price,
+            manualPrice: match.price,
+            discountedPrice: p.discount
+              ? Number((match.price * (1 - p.discount / 100)).toFixed(2))
+              : match.price,
+            stock: typeof match.stock === "number" ? match.stock : p.stock,
+          };
+        });
 
-      setClasicos(updatedClasicos);
-      setEspeciales(updatedEspeciales);
+        setEspeciales(updated);
+      } else {
+        const updated = clasicas.map((p) => {
+          let match = rows.find((r) => String(r.productId) === String(p._id));
+          // si no lo encontró, buscar por barcode principal o alternativos
+          if (!match) {
+            match = rows.find(
+              (r) =>
+                r.barcode === p.barcode ||
+                (p.alternateBarcodes &&
+                  p.alternateBarcodes.includes(r.barcode)),
+            );
+          }
+          if (!match) return p;
 
-      const stockUpdates = res.rows
+          return {
+            ...p,
+            currentPrice: match.price,
+            manualPrice: match.price,
+            discountedPrice: match.price, // en clásicas no hay descuento real (salvo que lo uses)
+            stock: typeof match.stock === "number" ? match.stock : p.stock,
+          };
+        });
+
+        setClasicas(updated);
+      }
+
+      // actualizar stock backend
+      const stockUpdates = rows
         .filter((r) => typeof r.stock === "number" && r.stock >= 0)
         .map((r) => ({ codebar: r.barcode, quantity: r.stock }));
 
@@ -357,7 +398,7 @@ const ProductLabelManager = () => {
       }
 
       setUpdateResults(
-        res.rows.map((r) => ({
+        rows.map((r) => ({
           name: r.name,
           new: r.price,
           stock: r.stock,
@@ -368,134 +409,123 @@ const ProductLabelManager = () => {
       alert("Error aplicando importación");
     }
   };
-  console.log("clasicosConStock", clasicosConStock);
+
+  // const handleFullImportUpdate = async () => {
+  //   const importData = await updateFromImport();
+  //   if (!importData) return;
+
+  //   const productos = tipoVista === "clasicas" ? clasicas : especiales;
+
+  //   // const barcodes = productos
+  //   //   .map((p) => p.barcode?.toString().trim())
+  //   //   .filter((b) => b);
+
+  //   const barcodes = productos
+  //     .map((p) => p.barcode?.toString().trim())
+  //     .filter((b) => b && b !== "0"); // evitar vacíos y 0
+
+  //   if (barcodes.length === 0) {
+  //     alert("No hay productos cargados para aplicar la importación.");
+  //     return;
+  //   }
+
+  //   try {
+  //     const res = await api.post("/imports/apply-to-products", {
+  //       importId: importData._id,
+  //       barcodes,
+  //     });
+
+  //     alert(`Actualización exitosa. ${res.updated} productos actualizados.`);
+  //     console.log("res:", res);
+
+  //     const updatedEspeciales = especiales.map((p) => {
+  //       const match = res?.rows.find(
+  //         (r) => String(r.productId) === String(p._id),
+  //       );
+  //       if (!match) return p;
+  //       return {
+  //         ...p,
+  //         currentPrice: match.price,
+  //         manualPrice: match.price,
+  //         discountedPrice: p.discount
+  //           ? Number((match.price * (1 - p.discount / 100)).toFixed(2))
+  //           : match.price,
+  //         stock: typeof match.stock === "number" ? match.stock : p.stock,
+  //       };
+  //     });
+
+  //     setEspeciales(updatedEspeciales);
+
+  //     const stockUpdates = res.rows
+  //       .filter((r) => typeof r.stock === "number" && r.stock >= 0)
+  //       .map((r) => ({ codebar: r.barcode, quantity: r.stock }));
+
+  //     if (stockUpdates.length > 0 && selectedBranchId) {
+  //       await updateBulkStock(stockUpdates);
+  //     }
+
+  //     setUpdateResults(
+  //       res.rows.map((r) => ({
+  //         name: r.name,
+  //         new: r.price,
+  //         stock: r.stock,
+  //       })),
+  //     );
+  //   } catch (error) {
+  //     console.error("Error aplicando importación a productos:", error);
+  //     alert("Error aplicando importación");
+  //   }
+  // };
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h5">Generador de Etiquetas</Typography>
-      <SucursalSelector />
-      {/* Pestañas */}
-      <Tabs value={tabIndex} onChange={handleTabChange} sx={{ mb: 2 }}>
-        <Tab label="Etiquetas Clásicas" />
-        <Tab label="Etiquetas Especiales" />
-      </Tabs>
-      <Box display="flex" flexDirection="column" gap={2} mb={2}>
-        {/* <Box
-          sx={{
-            border: "1px solid #ccc",
-            borderRadius: 2,
-            p: 2,
-          }}
-        >
-          <Typography variant="subtitle1" fontWeight="bold">
-            📥 Actualizar desde Excel
-          </Typography>
-          <Typography variant="body2" mb={1}>
-            Subí un archivo con precios y stock. Requiere columnas:{" "}
-            <strong>Codebar</strong>, <strong>Unitario</strong> y{" "}
-            <strong>Cantidad</strong>.
-          </Typography>
-          <Button variant="contained" onClick={() => setOpenModal(true)}>
-            Subir archivo Excel
-          </Button>
-        </Box> */}
+      <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
+        <Typography variant="h5">Generador de Etiquetas</Typography>
+        <SucursalSelector />
+      </Paper>
 
-        <Box
-          sx={{
-            border: "1px solid #ccc",
-            borderRadius: 2,
-            p: 2,
-          }}
-        >
-          <Typography variant="subtitle1" fontWeight="bold">
-            🔁 Aplicar importación reciente de precios y stocks
-          </Typography>
-          <Typography variant="body2" mb={1}>
-            Usa la última importación aplicada a esta sucursal y actualiza solo
-            los productos cargados.
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleFullImportUpdate}
-          >
-            Aplicar importación a productos cargados
-          </Button>
-        </Box>
-      </Box>
-
-      <Button
-        variant="outlined"
-        sx={{ mb: 2, ml: 2 }}
-        onClick={() => setOpenDiscountModal(true)}
-      >
-        Cargar descuentos desde Excel
-      </Button>
-      <Button
-        variant="outlined"
-        color="error"
-        sx={{ mb: 2, ml: 2 }}
-        onClick={() => setOpenClearDialog(true)}
-      >
-        Borrar todas las etiquetas guardadas
-      </Button>
+     
 
       <ExcelDiscountUploader
         open={openDiscountModal}
         onClose={() => setOpenDiscountModal(false)}
-        productos={tabIndex === 0 ? clasicos : especiales}
-        setProductos={tabIndex === 0 ? setClasicos : setEspeciales}
-        tipoEtiqueta={tabIndex === 0 ? "clasica" : "oferta"}
+        // productos={tabIndex === 0 ? clasicos : especiales}
+        // setProductos={tabIndex === 0 ? setClasicos : setEspeciales}
+        // tipoEtiqueta={tabIndex === 0 ? "clasica" : "oferta"}
+        productos={tipoVista === "clasicas" ? clasicas : especiales}
+        setProductos={tipoVista === "clasicas" ? setClasicas : setEspeciales}
+        tipoEtiqueta={tipoVista === "clasicas" ? "clasica" : "oferta"}
       />
-      {tabIndex === 0 && (
-        <Box>
-          <ClasicasInput
-            productos={clasicos}
-            setProductos={setClasicos}
-            generateBarcodeImage={generateBarcodeImage}
-          />
 
-          {/* 🟢 CLÁSICOS CON STOCK */}
-          {clasicosConStock.length > 0 && (
-            <>
-              <Typography variant="subtitle1" sx={{ mt: 3 }}>
-                Productos con stock:
-              </Typography>
-              <Button
-                variant="contained"
-                color="success"
-                sx={{ mt: 1 }}
-                onClick={() =>
-                  generatePDF_Clasicas({ clasicos: clasicosConStock })
-                }
-              >
-                Generar PDF (con stock)
-              </Button>
-            </>
-          )}
+    
 
-          {/* 🔴 CLÁSICOS SIN STOCK */}
-          {clasicosSinStock.length > 0 && (
-            <>
-              <Typography variant="subtitle1" sx={{ mt: 4 }}>
-                Productos sin stock:
-              </Typography>
-              <Button
-                variant="contained"
-                color="warning"
-                sx={{ mt: 1 }}
-                onClick={() =>
-                  generatePDF_Clasicas({ clasicos: clasicosSinStock })
-                }
-              >
-                Generar PDF (sin stock)
-              </Button>
-            </>
-          )}
-        </Box>
-      )}
 
-      {/* 🔧 Input para scale */}
-      {tabIndex === 1 && (
+      {/* SELECT para elegir tipo */}
+      <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
+        {/* <Box sx={{ display: "flex", gap: 2, alignItems: "center", mb: 2 }}> */}
+        <Typography sx={{ fontWeight: 700 }}>Tipo de etiquetas:</Typography>
+
+        <Select
+          size="small"
+          value={tipoVista}
+          onChange={(e) => setTipoVista(e.target.value)}
+          sx={{ minWidth: 240 }}
+        >
+          <MenuItem value="clasicas">Etiquetas Clásicas</MenuItem>
+          <MenuItem value="especiales">Etiquetas Especiales</MenuItem>
+        </Select>
+
+        <Button
+          variant="outlined"
+          sx={{ mb: 2, ml: 2 }}
+          onClick={() => setOpenDiscountModal(true)}
+        >
+          Cargar descuentos desde Excel
+        </Button>
+      </Paper>
+
+<Paper elevation={3} sx={{ p: 2, mb: 2 }}>
+
+      {tipoVista === "especiales" && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle2">Escala de impresión</Typography>
           <TextField
@@ -508,94 +538,81 @@ const ProductLabelManager = () => {
         </Box>
       )}
 
-      {tabIndex === 1 && (
-        <Box>
-          <EspecialesInput
-            productos={especiales}
-            setProductos={setEspeciales}
+      {tipoVista === "clasicas" && (
+        <>
+          <EtiquetasInput
+            title="Etiquetas Clásicas"
+            productos={clasicas}
+            setProductos={setClasicas}
+            selectedIds={selectedClasicas}
+            setSelectedIds={setSelectedClasicas}
+            mode="clasica"
           />
 
-          {/* 🟢 ESPECIALES CON STOCK */}
-          {especialesConStock.length > 0 && (
-            <>
-              <Typography variant="subtitle1" sx={{ mt: 3 }}>
-                Productos con stock:
-              </Typography>
-              <Grid container spacing={2} mt={1}>
-                {especialesConStock.map((p, i) => (
-                  <Grid item xs={12} md={6} key={`${p._id}-con`}>
-                    <EtiquetaPreview
-                      producto={p}
-                      onChange={(field, value) =>
-                        updateEspecialField(
-                          especiales.findIndex((ep) => ep._id === p._id),
-                          field,
-                          value,
-                        )
-                      }
-                      onRemove={() =>
-                        handleRemoveEspecial(
-                          especiales.findIndex((ep) => ep._id === p._id),
-                        )
-                      }
-                    />
-                  </Grid>
-                ))}
-              </Grid>
-              <Button
-                variant="contained"
-                color="success"
-                sx={{ mt: 2 }}
-                onClick={() =>
-                  generatePDF_Grandes({ especiales: especialesConStock, scale })
-                }
-              >
-                Generar PDF (con stock)
-              </Button>
-            </>
-          )}
+          <Divider sx={{ my: 2 }} />
 
-          {/* 🔴 ESPECIALES SIN STOCK */}
-          {especialesSinStock.length > 0 && (
-            <>
-              <Typography variant="subtitle1" sx={{ mt: 4 }}>
-                Productos sin stock:
-              </Typography>
-              <Grid container spacing={2} mt={1}>
-                {especialesSinStock.map((p, i) => (
-                  <Grid item xs={12} md={6} key={`${p._id}-sin`}>
-                    <EtiquetaPreview
-                      producto={p}
-                      onChange={(field, value) =>
-                        updateEspecialField(
-                          especiales.findIndex((ep) => ep._id === p._id),
-                          field,
-                          value,
-                        )
-                      }
-                      onRemove={() =>
-                        handleRemoveEspecial(
-                          especiales.findIndex((ep) => ep._id === p._id),
-                        )
-                      }
-                    />
-                  </Grid>
-                ))}
-              </Grid>
-              <Button
-                variant="contained"
-                color="warning"
-                sx={{ mt: 2 }}
-                onClick={() =>
-                  generatePDF_Grandes({ especiales: especialesSinStock, scale })
-                }
-              >
-                Generar PDF (sin stock)
-              </Button>
-            </>
-          )}
-        </Box>
+          <EtiquetasTable
+            handleFullImportUpdate={handleFullImportUpdate}
+            setOpenClearDialog={setOpenClearDialog}
+            title="Etiquetas Clásicas"
+            productos={clasicas}
+            setProductos={setClasicas}
+            selectedIds={selectedClasicas}
+            setSelectedIds={setSelectedClasicas}
+            showTipoEtiqueta={false}
+            allowPrintConStock={true}
+            allowPrintSinStock={true}
+            onPrintSelected={(selected) =>
+              generatePDF_Clasicas({ clasicos: selected, scale })
+            }
+            onPrintAll={(all) => generatePDF_Clasicas({ clasicos: all, scale })}
+            onPrintConStock={(list) => generatePDF_Clasicas({ clasicos: list })}
+            onPrintSinStock={(list) => generatePDF_Clasicas({ clasicos: list })}
+          />
+        </>
       )}
+
+      {tipoVista === "especiales" && (
+        <>
+          <EtiquetasInput
+            title="Etiquetas Especiales"
+            setOpenClearDialog={setOpenClearDialog}
+            productos={especiales}
+            setProductos={setEspeciales}
+            selectedIds={selectedEspeciales}
+            setSelectedIds={setSelectedEspeciales}
+            mode="especial"
+          />
+
+          <Divider sx={{ my: 2 }} />
+
+          <EtiquetasTable
+            handleFullImportUpdate={handleFullImportUpdate}
+            setOpenClearDialog={setOpenClearDialog}
+            title="Etiquetas Especiales"
+            productos={especiales}
+            setProductos={setEspeciales}
+            selectedIds={selectedEspeciales}
+            setSelectedIds={setSelectedEspeciales}
+            showTipoEtiqueta={true}
+            allowPrintConStock={true}
+            allowPrintSinStock={true}
+            onPrintSelected={(selected) =>
+              generatePDF_Grandes({ especiales: selected, scale })
+            }
+            onPrintAll={(all) =>
+              generatePDF_Grandes({ especiales: all, scale })
+            }
+            onPrintConStock={(list) =>
+              generatePDF_Grandes({ especiales: list, scale })
+            }
+            onPrintSinStock={(list) =>
+              generatePDF_Grandes({ especiales: list, scale })
+            }
+          />
+        </>
+      )}
+      </Paper>
 
       <Dialog
         open={openModal}
