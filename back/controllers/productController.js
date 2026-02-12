@@ -904,10 +904,115 @@ export const getProductsWithoutPrice = async (req, res) => {
 };
 
 
+// export const getProductsByCodebarsWithImport = async (req, res) => {
+//   try {
+//     const { importId, codebars } = req.body;
+// console.log("importId, codebars",importId, codebars)
+//     if (!importId || !Array.isArray(codebars) || codebars.length === 0) {
+//       return res.status(400).json({
+//         message: "Faltan datos: importId y codebars",
+//       });
+//     }
+
+//     const stockImport = await StockImport.findById(importId).lean();
+//     if (!stockImport) {
+//       return res.status(404).json({ message: "Importación no encontrada" });
+//     }
+
+//     const cleanCodes = [...new Set(codebars.map((c) => String(c).trim()))];
+
+//     // 1) Buscar productos por barcode o alternateBarcodes
+//     const products = await Product.find({
+//       $or: [
+//         { barcode: { $in: cleanCodes } },
+//         { alternateBarcodes: { $in: cleanCodes } },
+//       ],
+//     }).lean();
+
+//     // 2) Armar productsMap: cualquier código -> product
+//     const productsMap = new Map();
+
+//     for (const p of products) {
+//       if (p.barcode) productsMap.set(String(p.barcode).trim(), p);
+
+//       if (Array.isArray(p.alternateBarcodes)) {
+//         for (const alt of p.alternateBarcodes) {
+//           if (alt) productsMap.set(String(alt).trim(), p);
+//         }
+//       }
+//     }
+
+//     // 3) Armar importRowsMap: barcode -> row
+//     // Si hay repetidos, elegimos el "mejor" (ej: stock mayor)
+//     const importRowsMap = new Map();
+
+//     for (const row of stockImport.rows || []) {
+//       const b = row.barcode?.toString().trim();
+//       if (!b) continue;
+
+//       if (!cleanCodes.includes(b)) continue;
+
+//       const prev = importRowsMap.get(b);
+
+//       if (!prev) {
+//         importRowsMap.set(b, row);
+//       } else {
+//         // elegimos mejor row (por stock > 0)
+//         const prevStock = typeof prev.stock === "number" ? prev.stock : 0;
+//         const rowStock = typeof row.stock === "number" ? row.stock : 0;
+
+//         if (rowStock > prevStock) {
+//           importRowsMap.set(b, row);
+//         }
+//       }
+//     }
+
+//     // 4) Armar respuesta
+//     const found = [];
+//     const notFound = [];
+
+//     for (const code of cleanCodes) {
+//       const product = productsMap.get(code);
+
+//       if (!product) {
+//         notFound.push(code);
+//         continue;
+//       }
+
+//       // buscamos si hay row en import para ese código
+//       const importRow = importRowsMap.get(code) || null;
+
+//       // detectar si matcheó por barcode o alternateBarcodes
+//       const matchedBy =
+//         product.barcode && String(product.barcode).trim() === code
+//           ? "barcode"
+//           : "alternateBarcodes";
+
+//       found.push({
+//         codeSearched: code,
+//         matchedBy,
+//         product,
+//         importRow,
+//       });
+//     }
+
+//     return res.json({
+//       message: "OK",
+//       found,
+//       notFound,
+//     });
+//   } catch (error) {
+//     console.error("❌ Error en getProductsByCodebarsWithImport:", error);
+//     return res.status(500).json({ message: "Error del servidor" });
+//   }
+// };
+
 export const getProductsByCodebarsWithImport = async (req, res) => {
   try {
     const { importId, codebars } = req.body;
-console.log("importId, codebars",importId, codebars)
+
+    console.log("importId, codebars", importId, codebars);
+
     if (!importId || !Array.isArray(codebars) || codebars.length === 0) {
       return res.status(400).json({
         message: "Faltan datos: importId y codebars",
@@ -942,15 +1047,14 @@ console.log("importId, codebars",importId, codebars)
       }
     }
 
-    // 3) Armar importRowsMap: barcode -> row
-    // Si hay repetidos, elegimos el "mejor" (ej: stock mayor)
+    // 3) Armar importRowsMap: barcode -> row (SIN filtrar por cleanCodes)
+    // ⚠️ IMPORTANTE: NO filtramos por cleanCodes porque:
+    // cleanCodes puede contener IDProducto, pero el import tiene EAN real.
     const importRowsMap = new Map();
 
     for (const row of stockImport.rows || []) {
       const b = row.barcode?.toString().trim();
       if (!b) continue;
-
-      if (!cleanCodes.includes(b)) continue;
 
       const prev = importRowsMap.get(b);
 
@@ -967,6 +1071,27 @@ console.log("importId, codebars",importId, codebars)
       }
     }
 
+    // helper: buscar importRow por cualquier código del producto
+    const findBestImportRow = (codeSearched, product) => {
+      const codesToTry = [
+        codeSearched,
+        product?.barcode,
+        ...(Array.isArray(product?.alternateBarcodes)
+          ? product.alternateBarcodes
+          : []),
+      ]
+        .filter(Boolean)
+        .map((x) => String(x).trim());
+
+      for (const c of codesToTry) {
+        const row = importRowsMap.get(c);
+        if (row) return row;
+      }
+
+      return null;
+      
+    };
+
     // 4) Armar respuesta
     const found = [];
     const notFound = [];
@@ -979,10 +1104,9 @@ console.log("importId, codebars",importId, codebars)
         continue;
       }
 
-      // buscamos si hay row en import para ese código
-      const importRow = importRowsMap.get(code) || null;
+      // ✅ buscamos el importRow por barcode O alternateBarcodes
+      const importRow = findBestImportRow(code, product);
 
-      // detectar si matcheó por barcode o alternateBarcodes
       const matchedBy =
         product.barcode && String(product.barcode).trim() === code
           ? "barcode"
