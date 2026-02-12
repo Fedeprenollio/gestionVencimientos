@@ -409,13 +409,25 @@ const EtiquetasInput = ({
           discountedPrice,
 
           tipoEtiqueta: mode === "especial" ? "oferta" : "clasica",
+          __isNew: true, // 👈 NIVEL DIOS
         };
 
         nuevos.push(newProduct);
       }
 
       if (nuevos.length > 0) {
-        setProductos((prev) => [...prev, ...nuevos]);
+        // setProductos((prev) => [...prev, ...nuevos]);
+        const newIds = nuevos.map((p) => String(p._id));
+
+        setProductos((prev) => [...nuevos, ...prev]);
+
+        setTimeout(() => {
+          setProductos((prev) =>
+            prev.map((p) =>
+              newIds.includes(String(p._id)) ? { ...p, __isNew: false } : p,
+            ),
+          );
+        }, 2000);
 
         if (setSelectedIds) {
           setSelectedIds((prev) => {

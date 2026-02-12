@@ -220,7 +220,9 @@ const ExcelDiscountUploader = ({
         }
 
         if (nuevos.length > 0) {
-          setProductos((prev) => [...prev, ...nuevos]);
+          // setProductos((prev) => [...prev, ...nuevos]);
+          setProductos((prev) => [...nuevos, ...prev]);
+
         }
 
         setAgregados(nuevos);

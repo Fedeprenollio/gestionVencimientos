@@ -437,7 +437,16 @@ const EtiquetasTable = ({
                   typeof p.stock === "number" ? p.stock > 0 : false;
 
                 return (
-                  <TableRow key={p._id} hover>
+                  <TableRow
+                    key={p._id}
+                    sx={{
+                      transition: "background-color 0.6s ease",
+                      backgroundColor: p.__isNew
+                        ? "rgba(255, 235, 59, 0.35)"
+                        : "transparent",
+                    }}
+                    hover
+                  >
                     {/* CHECK */}
                     <TableCell align="center">
                       <Checkbox
