@@ -1,5 +1,5 @@
 // export default ExcelDiscountUploader;
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -28,6 +28,7 @@ const ExcelDiscountUploader = ({
   productos,
   setProductos,
   tipoEtiqueta,
+  importId,
 }) => {
   const [loading, setLoading] = useState(false);
   const [agregados, setAgregados] = useState([]);
@@ -69,11 +70,28 @@ const ExcelDiscountUploader = ({
         let productosDesdeAPI = [];
         try {
           if (codebarsDesconocidos.length > 0) {
+            // const res = await axios.post(
+            //   `${import.meta.env.VITE_API_URL}/products/by-codebars`,
+            //   { codebars: codebarsDesconocidos },
+            // );
+
             const res = await axios.post(
-              `${import.meta.env.VITE_API_URL}/products/by-codebars`,
-              { codebars: codebarsDesconocidos },
+              `${import.meta.env.VITE_API_URL}/products/by-codebars-with-import`,
+              {
+                importId,
+                codebars: codebarsDesconocidos,
+              },
             );
-            productosDesdeAPI = res.data;
+
+            // productosDesdeAPI = res.data;
+            const found = res.data?.found || [];
+
+            productosDesdeAPI = found.map((x) => ({
+              ...x.product,
+              importRow: x.importRow,
+              codeSearched: x.codeSearched,
+              matchedBy: x.matchedBy,
+            }));
           }
         } catch (err) {
           console.error("Error al buscar productos por codebars:", err);
@@ -137,15 +155,14 @@ const ExcelDiscountUploader = ({
             // );
 
             const productoAPI = productosDesdeAPI.find(
-  (p) =>
-    String(p.barcode) === codebar ||
-    (p.alternateBarcodes && p.alternateBarcodes.includes(codebar))
-);
-
+              (p) =>
+                String(p.barcode) === codebar ||
+                (p.alternateBarcodes && p.alternateBarcodes.includes(codebar)),
+            );
 
             if (productoAPI) {
               const nuevoPrecio =
-                unitario > 0 ? unitario : productoAPI.currentPrice || 0;
+                unitario > 0 ? unitario : productoAPI.importRow?.price ?? productoAPI.currentPrice ?? 0;
               const nuevoDescuento =
                 descuento > 0 && descuento < 100 ? descuento : 0;
               const nuevoDescuentoPrecio =
@@ -157,6 +174,7 @@ const ExcelDiscountUploader = ({
 
               const nuevoProducto = {
                 ...productoAPI,
+                stock: productoAPI.importRow?.stock ?? null,
                 tipoEtiqueta: tipoEtiqueta || "clasica",
                 manualPrice: unitario > 0 ? unitario : null,
                 currentPrice: nuevoPrecio,
@@ -218,6 +236,15 @@ const ExcelDiscountUploader = ({
       setLoading(false);
     }
   };
+useEffect(() => {
+  if (!open) {
+    setLoading(false);
+    setAgregados([]);
+    setActualizados([]);
+    setErrores([]);
+    setTemporalesPendientes([]);
+  }
+}, [open]);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">

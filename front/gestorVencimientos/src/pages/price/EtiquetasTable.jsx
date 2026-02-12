@@ -1,5 +1,3 @@
-
-
 // EtiquetasTable.jsx
 import React, { useMemo, useState } from "react";
 import {
@@ -23,8 +21,8 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 
 const EtiquetasTable = ({
-    handleFullImportUpdate,
-    setOpenClearDialog,
+  handleFullImportUpdate,
+  setOpenClearDialog,
   title = null,
 
   productos = [],
@@ -86,7 +84,9 @@ const EtiquetasTable = ({
         name.includes(q) ||
         barcode.includes(q) ||
         type.includes(q) ||
-        String(p._id ?? "").toLowerCase().includes(q)
+        String(p._id ?? "")
+          .toLowerCase()
+          .includes(q)
       );
     });
   }, [productos, search]);
@@ -95,20 +95,24 @@ const EtiquetasTable = ({
   // Listas derivadas
   // =========================
   const conStock = useMemo(
-    () =>
-      productosFiltrados.filter(
-        (p) => typeof p.stock === "number" && p.stock > 0,
-      ),
-    [productosFiltrados],
-  );
+  () =>
+    productosFiltrados.filter((p) => {
+      const s = Number(p.stock);
+      return !isNaN(s) && s > 0;
+    }),
+  [productosFiltrados],
+);
 
-  const sinStock = useMemo(
-    () =>
-      productosFiltrados.filter(
-        (p) => typeof p.stock === "number" && p.stock <= 0,
-      ),
-    [productosFiltrados],
-  );
+ const sinStock = useMemo(
+  () =>
+    productosFiltrados.filter((p) => {
+      const s = Number(p.stock);
+      return isNaN(s) || s <= 0;
+    }),
+  [productosFiltrados],
+);
+
+
 
   const selectedCount = selectedIds?.size || 0;
 
@@ -140,48 +144,50 @@ const EtiquetasTable = ({
   // =========================
   // Update fields
   // =========================
-//   const updateField = (indexInFiltered, field, value) => {
-//     const p = productosFiltrados[indexInFiltered];
-//     if (!p) return;
+  //   const updateField = (indexInFiltered, field, value) => {
+  //     const p = productosFiltrados[indexInFiltered];
+  //     if (!p) return;
 
-//     setProductos((prev) => {
-//       const idx = prev.findIndex((x) => String(x._id) === String(p._id));
-//       if (idx < 0) return prev;
+  //     setProductos((prev) => {
+  //       const idx = prev.findIndex((x) => String(x._id) === String(p._id));
+  //       if (idx < 0) return prev;
 
-//       const updated = [...prev];
-//       updated[idx] = { ...updated[idx], [field]: value };
-//       return updated;
-//     });
-//   };
-const updateField = (index, field, value) => {
-  setProductos((prev) => {
-    const updated = [...prev];
-    updated[index] = { ...updated[index], [field]: value };
+  //       const updated = [...prev];
+  //       updated[idx] = { ...updated[idx], [field]: value };
+  //       return updated;
+  //     });
+  //   };
+  const updateField = (index, field, value) => {
+    setProductos((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
 
-    const p = updated[index];
+      const p = updated[index];
 
-    const base =
-      p.manualPreviousPrice && Number(p.manualPreviousPrice) > 0
-        ? Number(p.manualPreviousPrice)
-        : p.manualPrice && Number(p.manualPrice) > 0
-        ? Number(p.manualPrice)
-        : Number(p.currentPrice) || 0;
+      const base =
+        p.manualPreviousPrice && Number(p.manualPreviousPrice) > 0
+          ? Number(p.manualPreviousPrice)
+          : p.manualPrice && Number(p.manualPrice) > 0
+            ? Number(p.manualPrice)
+            : Number(p.currentPrice) || 0;
 
-    const discount = Number(p.discount) || 0;
+      const discount = Number(p.discount) || 0;
 
-    updated[index].discountedPrice = Number(
-      (base * (1 - discount / 100)).toFixed(2)
-    );
+      updated[index].discountedPrice = Number(
+        (base * (1 - discount / 100)).toFixed(2),
+      );
 
-    return updated;
-  });
-};
+      return updated;
+    });
+  };
 
   const removeProduct = (indexInFiltered) => {
     const removed = productosFiltrados[indexInFiltered];
     if (!removed?._id) return;
 
-    setProductos((prev) => prev.filter((p) => String(p._id) !== String(removed._id)));
+    setProductos((prev) =>
+      prev.filter((p) => String(p._id) !== String(removed._id)),
+    );
 
     // también lo sacamos de la selección si estaba seleccionado
     setSelectedIds((prev) => {
@@ -261,38 +267,39 @@ const updateField = (index, field, value) => {
           )}
         </Box>
 
-         <Box
-                  sx={{
-                    border: "1px solid #ccc",
-                    borderRadius: 2,
-                    p: 2,
-                  }}
-                >
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    🔁 ACTUALIZAR precios y stocks
-                  </Typography>
-                  <Typography variant="body2" mb={1}>
-                    Usa la última importación de stock descagado desde plex y aplicada a esta sucursal .
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleFullImportUpdate}
-                  >
-                    Aplicar importación a productos cargados
-                  </Button>
-                </Box>
+        {/* <Box
+          sx={{
+            border: "1px solid #ccc",
+            borderRadius: 2,
+            p: 2,
+          }}
+        >
+          <Typography variant="subtitle1" fontWeight="bold">
+            🔁 ACTUALIZAR precios y stocks
+          </Typography>
+          <Typography variant="body2" mb={1}>
+            Usa la última importación de stock descagado desde plex y aplicada a
+            esta sucursal .
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleFullImportUpdate}
+          >
+            Aplicar importación a productos cargados
+          </Button>
+        </Box> */}
 
         {/* Botones */}
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-              <Button
-                    variant="outlined"
-                    color="error"
-                    sx={{ mb: 2, ml: 2 }}
-                    onClick={() => setOpenClearDialog(true)}
-                  >
-                    Borrar todas las etiquetas guardadas
-                  </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            sx={{ mb: 2, ml: 2 }}
+            onClick={() => setOpenClearDialog(true)}
+          >
+            Borrar todas las etiquetas guardadas
+          </Button>
           <Button
             variant="contained"
             disabled={selectedCount === 0}
@@ -348,10 +355,6 @@ const updateField = (index, field, value) => {
               Generar PDF (sin stock)
             </Button>
           )}
-
-
-
-
         </Box>
       </Box>
 

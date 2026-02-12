@@ -48,6 +48,8 @@ import EtiquetasTable from "./EtiquetasTable";
 import EtiquetasInput from "./EtiquetasInput";
 
 const ProductLabelManager = () => {
+  const [latestImport, setLatestImport] = useState(null);
+
   const [tipoVista, setTipoVista] = useState("clasicas");
   // "clasicas" | "especiales"
 
@@ -299,114 +301,12 @@ const ProductLabelManager = () => {
       }
 
       // setImportId(importData._id);
+      setLatestImport(importData);
       return importData;
     } catch (error) {
       console.error("Error trayendo importación:", error);
       alert("Error al obtener la importación");
       return null;
-    }
-  };
-
-  const handleFullImportUpdate = async () => {
-    const importData = await updateFromImport();
-    if (!importData) return;
-
-    const productos = tipoVista === "clasicas" ? clasicas : especiales;
-
-    const barcodes = productos
-      .map((p) => p.barcode?.toString().trim())
-      .filter((b) => b && b !== "0");
-
-    if (barcodes.length === 0) {
-      alert("No hay productos cargados para aplicar la importación.");
-      return;
-    }
-
-    try {
-      const res = await api.post("/imports/apply-to-products", {
-        importId: importData._id,
-        barcodes,
-      });
-
-      alert(`Actualización exitosa. ${res.updated} productos actualizados.`);
-      console.log("res:", res);
-
-      const rows = res.rows || [];
-
-      // 🔥 actualizar la lista correcta según tipoVista
-      if (tipoVista === "especiales") {
-        const updated = especiales.map((p) => {
-          let match = rows.find((r) => String(r.productId) === String(p._id));
-
-          // si no lo encontró, buscar por barcode principal o alternativos
-          if (!match) {
-            match = rows.find(
-              (r) =>
-                r.barcode === p.barcode ||
-                (p.alternateBarcodes &&
-                  p.alternateBarcodes.includes(r.barcode)),
-            );
-          }
-
-          if (!match) return p;
-
-          return {
-            ...p,
-            currentPrice: match.price,
-            manualPrice: match.price,
-            discountedPrice: p.discount
-              ? Number((match.price * (1 - p.discount / 100)).toFixed(2))
-              : match.price,
-            stock: typeof match.stock === "number" ? match.stock : p.stock,
-          };
-        });
-
-        setEspeciales(updated);
-      } else {
-        const updated = clasicas.map((p) => {
-          let match = rows.find((r) => String(r.productId) === String(p._id));
-          // si no lo encontró, buscar por barcode principal o alternativos
-          if (!match) {
-            match = rows.find(
-              (r) =>
-                r.barcode === p.barcode ||
-                (p.alternateBarcodes &&
-                  p.alternateBarcodes.includes(r.barcode)),
-            );
-          }
-          if (!match) return p;
-
-          return {
-            ...p,
-            currentPrice: match.price,
-            manualPrice: match.price,
-            discountedPrice: match.price, // en clásicas no hay descuento real (salvo que lo uses)
-            stock: typeof match.stock === "number" ? match.stock : p.stock,
-          };
-        });
-
-        setClasicas(updated);
-      }
-
-      // actualizar stock backend
-      const stockUpdates = rows
-        .filter((r) => typeof r.stock === "number" && r.stock >= 0)
-        .map((r) => ({ codebar: r.barcode, quantity: r.stock }));
-
-      if (stockUpdates.length > 0 && selectedBranchId) {
-        await updateBulkStock(stockUpdates);
-      }
-
-      setUpdateResults(
-        rows.map((r) => ({
-          name: r.name,
-          new: r.price,
-          stock: r.stock,
-        })),
-      );
-    } catch (error) {
-      console.error("Error aplicando importación a productos:", error);
-      alert("Error aplicando importación");
     }
   };
 
@@ -416,13 +316,9 @@ const ProductLabelManager = () => {
 
   //   const productos = tipoVista === "clasicas" ? clasicas : especiales;
 
-  //   // const barcodes = productos
-  //   //   .map((p) => p.barcode?.toString().trim())
-  //   //   .filter((b) => b);
-
   //   const barcodes = productos
   //     .map((p) => p.barcode?.toString().trim())
-  //     .filter((b) => b && b !== "0"); // evitar vacíos y 0
+  //     .filter((b) => b && b !== "0");
 
   //   if (barcodes.length === 0) {
   //     alert("No hay productos cargados para aplicar la importación.");
@@ -438,25 +334,65 @@ const ProductLabelManager = () => {
   //     alert(`Actualización exitosa. ${res.updated} productos actualizados.`);
   //     console.log("res:", res);
 
-  //     const updatedEspeciales = especiales.map((p) => {
-  //       const match = res?.rows.find(
-  //         (r) => String(r.productId) === String(p._id),
-  //       );
-  //       if (!match) return p;
-  //       return {
-  //         ...p,
-  //         currentPrice: match.price,
-  //         manualPrice: match.price,
-  //         discountedPrice: p.discount
-  //           ? Number((match.price * (1 - p.discount / 100)).toFixed(2))
-  //           : match.price,
-  //         stock: typeof match.stock === "number" ? match.stock : p.stock,
-  //       };
-  //     });
+  //     const rows = res.rows || [];
 
-  //     setEspeciales(updatedEspeciales);
+  //     // 🔥 actualizar la lista correcta según tipoVista
+  //     if (tipoVista === "especiales") {
+  //       const updated = especiales.map((p) => {
+  //         let match = rows.find((r) => String(r.productId) === String(p._id));
 
-  //     const stockUpdates = res.rows
+  //         // si no lo encontró, buscar por barcode principal o alternativos
+  //         if (!match) {
+  //           match = rows.find(
+  //             (r) =>
+  //               r.barcode === p.barcode ||
+  //               (p.alternateBarcodes &&
+  //                 p.alternateBarcodes.includes(r.barcode)),
+  //           );
+  //         }
+
+  //         if (!match) return p;
+
+  //         return {
+  //           ...p,
+  //           currentPrice: match.price,
+  //           manualPrice: match.price,
+  //           discountedPrice: p.discount
+  //             ? Number((match.price * (1 - p.discount / 100)).toFixed(2))
+  //             : match.price,
+  //           stock: typeof match.stock === "number" ? match.stock : p.stock,
+  //         };
+  //       });
+
+  //       setEspeciales(updated);
+  //     } else {
+  //       const updated = clasicas.map((p) => {
+  //         let match = rows.find((r) => String(r.productId) === String(p._id));
+  //         // si no lo encontró, buscar por barcode principal o alternativos
+  //         if (!match) {
+  //           match = rows.find(
+  //             (r) =>
+  //               r.barcode === p.barcode ||
+  //               (p.alternateBarcodes &&
+  //                 p.alternateBarcodes.includes(r.barcode)),
+  //           );
+  //         }
+  //         if (!match) return p;
+
+  //         return {
+  //           ...p,
+  //           currentPrice: match.price,
+  //           manualPrice: match.price,
+  //           discountedPrice: match.price, // en clásicas no hay descuento real (salvo que lo uses)
+  //           stock: typeof match.stock === "number" ? match.stock : p.stock,
+  //         };
+  //       });
+
+  //       setClasicas(updated);
+  //     }
+
+  //     // actualizar stock backend
+  //     const stockUpdates = rows
   //       .filter((r) => typeof r.stock === "number" && r.stock >= 0)
   //       .map((r) => ({ codebar: r.barcode, quantity: r.stock }));
 
@@ -465,7 +401,7 @@ const ProductLabelManager = () => {
   //     }
 
   //     setUpdateResults(
-  //       res.rows.map((r) => ({
+  //       rows.map((r) => ({
   //         name: r.name,
   //         new: r.price,
   //         stock: r.stock,
@@ -476,6 +412,102 @@ const ProductLabelManager = () => {
   //     alert("Error aplicando importación");
   //   }
   // };
+useEffect(() => {
+  if (selectedBranchId) {
+    updateFromImport();
+  }
+}, [selectedBranchId]);
+
+  const handleFullImportUpdate = async () => {
+  const importData = await updateFromImport();
+  console.log("importData",importData)
+  if (!importData) return;
+
+  const productos = tipoVista === "clasicas" ? clasicas : especiales;
+
+  const barcodes = productos
+    .map((p) => p.barcode?.toString().trim())
+    .filter((b) => b && b !== "0");
+
+  if (barcodes.length === 0) {
+    alert("No hay productos cargados para aplicar la importación.");
+    return;
+  }
+
+  try {
+    const res = await api.post("/imports/apply-to-products", {
+      importId: importData._id,
+      barcodes,
+    });
+
+    const rows = res.rows || [];
+
+    alert(`Actualización exitosa. ${res.updated} productos actualizados.`);
+    console.log("res:", res);
+
+    // 🔥 helper para matchear sin repetir código
+    const findMatch = (p) => {
+      let match = rows.find((r) => String(r.productId) === String(p._id));
+
+      if (!match) {
+        match = rows.find(
+          (r) =>
+            r.barcode === p.barcode ||
+            (Array.isArray(p.alternateBarcodes) &&
+              p.alternateBarcodes.includes(r.barcode))
+        );
+      }
+
+      return match;
+    };
+
+    const updatedList = productos.map((p) => {
+      const match = findMatch(p);
+      if (!match) return p;
+
+      const price = match.price;
+
+      const discounted =
+        tipoVista === "especiales" && p.discount
+          ? Number((price * (1 - p.discount / 100)).toFixed(2))
+          : price;
+
+      return {
+        ...p,
+        currentPrice: price,
+        manualPrice: price,
+        discountedPrice: discounted,
+        stock: typeof match.stock === "number" ? match.stock : p.stock,
+      };
+    });
+
+    // 🔥 setear la lista correcta
+    if (tipoVista === "especiales") setEspeciales(updatedList);
+    else setClasicas(updatedList);
+
+    // actualizar stock backend
+    const stockUpdates = rows
+      .filter((r) => typeof r.stock === "number" && r.stock >= 0)
+      .map((r) => ({ codebar: r.barcode, quantity: r.stock }));
+
+    if (stockUpdates.length > 0 && selectedBranchId) {
+      await updateBulkStock(stockUpdates);
+    }
+
+    setUpdateResults(
+      rows.map((r) => ({
+        name: r.name,
+        new: r.price,
+        stock: r.stock,
+      }))
+    );
+  } catch (error) {
+    console.error("Error aplicando importación a productos:", error);
+    alert("Error aplicando importación");
+  }
+};
+
+  
   return (
     <Box sx={{ p: 2 }}>
       <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
@@ -494,6 +526,7 @@ const ProductLabelManager = () => {
         productos={tipoVista === "clasicas" ? clasicas : especiales}
         setProductos={tipoVista === "clasicas" ? setClasicas : setEspeciales}
         tipoEtiqueta={tipoVista === "clasicas" ? "clasica" : "oferta"}
+        importId={latestImport?._id}
       />
 
     
@@ -547,6 +580,9 @@ const ProductLabelManager = () => {
             selectedIds={selectedClasicas}
             setSelectedIds={setSelectedClasicas}
             mode="clasica"
+            selectedBranchId={selectedBranchId}
+            importId={latestImport?._id}
+
           />
 
           <Divider sx={{ my: 2 }} />
@@ -582,6 +618,8 @@ const ProductLabelManager = () => {
             selectedIds={selectedEspeciales}
             setSelectedIds={setSelectedEspeciales}
             mode="especial"
+            selectedBranchId={selectedBranchId}
+            importId={latestImport?._id}
           />
 
           <Divider sx={{ my: 2 }} />

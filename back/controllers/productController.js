@@ -6,6 +6,7 @@ import Lot from "../models/Lot.js";
 import PriceHistory from "../models/PriceHistory.js";
 import ProductList from "../models/ProductList.js";
 import mongoose from "mongoose";
+import StockImport from "../models/StockImport.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -109,7 +110,7 @@ export const createProduct = async (req, res) => {
 
 export const getProductByBarcode = async (req, res) => {
   const { barcode } = req.params;
-
+console.log("HOLAAAA")
   try {
     const product = await Product.findOne({
       $or: [
@@ -899,5 +900,109 @@ export const getProductsWithoutPrice = async (req, res) => {
   } catch (error) {
     console.error("Error buscando productos sin precio:", error);
     res.status(500).json({ message: "Error al obtener productos sin precio" });
+  }
+};
+
+
+export const getProductsByCodebarsWithImport = async (req, res) => {
+  try {
+    const { importId, codebars } = req.body;
+console.log("importId, codebars",importId, codebars)
+    if (!importId || !Array.isArray(codebars) || codebars.length === 0) {
+      return res.status(400).json({
+        message: "Faltan datos: importId y codebars",
+      });
+    }
+
+    const stockImport = await StockImport.findById(importId).lean();
+    if (!stockImport) {
+      return res.status(404).json({ message: "Importación no encontrada" });
+    }
+
+    const cleanCodes = [...new Set(codebars.map((c) => String(c).trim()))];
+
+    // 1) Buscar productos por barcode o alternateBarcodes
+    const products = await Product.find({
+      $or: [
+        { barcode: { $in: cleanCodes } },
+        { alternateBarcodes: { $in: cleanCodes } },
+      ],
+    }).lean();
+
+    // 2) Armar productsMap: cualquier código -> product
+    const productsMap = new Map();
+
+    for (const p of products) {
+      if (p.barcode) productsMap.set(String(p.barcode).trim(), p);
+
+      if (Array.isArray(p.alternateBarcodes)) {
+        for (const alt of p.alternateBarcodes) {
+          if (alt) productsMap.set(String(alt).trim(), p);
+        }
+      }
+    }
+
+    // 3) Armar importRowsMap: barcode -> row
+    // Si hay repetidos, elegimos el "mejor" (ej: stock mayor)
+    const importRowsMap = new Map();
+
+    for (const row of stockImport.rows || []) {
+      const b = row.barcode?.toString().trim();
+      if (!b) continue;
+
+      if (!cleanCodes.includes(b)) continue;
+
+      const prev = importRowsMap.get(b);
+
+      if (!prev) {
+        importRowsMap.set(b, row);
+      } else {
+        // elegimos mejor row (por stock > 0)
+        const prevStock = typeof prev.stock === "number" ? prev.stock : 0;
+        const rowStock = typeof row.stock === "number" ? row.stock : 0;
+
+        if (rowStock > prevStock) {
+          importRowsMap.set(b, row);
+        }
+      }
+    }
+
+    // 4) Armar respuesta
+    const found = [];
+    const notFound = [];
+
+    for (const code of cleanCodes) {
+      const product = productsMap.get(code);
+
+      if (!product) {
+        notFound.push(code);
+        continue;
+      }
+
+      // buscamos si hay row en import para ese código
+      const importRow = importRowsMap.get(code) || null;
+
+      // detectar si matcheó por barcode o alternateBarcodes
+      const matchedBy =
+        product.barcode && String(product.barcode).trim() === code
+          ? "barcode"
+          : "alternateBarcodes";
+
+      found.push({
+        codeSearched: code,
+        matchedBy,
+        product,
+        importRow,
+      });
+    }
+
+    return res.json({
+      message: "OK",
+      found,
+      notFound,
+    });
+  } catch (error) {
+    console.error("❌ Error en getProductsByCodebarsWithImport:", error);
+    return res.status(500).json({ message: "Error del servidor" });
   }
 };

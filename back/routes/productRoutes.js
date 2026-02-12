@@ -7,6 +7,7 @@ import {
   getExpiringProductsLotesComoString,
   getPriceHistory,
   getProductByBarcode,
+  getProductsByCodebarsWithImport,
   getProductsWithoutPrice,
   importProducts,
   searchProductsByName,
@@ -18,6 +19,11 @@ import { getPriceHistoryByProduct } from '../controllers/historyPruceController.
 import { authorizeAdmin } from '../middlewares/auth.js';
 
 const productRoutes = express.Router();
+productRoutes.post(
+  "/by-codebars-with-import",
+  getProductsByCodebarsWithImport
+);
+
 productRoutes.get('/', getExpiringProducts);
 // getExpiringProductsLotesComoString
 productRoutes.get('/lotesComoString', getExpiringProductsLotesComoString);
