@@ -279,7 +279,7 @@ const ProductLabelManager = () => {
     setFileData([]);
     setUpdateResults([]);
     setOpenClearDialog(false);
-    alert("Se borraron todas las etiquetas y archivos cargados.");
+    // alert("Se borraron todas las etiquetas y archivos cargados.");
   };
   console.log("selectedBranchId", selectedBranchId);
 

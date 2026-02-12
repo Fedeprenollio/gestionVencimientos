@@ -1,5 +1,5 @@
 // EtiquetasTable.jsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -42,6 +42,8 @@ const EtiquetasTable = ({
   onPrintConStock,
   onPrintSinStock,
 }) => {
+  const discountRefs = useRef([]);
+
   const [search, setSearch] = useState("");
 
   // =========================
@@ -95,24 +97,22 @@ const EtiquetasTable = ({
   // Listas derivadas
   // =========================
   const conStock = useMemo(
-  () =>
-    productosFiltrados.filter((p) => {
-      const s = Number(p.stock);
-      return !isNaN(s) && s > 0;
-    }),
-  [productosFiltrados],
-);
+    () =>
+      productosFiltrados.filter((p) => {
+        const s = Number(p.stock);
+        return !isNaN(s) && s > 0;
+      }),
+    [productosFiltrados],
+  );
 
- const sinStock = useMemo(
-  () =>
-    productosFiltrados.filter((p) => {
-      const s = Number(p.stock);
-      return isNaN(s) || s <= 0;
-    }),
-  [productosFiltrados],
-);
-
-
+  const sinStock = useMemo(
+    () =>
+      productosFiltrados.filter((p) => {
+        const s = Number(p.stock);
+        return isNaN(s) || s <= 0;
+      }),
+    [productosFiltrados],
+  );
 
   const selectedCount = selectedIds?.size || 0;
 
@@ -144,19 +144,7 @@ const EtiquetasTable = ({
   // =========================
   // Update fields
   // =========================
-  //   const updateField = (indexInFiltered, field, value) => {
-  //     const p = productosFiltrados[indexInFiltered];
-  //     if (!p) return;
 
-  //     setProductos((prev) => {
-  //       const idx = prev.findIndex((x) => String(x._id) === String(p._id));
-  //       if (idx < 0) return prev;
-
-  //       const updated = [...prev];
-  //       updated[idx] = { ...updated[idx], [field]: value };
-  //       return updated;
-  //     });
-  //   };
   const updateField = (index, field, value) => {
     setProductos((prev) => {
       const updated = [...prev];
@@ -174,6 +162,32 @@ const EtiquetasTable = ({
       const discount = Number(p.discount) || 0;
 
       updated[index].discountedPrice = Number(
+        (base * (1 - discount / 100)).toFixed(2),
+      );
+
+      return updated;
+    });
+  };
+  const updateFieldById = (productId, field, value) => {
+    setProductos((prev) => {
+      const idx = prev.findIndex((x) => String(x._id) === String(productId));
+      if (idx < 0) return prev;
+
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], [field]: value };
+
+      const p = updated[idx];
+
+      const base =
+        p.manualPreviousPrice && Number(p.manualPreviousPrice) > 0
+          ? Number(p.manualPreviousPrice)
+          : p.manualPrice && Number(p.manualPrice) > 0
+            ? Number(p.manualPrice)
+            : Number(p.currentPrice) || 0;
+
+      const discount = Number(p.discount) || 0;
+
+      updated[idx].discountedPrice = Number(
         (base * (1 - discount / 100)).toFixed(2),
       );
 
@@ -438,7 +452,7 @@ const EtiquetasTable = ({
                         size="small"
                         value={p.manualName ?? p.name ?? ""}
                         onChange={(e) =>
-                          updateField(index, "manualName", e.target.value)
+                          updateFieldById(p._id, "manualName", e.target.value)
                         }
                         fullWidth
                         InputProps={{
@@ -461,8 +475,8 @@ const EtiquetasTable = ({
                         type="number"
                         value={p.manualPrice ?? p.currentPrice ?? ""}
                         onChange={(e) =>
-                          updateField(
-                            index,
+                          updateFieldById(
+                            p._id,
                             "manualPrice",
                             Number(e.target.value),
                           )
@@ -478,8 +492,8 @@ const EtiquetasTable = ({
                         type="number"
                         value={p.manualPreviousPrice ?? ""}
                         onChange={(e) =>
-                          updateField(
-                            index,
+                          updateFieldById(
+                            p._id,
                             "manualPreviousPrice",
                             Number(e.target.value),
                           )
@@ -489,7 +503,7 @@ const EtiquetasTable = ({
                     </TableCell>
 
                     {/* DESCUENTO */}
-                    <TableCell align="right">
+                    {/* <TableCell align="right">
                       <TextField
                         size="small"
                         type="number"
@@ -500,8 +514,31 @@ const EtiquetasTable = ({
                         inputProps={{ min: 0, max: 100 }}
                         sx={{ width: 80 }}
                       />
+                    </TableCell> */}
+                    <TableCell align="right">
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={p.discount ?? 0}
+                        onChange={(e) =>
+                          updateFieldById(
+                            p._id,
+                            "discount",
+                            Number(e.target.value),
+                          )
+                        }
+                        inputProps={{ min: 0, max: 100 }}
+                        sx={{ width: 80 }}
+                        inputRef={(el) => (discountRefs.current[index] = el)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            discountRefs.current[index + 1]?.focus();
+                            discountRefs.current[index + 1]?.select?.();
+                          }
+                        }}
+                      />
                     </TableCell>
-
                     {/* FINAL */}
                     <TableCell align="right">
                       <Typography fontWeight="bold">
@@ -532,7 +569,11 @@ const EtiquetasTable = ({
                           size="small"
                           value={p.tipoEtiqueta || "oferta"}
                           onChange={(e) =>
-                            updateField(index, "tipoEtiqueta", e.target.value)
+                            updateFieldById(
+                              p._id,
+                              "tipoEtiqueta",
+                              e.target.value,
+                            )
                           }
                           sx={{ width: 140 }}
                         >
