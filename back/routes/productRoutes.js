@@ -16,7 +16,7 @@ import {
 } from '../controllers/productController.js';
 import Product from '../models/Product.js';
 import { getPriceHistoryByProduct } from '../controllers/historyPruceController.js';
-import { authorizeAdmin } from '../middlewares/auth.js';
+import { authenticate, authorizeAdmin } from '../middlewares/auth.js';
 
 const productRoutes = express.Router();
 productRoutes.post(
@@ -32,7 +32,7 @@ productRoutes.get('/without-price', getProductsWithoutPrice);
 productRoutes.get('/search', searchProductsByName);
 productRoutes.get('/:barcode', getProductByBarcode);
 productRoutes.post('/', createProduct);
-productRoutes.delete("/:id",authorizeAdmin , deleteProduct);
+productRoutes.delete("/:id",authenticate, authorizeAdmin , deleteProduct);
 productRoutes.put("/:id", updateProduct);
 productRoutes.post("/import", importProducts);
 productRoutes.post('/update-prices', updateProductPrices);

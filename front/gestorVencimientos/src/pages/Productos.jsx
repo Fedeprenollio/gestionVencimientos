@@ -7,6 +7,7 @@ import ProductListGrid from "../components/products/ProductListGrid";
 import ProductQuickSearch from "../components/products/ProductQuickSearch";
 import { updateLot } from "../services/lotService";
 import LotEditModal from "../components/lots/LotEditModal";
+import api from "../api/axiosInstance";
 
 export default function Productos() {
   const [query, setQuery] = useState("");
@@ -63,7 +64,7 @@ export default function Productos() {
   const handleDelete = async (id) => {
     if (!confirm("¿Eliminar producto?")) return;
     try {
-      await axios.delete(`${import.meta.env.VITE_API_URL}/products/${id}`);
+      await api.delete(`${import.meta.env.VITE_API_URL}/products/${id}`);
       searchProducts();
     } catch (err) {
       alert("Error al eliminar producto");

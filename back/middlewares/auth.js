@@ -4,6 +4,7 @@ import User from '../models/User.js';
 
 export const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
+console.log("AUTH MIDDLEWARE RUNNING", req.headers);
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Token faltante o inválido' });
@@ -27,6 +28,8 @@ export const authenticate = async (req, res, next) => {
 
 // middlewares/authorizeAdmin.js
 export const authorizeAdmin = (req, res, next) => {
+  console.log("req",req)
+  console.log("req.user",req.user)
   if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Acceso denegado: solo administradores' });
   }

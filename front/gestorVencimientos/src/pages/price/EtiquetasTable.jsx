@@ -43,7 +43,7 @@ const EtiquetasTable = ({
   onPrintSinStock,
 }) => {
   const discountRefs = useRef([]);
-
+  console.log("PRODUCTOS, p", productos);
   const [search, setSearch] = useState("");
 
   // =========================
@@ -443,7 +443,13 @@ const EtiquetasTable = ({
                       transition: "background-color 0.6s ease",
                       backgroundColor: p.__isNew
                         ? "rgba(255, 235, 59, 0.35)"
-                        : "transparent",
+                        : p.__missingInImport
+                          ? "rgba(244, 67, 54, 0.10)"
+                          : "transparent",
+
+                      borderLeft: p.__missingInImport
+                        ? "4px solid rgba(244, 67, 54, 0.6)"
+                        : "none",
                     }}
                     hover
                   >
@@ -475,6 +481,20 @@ const EtiquetasTable = ({
                       <Typography variant="caption" sx={{ opacity: 0.65 }}>
                         {p.barcode}
                       </Typography>
+                      {p.__missingInImport && (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            display: "block",
+                            color: "error.main",
+                            fontWeight: 600,
+                            mt: 0.3,
+                          }}
+                        >
+                          ⚠ No está en el import (precio/stock pueden ser
+                          incorrectos)
+                        </Typography>
+                      )}
                     </TableCell>
 
                     {/* PRECIO */}
