@@ -185,7 +185,7 @@ export default function UploadPricesMultiple() {
         </Alert>
       )}
 
-      {result?.lists?.length > 0 && (
+      {/* {result?.lists?.length > 0 && (
         <Paper sx={{ p: 3, mb: 3 }} variant="outlined">
           <Typography variant="h6" gutterBottom>
             Resumen de cambios por lista
@@ -225,7 +225,7 @@ export default function UploadPricesMultiple() {
             </Box>
           ))}
         </Paper>
-      )}
+      )} */}
 
       {result && <UploadPricesResultByList data={result} />}
     </Box>
