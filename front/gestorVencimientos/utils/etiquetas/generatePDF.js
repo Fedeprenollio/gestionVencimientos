@@ -176,7 +176,7 @@ export const generatePDF_Grandes = async ({ especiales, scale = 0.5 }) => {
             : p.tipoEtiqueta === "recomendado"
               ? "RECOMENDADO"
               : p.tipoEtiqueta === "dosPorUno"
-                ? "PROMO 2X1"
+                ? "PROMO 2×1"
                 : "";
 
     let labelFontSize =
