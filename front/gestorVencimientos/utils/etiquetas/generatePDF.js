@@ -284,7 +284,7 @@ const stickerCx = x + etiquetaAncho - 14 * scale;
 const stickerCy = y + 46 * scale;
 
 // círculo blanco + borde negro
-doc.setDrawColor(100);
+doc.setDrawColor(180);
 doc.setLineWidth(0.8 * scale);
 doc.circle(stickerCx, stickerCy, stickerR, "S");
 
@@ -322,7 +322,7 @@ doc.text("2×1", stickerCx + 0.4 * scale, stickerCy + 5.2 * scale, {
   doc.setTextColor(70);
 
   doc.text(
-    `Te queda $${unitInt} cada uno`,
+    `Pagas $${unitInt} cada uno`,
     x + etiquetaAncho / 2,
     barcodeY - 1 * scale,
     { align: "center" }
