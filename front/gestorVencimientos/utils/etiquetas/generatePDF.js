@@ -2,187 +2,7 @@ import jsPDF from "jspdf";
 import { generateBarcodeImage } from "../generateBarcodeImage";
 import dayjs from "dayjs";
 
-// export const generatePDF_Grandes = async ({especiales}) => {
-//   const doc = new jsPDF({ unit: "mm", format: "a4" });
-
-//   const etiquetaAncho = 70;
-//   const etiquetaAlto = 104;
-//   const etiquetasPorFila = 2;
-//   const etiquetasPorColumna = 2;
-
-//   const logoBase64 = await loadImageBase64("/logo.png");
-
-//   especiales.forEach((p, i) => {
-//     const col = i % etiquetasPorFila;
-//     const row = Math.floor(i / etiquetasPorFila) % etiquetasPorColumna;
-
-//     if (i > 0 && i % (etiquetasPorFila * etiquetasPorColumna) === 0) {
-//       doc.addPage();
-//     }
-
-//     const x = 10 + col * (etiquetaAncho + 10);
-//     const y = 10 + row * (etiquetaAlto + 10);
-
-//     // Borde
-//     doc.setDrawColor(150);
-//     doc.rect(x, y, etiquetaAncho, etiquetaAlto);
-
-//     // Logo
-//     if (logoBase64) {
-//       doc.addImage(logoBase64, "PNG", x + 5, y + 5, 15, 15);
-//     }
-
-//     // Tipo de etiqueta
-//     const label =
-//       p.tipoEtiqueta === "oferta"
-//         ? "OFERTA"
-//         : p.tipoEtiqueta === "liquidacion"
-//         ? "LIQUIDACIÓN"
-//         : p.tipoEtiqueta === "nuevo"
-//         ? "NUEVO"
-//         : "";
-
-//     const labelFontSize = label === "LIQUIDACIÓN" ? 16 : 20;
-//     doc.setFont("helvetica", "bold");
-//     doc.setFontSize(labelFontSize);
-//     doc.setTextColor(0);
-//     doc.text(label, x + 23, y + 15);
-
-//     // Nombre del producto
-//     const nombreParaMostrar = p.manualName?.trim() || p.name || "";
-//     let nameLines = splitTextByWidth(
-//       doc,
-//       nombreParaMostrar,
-//       etiquetaAncho - 1
-//     );
-
-//     const wasTruncated = nameLines.length > 4;
-//     nameLines = nameLines.slice(0, 4);
-
-//     if (wasTruncated) {
-//       nameLines[3] = nameLines[3].replace(/(.{3,})$/, "$1…");
-//     }
-
-//     doc.setFont("helvetica", "normal");
-//     doc.setFontSize(12);
-//     nameLines.forEach((line, idx) => {
-//       doc.text(line, x + 8, y + 25 + idx * 6);
-//     });
-
-//     // 🔁 Ajuste vertical según líneas del nombre
-//     let offsetY;
-//     if (nameLines.length === 1) offsetY = 6;
-//     else if (nameLines.length === 2) offsetY = 3;
-//     else offsetY = 0;
-
-//     // Ajuste de tamaño de fuente según cantidad de dígitos en el precio
-//     const price = p.discountedPrice ?? p.currentPrice ?? 0;
-//     const integerPrice = Math.floor(price);
-//     const digitCount = integerPrice.toString().length;
-
-//     let priceFontSize;
-//     if (digitCount > 6) {
-//       priceFontSize = 28;
-//     } else if (digitCount === 6) {
-//       priceFontSize = 38;
-//     } else if (digitCount === 5) {
-//       priceFontSize = 40;
-//     } else if (digitCount === 4) {
-//       priceFontSize = 44;
-//     } else {
-//       priceFontSize = 60;
-//     }
-
-//     if (p.tipoEtiqueta === "nuevo") {
-//       doc.setFont("times", "bold");
-//       doc.setFontSize(priceFontSize);
-//       doc.setTextColor(0);
-//       doc.text(
-//         `$${integerPrice.toFixed(0)}`,
-//         x + etiquetaAncho / 2,
-//         y + etiquetaAlto / 2 + 10 - offsetY,
-//         { align: "center" }
-//       );
-//     } else if (["oferta", "liquidacion"].includes(p.tipoEtiqueta)) {
-//       const descuento = p.discount ?? 0;
-//       const prevPrice = p.manualPreviousPrice ?? p.currentPrice ?? 0;
-//       // Cantidad de líneas del nombre del producto
-//       const nameLineCount = nameLines.length;
-
-//       // Ajustes dinámicos según cantidad de líneas
-//       const offsetY =
-//         nameLineCount <= 1
-//           ? -10
-//           : nameLineCount === 2
-//           ? -6
-//           : nameLineCount === 3
-//           ? -2
-//           : 0;
-
-//       // Agrandar % OFF
-//       doc.setFontSize(20); // tamaño más grande solo para % OFF
-//       doc.setTextColor(0);
-//       doc.text(`${descuento}% OFF`, x + 8, y + 50 + offsetY);
-
-//       // Volver a tamaño normal para precio anterior
-//       doc.setFontSize(15);
-//       doc.setTextColor(100);
-//       const prevPriceText = `$${prevPrice.toFixed(2)}`;
-//       doc.text(prevPriceText, x + 8, y + 56 + offsetY);
-//       doc.setLineWidth(0.5);
-//       doc.line(
-//         x + 8,
-//         y + 54.8 + offsetY,
-//         x + 8 + doc.getTextWidth(prevPriceText),
-//         y + 54.8 + offsetY
-//       );
-
-//       doc.setFont("helvetica", "bold");
-//       doc.setFontSize(priceFontSize);
-//       doc.setTextColor(0);
-//       doc.text(
-//         `$${integerPrice.toFixed(0)}`,
-//         x + etiquetaAncho / 2,
-//         y + 78 + offsetY,
-//         {
-//           align: "center",
-//         }
-//       );
-//     }
-
-//     // Código de barras
-//     if (p.barcode) {
-//       const barcodeImg = generateBarcodeImage(p.barcode);
-//       const barcodeY = y + etiquetaAlto - 20;
-
-//       doc.addImage(
-//         barcodeImg,
-//         "PNG",
-//         x + 8,
-//         barcodeY,
-//         etiquetaAncho - 16,
-//         10
-//       );
-//       doc.setFontSize(8);
-//       doc.setTextColor(80);
-//       doc.text(p.barcode, x + etiquetaAncho / 2, barcodeY + 12, {
-//         align: "center",
-//       });
-//     }
-
-//     // Fecha
-//     const fecha = dayjs().format("DD/MM/YYYY");
-//     doc.setFontSize(7);
-//     doc.setTextColor(120);
-//     doc.text(fecha, x + etiquetaAncho - 22, y + etiquetaAlto - 4);
-//   });
-
-//   doc.save("etiquetas_especiales.pdf");
-// };
-
 export const generatePDF_Clasicas = ({ clasicos }) => {
-  console.log("CLASICOS,", clasicos)
- 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
 
   const etiquetaAncho = 50;
@@ -242,7 +62,6 @@ export const generatePDF_Clasicas = ({ clasicos }) => {
     const prevPriceText = `$${prevPrice.toFixed(2)}`;
     doc.text(prevPriceText, x + 2, y + 20);
     const prevWidth = doc.getTextWidth(prevPriceText);
-
 
     doc.setLineWidth(0.5);
     doc.line(x + 2, y + 19, x + 2 + prevWidth, y + 19);
@@ -309,7 +128,6 @@ const loadImageBase64 = async (url) => {
 };
 
 export const generatePDF_Grandes = async ({ especiales, scale = 0.5 }) => {
-  
   const doc = new jsPDF({ unit: "mm", format: "a4" });
 
   // 🔁 Aplico factor de escala
@@ -344,26 +162,33 @@ export const generatePDF_Grandes = async ({ especiales, scale = 0.5 }) => {
         x + 5 * scale,
         y + 5 * scale,
         15 * scale,
-        15 * scale
+        15 * scale,
       );
     }
 
-const label =
-  p.tipoEtiqueta === "oferta"
-    ? "OFERTA"
-    : p.tipoEtiqueta === "liquidacion"
-    ? "LIQUIDACIÓN"
-    : p.tipoEtiqueta === "nuevo"
-    ? "NUEVO"
-    : p.tipoEtiqueta === "recomendado"
-    ? "RECOMENDADO"
-    : "";
+    const label =
+      p.tipoEtiqueta === "oferta"
+        ? "OFERTA"
+        : p.tipoEtiqueta === "liquidacion"
+          ? "LIQUIDACIÓN"
+          : p.tipoEtiqueta === "nuevo"
+            ? "NUEVO"
+            : p.tipoEtiqueta === "recomendado"
+              ? "RECOMENDADO"
+              : p.tipoEtiqueta === "dosPorUno"
+                ? "PROMO 2X1"
+                : "";
 
-    const labelFontSize = (label === "LIQUIDACIÓN" || label === "RECOMENDADO"   ? 16 : 20) * scale;
-    doc.setFont("helvetica", "bold");
+    let labelFontSize =
+      (label === "LIQUIDACIÓN" || label === "RECOMENDADO" ? 16 : 20) * scale;
+    doc.setFont("times", "bold");
+    label ==="PROMO 2X1" ? 28 : 20
     doc.setFontSize(labelFontSize);
     doc.setTextColor(0);
+
     doc.text(label, x + 23 * scale, y + 15 * scale);
+
+   
 
     // Nombre del producto
     const nombreParaMostrar = p.manualName?.trim() || p.name || "";
@@ -396,7 +221,7 @@ const label =
 
     priceFontSize = priceFontSize * scale;
 
-    if (["nuevo", "recomendado"].includes(p.tipoEtiqueta))  {
+    if (["nuevo", "recomendado"].includes(p.tipoEtiqueta)) {
       doc.setFont("times", "bold");
       doc.setFontSize(priceFontSize);
       doc.setTextColor(0);
@@ -404,7 +229,7 @@ const label =
         `$${integerPrice.toFixed(0)}`,
         x + etiquetaAncho / 2,
         y + etiquetaAlto / 2 + 10 * scale,
-        { align: "center" }
+        { align: "center" },
       );
     } else if (["oferta", "liquidacion"].includes(p.tipoEtiqueta)) {
       const descuento = p.discount ?? 0;
@@ -419,13 +244,12 @@ const label =
       const prevPriceText = `$${prevPrice.toFixed(2)}`;
       doc.text(prevPriceText, x + 8 * scale, y + 56 * scale);
 
-
       doc.setLineWidth(0.4);
       doc.line(
         x + 8 * scale,
         y + 54.6 * scale,
         x + 8 * scale + doc.getTextWidth(prevPriceText),
-        y + 54.8 * scale
+        y + 54.8 * scale,
       );
 
       doc.setFont("helvetica", "bold");
@@ -435,9 +259,90 @@ const label =
         `$${integerPrice.toFixed(0)}`,
         x + etiquetaAncho / 2,
         y + 78 * scale,
-        { align: "center" }
+        { align: "center" },
       );
-    }
+    } else if (p.tipoEtiqueta === "dosPorUno") {
+
+  const price = p.currentPrice ?? p.manualPrice ?? 0;
+  const integerPrice = Math.floor(price);
+
+  const unitPromo = price / 2;
+  const unitInt = Math.round(unitPromo);
+
+  // Coordenadas del barcode (igual que tu bloque de barcode)
+  const barcodeY = y + etiquetaAlto - 20 * scale;
+  const barcodeHeight = 10 * scale;
+
+  // =========================
+  // 1) Sticker circular PREMIUM (rojo con 2x1 blanco)
+  // =========================
+// =========================
+// Sticker Opción C (B/N minimal)
+// =========================
+const stickerR = 16 * scale;
+const stickerCx = x + etiquetaAncho - 14 * scale;
+const stickerCy = y + 46 * scale;
+
+// círculo blanco + borde negro
+doc.setDrawColor(100);
+doc.setLineWidth(0.8 * scale);
+doc.circle(stickerCx, stickerCy, stickerR, "S");
+
+// texto negro
+doc.setFont("helvetica", "bold");
+doc.setFontSize(52 * scale);
+doc.setTextColor(55);
+
+// centrado óptico (jsPDF baseline)
+doc.text("2×1", stickerCx + 0.4 * scale, stickerCy + 5.2 * scale, {
+  align: "center",
+});
+
+
+
+  // =========================
+  // 2) Precio grande (SUBIDO)
+  // =========================
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(52 * scale);
+  doc.setTextColor(0);
+
+  doc.text(
+    `$${integerPrice.toFixed(0)}`,
+    x + etiquetaAncho / 2,
+    y + 76 * scale,
+    { align: "center" }
+  );
+
+  // =========================
+  // 3) Unitario (arriba del barcode)
+  // =========================
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(15 * scale);
+  doc.setTextColor(70);
+
+  doc.text(
+    `Te queda $${unitInt} cada uno`,
+    x + etiquetaAncho / 2,
+    barcodeY - 1 * scale,
+    { align: "center" }
+  );
+
+  // =========================
+  // 4) Leyenda abajo del barcode (dentro y con aire)
+  // =========================
+  // doc.setFont("helvetica", "bold");
+  // doc.setFontSize(11 * scale);
+  // doc.setTextColor(30);
+
+  // doc.text(
+  //   "Pagás 1, llevás 2",
+  //   x + etiquetaAncho / 2,
+  //   barcodeY + barcodeHeight + 4.5 * scale,
+  //   { align: "center" }
+  // );
+}
+
 
     // Código de barras
     if (p.barcode) {
@@ -450,7 +355,7 @@ const label =
         x + 8 * scale,
         barcodeY,
         etiquetaAncho - 16 * scale,
-        10 * scale
+        10 * scale,
       );
       doc.setFontSize(8 * scale);
       doc.setTextColor(80);
@@ -466,7 +371,7 @@ const label =
     doc.text(
       fecha,
       x + etiquetaAncho - 22 * scale,
-      y + etiquetaAlto - 4 * scale
+      y + etiquetaAlto - 4 * scale,
     );
   });
 
@@ -483,7 +388,6 @@ const label =
 //   const doc = await generatePDF({ ...params, scale: 0.66 });
 //   doc.save("etiquetas_chicas.pdf");
 // };
-
 
 export const generatePDF_CartelMixto = async () => {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
@@ -553,7 +457,7 @@ export const generatePDF_CartelMixto = async () => {
     "¡Aprovechá estas promos!",
     pageWidth / 2,
     offsetY + innerHeight - 10,
-    { align: "center" }
+    { align: "center" },
   );
 
   doc.save("cartel_consumo_inmediato.pdf");
@@ -580,14 +484,7 @@ export const generatePDF_Cartel30 = async () => {
 
   // Logo arriba
   if (logoBase64) {
-    doc.addImage(
-      logoBase64,
-      "PNG",
-      pageWidth / 2 - 15,
-      marginY + 5,
-      30,
-      30
-    );
+    doc.addImage(logoBase64, "PNG", pageWidth / 2 - 15, marginY + 5, 30, 30);
   }
 
   // Texto principal
@@ -614,7 +511,6 @@ export const generatePDF_Cartel30 = async () => {
   doc.save("cartel_30.pdf");
 };
 
-
 export const generatePDF_Cartel20 = async () => {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
 
@@ -635,14 +531,7 @@ export const generatePDF_Cartel20 = async () => {
 
   // Logo
   if (logoBase64) {
-    doc.addImage(
-      logoBase64,
-      "PNG",
-      pageWidth / 2 - 15,
-      marginY + 5,
-      30,
-      30
-    );
+    doc.addImage(logoBase64, "PNG", pageWidth / 2 - 15, marginY + 5, 30, 30);
   }
 
   // Texto principal
@@ -669,9 +558,7 @@ export const generatePDF_Cartel20 = async () => {
   doc.save("cartel_20.pdf");
 };
 
-
 //////
-
 
 // 🎨 Colores base
 // const COLORS = {
@@ -680,22 +567,20 @@ export const generatePDF_Cartel20 = async () => {
 //   c20: { main: [255, 128, 0] }, // naranja intenso
 // };
 
-
 export const COLORS = {
   consumo: {
-    main: [200, 0, 0],        // Rojo corporativo (para 60%)
+    main: [200, 0, 0], // Rojo corporativo (para 60%)
     secondary: [255, 130, 0], // Naranja vibrante (para 40%)
   },
   c30: {
-    main: [220, 0, 0],        // Rojo más intenso que "consumo"
-    bg: [255, 235, 235],      // Fondo rojo claro
+    main: [220, 0, 0], // Rojo más intenso que "consumo"
+    bg: [255, 235, 235], // Fondo rojo claro
   },
   c20: {
-    main: [240, 120, 0],      // Naranja elegante
-    bg: [255, 245, 230],      // Fondo naranja claro
+    main: [240, 120, 0], // Naranja elegante
+    bg: [255, 245, 230], // Fondo naranja claro
   },
 };
-
 
 // 🟢 Cartel Consumo Inmediato (60% y 40%)
 export const generatePDF_CartelMixtoB = async () => {
@@ -726,7 +611,9 @@ export const generatePDF_CartelMixtoB = async () => {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(32);
   doc.setTextColor(...COLORS.consumo.main);
-  doc.text("CONSUMO INMEDIATO", pageWidth / 2, marginY + 55, { align: "center" });
+  doc.text("CONSUMO INMEDIATO", pageWidth / 2, marginY + 55, {
+    align: "center",
+  });
 
   // Línea divisoria
   doc.setLineWidth(1);
@@ -751,7 +638,12 @@ export const generatePDF_CartelMixtoB = async () => {
   doc.setFontSize(16);
   doc.setFont("helvetica", "italic");
   doc.setTextColor(60);
-  doc.text("¡Precios especiales, stock limitado!", pageWidth / 2, marginY + innerHeight - 8, { align: "center" });
+  doc.text(
+    "¡Precios especiales, stock limitado!",
+    pageWidth / 2,
+    marginY + innerHeight - 8,
+    { align: "center" },
+  );
 
   doc.save("cartel_consumo_inmediato.pdf");
 };
@@ -784,7 +676,9 @@ export const generatePDF_Cartel30B = async () => {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(30);
   doc.setTextColor(...COLORS.c30.main);
-  doc.text("DESCUENTO ESPECIAL", pageWidth / 2, marginY + 55, { align: "center" });
+  doc.text("DESCUENTO ESPECIAL", pageWidth / 2, marginY + 55, {
+    align: "center",
+  });
 
   // Línea divisoria
   doc.setLineWidth(1);
@@ -799,7 +693,12 @@ export const generatePDF_Cartel30B = async () => {
   doc.setFontSize(20);
   doc.setFont("helvetica", "italic");
   doc.setTextColor(80);
-  doc.text("Descuento directo en góndola", pageWidth / 2, marginY + innerHeight - 10, { align: "center" });
+  doc.text(
+    "Descuento directo en góndola",
+    pageWidth / 2,
+    marginY + innerHeight - 10,
+    { align: "center" },
+  );
 
   doc.save("cartel_30.pdf");
 };
@@ -832,7 +731,9 @@ export const generatePDF_Cartel20B = async () => {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(30);
   doc.setTextColor(...COLORS.c20.main);
-  doc.text("DESCUENTO ESPECIAL", pageWidth / 2, marginY + 55, { align: "center" });
+  doc.text("DESCUENTO ESPECIAL", pageWidth / 2, marginY + 55, {
+    align: "center",
+  });
 
   // Línea divisoria
   doc.setLineWidth(1);
@@ -847,7 +748,12 @@ export const generatePDF_Cartel20B = async () => {
   doc.setFontSize(20);
   doc.setFont("helvetica", "italic");
   doc.setTextColor(100);
-  doc.text("Descuento directo en góndola", pageWidth / 2, marginY + innerHeight - 10, { align: "center" });
+  doc.text(
+    "Descuento directo en góndola",
+    pageWidth / 2,
+    marginY + innerHeight - 10,
+    { align: "center" },
+  );
 
   doc.save("cartel_20.pdf");
 };

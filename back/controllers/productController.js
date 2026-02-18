@@ -7,6 +7,7 @@ import PriceHistory from "../models/PriceHistory.js";
 import ProductList from "../models/ProductList.js";
 import mongoose from "mongoose";
 import StockImport from "../models/StockImport.js";
+import Branch from "../models/Branch.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -1007,11 +1008,140 @@ export const getProductsWithoutPrice = async (req, res) => {
 //   }
 // };
 
+// export const getProductsByCodebarsWithImport = async (req, res) => {
+//   try {
+//     const { importId, branchId, codebars } = req.body;
+
+
+//     console.log("importId, codebars", importId, codebars);
+//     if (!branchId) {
+//   return res.status(400).json({ message: "Falta branchId" });
+// }
+
+
+//     if (!importId || !Array.isArray(codebars) || codebars.length === 0) {
+//       return res.status(400).json({
+//         message: "Faltan datos: importId y codebars",
+//       });
+//     }
+
+//     const stockImport = await StockImport.findById(importId).lean();
+//     if (!stockImport) {
+//       return res.status(404).json({ message: "Importación no encontrada" });
+//     }
+
+//     const cleanCodes = [...new Set(codebars.map((c) => String(c).trim()))];
+
+//     // 1) Buscar productos por barcode o alternateBarcodes
+//     const products = await Product.find({
+//       $or: [
+//         { barcode: { $in: cleanCodes } },
+//         { alternateBarcodes: { $in: cleanCodes } },
+//       ],
+//     }).lean();
+
+//     // 2) Armar productsMap: cualquier código -> product
+//     const productsMap = new Map();
+
+//     for (const p of products) {
+//       if (p.barcode) productsMap.set(String(p.barcode).trim(), p);
+
+//       if (Array.isArray(p.alternateBarcodes)) {
+//         for (const alt of p.alternateBarcodes) {
+//           if (alt) productsMap.set(String(alt).trim(), p);
+//         }
+//       }
+//     }
+
+//     // 3) Armar importRowsMap: barcode -> row (SIN filtrar por cleanCodes)
+//     // ⚠️ IMPORTANTE: NO filtramos por cleanCodes porque:
+//     // cleanCodes puede contener IDProducto, pero el import tiene EAN real.
+//     const importRowsMap = new Map();
+
+//     for (const row of stockImport.rows || []) {
+//       const b = row.barcode?.toString().trim();
+//       if (!b) continue;
+
+//       const prev = importRowsMap.get(b);
+
+//       if (!prev) {
+//         importRowsMap.set(b, row);
+//       } else {
+//         // elegimos mejor row (por stock > 0)
+//         const prevStock = typeof prev.stock === "number" ? prev.stock : 0;
+//         const rowStock = typeof row.stock === "number" ? row.stock : 0;
+
+//         if (rowStock > prevStock) {
+//           importRowsMap.set(b, row);
+//         }
+//       }
+//     }
+
+//     // helper: buscar importRow por cualquier código del producto
+//     const findBestImportRow = (codeSearched, product) => {
+//       const codesToTry = [
+//         codeSearched,
+//         product?.barcode,
+//         ...(Array.isArray(product?.alternateBarcodes)
+//           ? product.alternateBarcodes
+//           : []),
+//       ]
+//         .filter(Boolean)
+//         .map((x) => String(x).trim());
+
+//       for (const c of codesToTry) {
+//         const row = importRowsMap.get(c);
+//         if (row) return row;
+//       }
+
+//       return null;
+      
+//     };
+
+//     // 4) Armar respuesta
+//     const found = [];
+//     const notFound = [];
+
+//     for (const code of cleanCodes) {
+//       const product = productsMap.get(code);
+
+//       if (!product) {
+//         notFound.push(code);
+//         continue;
+//       }
+
+//       // ✅ buscamos el importRow por barcode O alternateBarcodes
+//       const importRow = findBestImportRow(code, product);
+
+//       const matchedBy =
+//         product.barcode && String(product.barcode).trim() === code
+//           ? "barcode"
+//           : "alternateBarcodes";
+
+//       found.push({
+//         codeSearched: code,
+//         matchedBy,
+//         product,
+//         importRow,
+//       });
+//     }
+
+//     return res.json({
+//       message: "OK",
+//       found,
+//       notFound,
+//     });
+//   } catch (error) {
+//     console.error("❌ Error en getProductsByCodebarsWithImport:", error);
+//     return res.status(500).json({ message: "Error del servidor" });
+//   }
+// };
+
+
+
 export const getProductsByCodebarsWithImport = async (req, res) => {
   try {
     const { importId, codebars } = req.body;
-
-    console.log("importId, codebars", importId, codebars);
 
     if (!importId || !Array.isArray(codebars) || codebars.length === 0) {
       return res.status(400).json({
@@ -1019,14 +1149,18 @@ export const getProductsByCodebarsWithImport = async (req, res) => {
       });
     }
 
-    const stockImport = await StockImport.findById(importId).lean();
-    if (!stockImport) {
+    const baseImport = await StockImport.findById(importId)
+      .select("_id importedAt branch rows.barcode rows.price rows.stock")
+      .populate("branch", "name")
+      .lean();
+
+    if (!baseImport) {
       return res.status(404).json({ message: "Importación no encontrada" });
     }
 
     const cleanCodes = [...new Set(codebars.map((c) => String(c).trim()))];
 
-    // 1) Buscar productos por barcode o alternateBarcodes
+    // 1) Productos
     const products = await Product.find({
       $or: [
         { barcode: { $in: cleanCodes } },
@@ -1034,7 +1168,6 @@ export const getProductsByCodebarsWithImport = async (req, res) => {
       ],
     }).lean();
 
-    // 2) Armar productsMap: cualquier código -> product
     const productsMap = new Map();
 
     for (const p of products) {
@@ -1047,33 +1180,20 @@ export const getProductsByCodebarsWithImport = async (req, res) => {
       }
     }
 
-    // 3) Armar importRowsMap: barcode -> row (SIN filtrar por cleanCodes)
-    // ⚠️ IMPORTANTE: NO filtramos por cleanCodes porque:
-    // cleanCodes puede contener IDProducto, pero el import tiene EAN real.
-    const importRowsMap = new Map();
-
-    for (const row of stockImport.rows || []) {
-      const b = row.barcode?.toString().trim();
+    // 2) Map del import propio
+    const baseRowsMap = new Map();
+    for (const row of baseImport.rows || []) {
+      const b = row?.barcode?.toString().trim();
       if (!b) continue;
-
-      const prev = importRowsMap.get(b);
-
-      if (!prev) {
-        importRowsMap.set(b, row);
-      } else {
-        // elegimos mejor row (por stock > 0)
-        const prevStock = typeof prev.stock === "number" ? prev.stock : 0;
-        const rowStock = typeof row.stock === "number" ? row.stock : 0;
-
-        if (rowStock > prevStock) {
-          importRowsMap.set(b, row);
-        }
-      }
+      if (!baseRowsMap.has(b)) baseRowsMap.set(b, row);
     }
 
-    // helper: buscar importRow por cualquier código del producto
-    const findBestImportRow = (codeSearched, product) => {
-      const codesToTry = [
+    // 3) Buscar fallback SOLO para los códigos que faltan
+    // Primero detectamos qué códigos necesitan fallback
+    const codesNeedingFallback = [];
+
+    const getCodesToTry = (codeSearched, product) =>
+      [
         codeSearched,
         product?.barcode,
         ...(Array.isArray(product?.alternateBarcodes)
@@ -1083,16 +1203,95 @@ export const getProductsByCodebarsWithImport = async (req, res) => {
         .filter(Boolean)
         .map((x) => String(x).trim());
 
-      for (const c of codesToTry) {
-        const row = importRowsMap.get(c);
-        if (row) return row;
+    const findInMap = (codes, map) => {
+      for (const c of codes) {
+        const row = map.get(c);
+        if (row) return { row, matchedByCode: c };
       }
-
       return null;
-      
     };
 
-    // 4) Armar respuesta
+    for (const code of cleanCodes) {
+      const product = productsMap.get(code);
+      if (!product) continue;
+
+      const codesToTry = getCodesToTry(code, product);
+      const own = findInMap(codesToTry, baseRowsMap);
+
+      if (!own) {
+        for (const c of codesToTry) codesNeedingFallback.push(c);
+      }
+    }
+
+    const uniqueFallbackCodes = [
+      ...new Set(codesNeedingFallback.map((x) => String(x).trim())),
+    ];
+
+    // 4) Aggregate fallback: devuelve 1 row por barcode, del import más nuevo
+    const fallbackRows = uniqueFallbackCodes.length
+      ? await StockImport.aggregate([
+          {
+            $match: {
+              status: "applied",
+              _id: { $ne: baseImport._id },
+            },
+          },
+          { $sort: { importedAt: -1 } },
+          { $limit: 80 }, // últimos 80 imports aplicados (ajustable)
+          { $unwind: "$rows" },
+          {
+            $match: {
+              "rows.barcode": { $in: uniqueFallbackCodes },
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              importedAt: 1,
+              branch: 1,
+              row: "$rows",
+              rowBarcode: "$rows.barcode",
+            },
+          },
+          {
+            $group: {
+              _id: "$rowBarcode",
+              row: { $first: "$row" },
+              sourceImportId: { $first: "$_id" },
+              sourceImportDate: { $first: "$importedAt" },
+              sourceBranchId: { $first: "$branch" },
+            },
+          },
+        ])
+      : [];
+
+    // 5) Resolver nombres de sucursal
+    const branchIds = [
+      ...new Set(
+        fallbackRows
+          .map((x) => x.sourceBranchId)
+          .filter(Boolean)
+          .map((x) => String(x)),
+      ),
+    ];
+
+    const branches = await Branch.find({ _id: { $in: branchIds } })
+      .select("_id name")
+      .lean();
+
+    const branchMap = new Map(branches.map((b) => [String(b._id), b.name]));
+
+    const fallbackMap = new Map();
+    for (const fr of fallbackRows) {
+      fallbackMap.set(String(fr._id).trim(), {
+        row: fr.row,
+        sourceImportId: fr.sourceImportId,
+        sourceImportDate: fr.sourceImportDate,
+        sourceBranchName: branchMap.get(String(fr.sourceBranchId)) || null,
+      });
+    }
+
+    // 6) Respuesta final
     const found = [];
     const notFound = [];
 
@@ -1104,24 +1303,80 @@ export const getProductsByCodebarsWithImport = async (req, res) => {
         continue;
       }
 
-      // ✅ buscamos el importRow por barcode O alternateBarcodes
-      const importRow = findBestImportRow(code, product);
+      const codesToTry = getCodesToTry(code, product);
 
-      const matchedBy =
-        product.barcode && String(product.barcode).trim() === code
-          ? "barcode"
-          : "alternateBarcodes";
+      const own = findInMap(codesToTry, baseRowsMap);
+
+      if (own) {
+        found.push({
+          codeSearched: code,
+          matchedBy:
+            product.barcode && String(product.barcode).trim() === code
+              ? "barcode"
+              : "alternateBarcodes",
+          product,
+          importRow: own.row,
+          priceSource: "own",
+          sourceBranchName: baseImport?.branch?.name || null,
+          sourceImportId: baseImport._id,
+          sourceImportDate: baseImport.importedAt,
+        });
+        continue;
+      }
+
+      // fallback
+      let fallback = null;
+      let matchedCode = null;
+
+      for (const c of codesToTry) {
+        const fr = fallbackMap.get(String(c).trim());
+        if (fr) {
+          fallback = fr;
+          matchedCode = c;
+          break;
+        }
+      }
+
+      if (fallback) {
+        found.push({
+          codeSearched: code,
+          matchedBy:
+            product.barcode && String(product.barcode).trim() === code
+              ? "barcode"
+              : "alternateBarcodes",
+          product,
+          importRow: fallback.row,
+          priceSource: "fallback",
+          sourceBranchName: fallback.sourceBranchName,
+          sourceImportId: fallback.sourceImportId,
+          sourceImportDate: fallback.sourceImportDate,
+          sourceImportRowBarcode: matchedCode,
+        });
+        continue;
+      }
 
       found.push({
         codeSearched: code,
-        matchedBy,
+        matchedBy:
+          product.barcode && String(product.barcode).trim() === code
+            ? "barcode"
+            : "alternateBarcodes",
         product,
-        importRow,
+        importRow: null,
+        priceSource: "missing",
+        sourceBranchName: null,
+        sourceImportId: null,
+        sourceImportDate: null,
       });
     }
 
     return res.json({
       message: "OK",
+      baseImport: {
+        _id: baseImport._id,
+        importedAt: baseImport.importedAt,
+        branchName: baseImport?.branch?.name || null,
+      },
       found,
       notFound,
     });

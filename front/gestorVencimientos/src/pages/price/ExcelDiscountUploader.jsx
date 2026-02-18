@@ -88,9 +88,17 @@ const ExcelDiscountUploader = ({
 
             productosDesdeAPI = found.map((x) => ({
               ...x.product,
+
               importRow: x.importRow,
               codeSearched: x.codeSearched,
               matchedBy: x.matchedBy,
+
+              // 🔥 ORIGEN REAL DEL PRECIO (para que no diga "Esta sucursal" mal)
+              priceSource: x.priceSource || "base",
+              sourceBranchName: x.sourceBranchName || null,
+              sourceImportId: x.sourceImportId || null,
+              sourceImportDate: x.sourceImportDate || null,
+              sourceImportRowBarcode: x.sourceImportRowBarcode || null,
             }));
           }
         } catch (err) {
@@ -135,6 +143,13 @@ const ExcelDiscountUploader = ({
 
             const actualizado = {
               ...prod,
+
+              priceSource: prod.priceSource || "base",
+              sourceBranchName: prod.sourceBranchName || null,
+              sourceImportId: prod.sourceImportId || null,
+              sourceImportDate: prod.sourceImportDate || null,
+              sourceImportRowBarcode: prod.sourceImportRowBarcode || null,
+
               currentPrice: nuevoPrecio,
               manualPrice: unitario > 0 ? unitario : prod.manualPrice,
               discount: nuevoDescuento,
@@ -162,7 +177,11 @@ const ExcelDiscountUploader = ({
 
             if (productoAPI) {
               const nuevoPrecio =
-                unitario > 0 ? unitario : productoAPI.importRow?.price ?? productoAPI.currentPrice ?? 0;
+                unitario > 0
+                  ? unitario
+                  : (productoAPI.importRow?.price ??
+                    productoAPI.currentPrice ??
+                    0);
               const nuevoDescuento =
                 descuento > 0 && descuento < 100 ? descuento : 0;
               const nuevoDescuentoPrecio =
@@ -174,12 +193,27 @@ const ExcelDiscountUploader = ({
 
               const nuevoProducto = {
                 ...productoAPI,
-                stock: productoAPI.importRow?.stock ?? null,
+
+                stock:
+                  productoAPI.priceSource === "fallback"
+                    ? 0
+                    : (productoAPI.importRow?.stock ?? productoAPI.stock ?? 0),
+
                 tipoEtiqueta: tipoEtiqueta || "clasica",
+
                 manualPrice: unitario > 0 ? unitario : null,
                 currentPrice: nuevoPrecio,
+
                 discount: nuevoDescuento,
                 discountedPrice: nuevoDescuentoPrecio,
+
+                // 🔥 mantener el origen
+                priceSource: productoAPI.priceSource || "base",
+                sourceBranchName: productoAPI.sourceBranchName || null,
+                sourceImportId: productoAPI.sourceImportId || null,
+                sourceImportDate: productoAPI.sourceImportDate || null,
+                sourceImportRowBarcode:
+                  productoAPI.sourceImportRowBarcode || null,
               };
 
               nuevos.push(nuevoProducto);
@@ -205,6 +239,10 @@ const ExcelDiscountUploader = ({
                   discount: nuevoDescuento,
                   discountedPrice: nuevoDescuentoPrecio,
                   temporal: true,
+                  priceSource: "temporal",
+                  sourceBranchName: null,
+                  sourceImportId: null,
+                  sourceImportDate: null,
                 };
 
                 temporales.push(productoTemporal);
@@ -222,7 +260,6 @@ const ExcelDiscountUploader = ({
         if (nuevos.length > 0) {
           // setProductos((prev) => [...prev, ...nuevos]);
           setProductos((prev) => [...nuevos, ...prev]);
-
         }
 
         setAgregados(nuevos);
@@ -238,15 +275,15 @@ const ExcelDiscountUploader = ({
       setLoading(false);
     }
   };
-useEffect(() => {
-  if (!open) {
-    setLoading(false);
-    setAgregados([]);
-    setActualizados([]);
-    setErrores([]);
-    setTemporalesPendientes([]);
-  }
-}, [open]);
+  useEffect(() => {
+    if (!open) {
+      setLoading(false);
+      setAgregados([]);
+      setActualizados([]);
+      setErrores([]);
+      setTemporalesPendientes([]);
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">

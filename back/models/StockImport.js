@@ -21,6 +21,8 @@ const stockImportSchema = new mongoose.Schema({
 
 // stockImportSchema.index({ importedAt: -1 });
 stockImportSchema.index({ branch: 1, status: 1, importedAt: -1 });
+stockImportSchema.index({ status: 1, importedAt: -1 });
+stockImportSchema.index({ branch: 1, status: 1, importedAt: -1 });
 
 
 export default mongoose.model('StockImport', stockImportSchema);

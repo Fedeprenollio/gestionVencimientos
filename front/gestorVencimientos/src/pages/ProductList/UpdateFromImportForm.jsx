@@ -33,7 +33,7 @@ export default function UpdateFromImportForm({result, setResult}) {
       setLoading(true);
       try {
         const [importsRes, listsRes] = await Promise.all([
-          api.get("/imports/recent"),
+          api.get(`/imports/recent?branchId=${selectedBranchId}`),
           api.get(`/product-lists/branch/${selectedBranchId}`),
         ]);
 

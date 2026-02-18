@@ -348,6 +348,7 @@ import {
 } from "@mui/material";
 import { UploadFile, Inventory2, FileDownload } from "@mui/icons-material";
 import { exportToTXT } from "../../../utils/exportUtils";
+import { timeAgo } from "../../../utils/timeAgo";
 
 const CATEGORY = {
   AUMENTO: "Aumentos",
@@ -766,7 +767,7 @@ export default function UploadPricesResultByList({ data }) {
                               : formatPrice(p.newPrice ?? p.price)}
                           </TableCell>
 
-                          <TableCell>
+                          {/* <TableCell>
                             {p.taggedNow ? (
                               <Chip
                                 size="small"
@@ -787,7 +788,69 @@ export default function UploadPricesResultByList({ data }) {
                                 Sin etiquetado
                               </Typography>
                             )}
-                          </TableCell>
+                          </TableCell> */}
+
+                          <TableCell>
+  {/* 1) estado de etiquetado */}
+  {p.taggedNow ? (
+    <Chip
+      size="small"
+      label="Etiquetado hoy"
+      color="primary"
+      variant="outlined"
+      sx={{ mr: 1, mb: 0.5 }}
+    />
+  ) : null}
+
+  {/* 2) fuente del precio */}
+  {p.sourceImportDate ? (
+    <Tooltip
+      title={
+        <>
+          <Typography variant="caption" display="block">
+            Sucursal: <b>{p.sourceBranchName || "—"}</b>
+          </Typography>
+          <Typography variant="caption" display="block">
+            Import: <b>{p.sourceImportId || "—"}</b>
+          </Typography>
+          <Typography variant="caption" display="block">
+            Fecha: <b>{new Date(p.sourceImportDate).toLocaleString()}</b>
+          </Typography>
+        </>
+      }
+    >
+      <Chip
+        size="small"
+        label={
+          p.priceSource === "fallback"
+            ? `${p.sourceBranchName} • ${timeAgo(p.sourceImportDate)}`
+            : `Import propio • ${timeAgo(p.sourceImportDate)}`
+        }
+        color={p.priceSource === "fallback" ? "warning" : "success"}
+        variant="outlined"
+        sx={{ mb: 0.5 }}
+      />
+    </Tooltip>
+  ) : (
+    <Chip
+      size="small"
+      label="Sin info de import"
+      color="default"
+      variant="outlined"
+      sx={{ mb: 0.5 }}
+    />
+  )}
+
+  {/* 3) fecha última etiqueta */}
+  {dateText ? (
+    <Typography variant="body2">{dateText}</Typography>
+  ) : (
+    <Typography variant="caption" color="text.secondary">
+      Sin etiquetado
+    </Typography>
+  )}
+</TableCell>
+
                         </TableRow>
                       );
                     })

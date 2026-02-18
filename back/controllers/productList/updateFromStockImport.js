@@ -362,10 +362,6 @@ import { runBatches } from "../productListController.js";
 //   }
 // };
 
-
-
-
-
 // export const updateFromStockImport = async (req, res) => {
 //   console.log("HOLITA");
 
@@ -382,6 +378,13 @@ import { runBatches } from "../productListController.js";
 //     if (!stockImport) {
 //       return res.status(404).json({ message: "Importación no encontrada" });
 //     }
+// console.log("IMPORT:", {
+//   importId: stockImport._id,
+//   branchId: stockImport.branch?._id,
+//   branchName: stockImport.branch?.name,
+//   status: stockImport.status,
+//   importedAt: stockImport.importedAt,
+// });
 
 //     const selectedLists = await ProductList.find({
 //       _id: { $in: listIds },
@@ -407,7 +410,7 @@ import { runBatches } from "../productListController.js";
 
 //           const main = p?.barcode ? normalize(p.barcode) : null;
 
-//           // ✅ ACÁ: alternateBarcodes (NO barcodes)
+//           // ✅ alternateBarcodes (NO barcodes)
 //           const alts = (p?.alternateBarcodes || []).map((b) => normalize(b));
 
 //           return [main, ...alts].filter(Boolean);
@@ -417,7 +420,6 @@ import { runBatches } from "../productListController.js";
 
 //     /**
 //      * 2) Filtrar rows del import por códigos relevantes
-//      * (import trae row.barcode como principal y row.barcodes como alternativos)
 //      */
 //     const relevantRows = stockImport.rows.filter((row) => {
 //       const bc = row?.barcode ? normalize(row.barcode) : null;
@@ -521,7 +523,6 @@ import { runBatches } from "../productListController.js";
 //         productsMap.set(normalize(p.barcode), p);
 //       }
 
-//       // ✅ ACÁ: alternateBarcodes
 //       for (const alt of p?.alternateBarcodes || []) {
 //         if (!alt) continue;
 //         productsMap.set(normalize(alt), p);
@@ -582,10 +583,6 @@ import { runBatches } from "../productListController.js";
 //                 cost: row.cost,
 //                 category: row.category || product.category,
 //                 lab: row.lab || product.lab,
-
-//                 // ⚠️ IMPORTANTE:
-//                 // NO sobrescribimos alternateBarcodes del producto con row.barcodes
-//                 // porque row.barcodes viene del Excel, y tu esquema usa alternateBarcodes
 //               },
 //             },
 //           },
@@ -624,7 +621,6 @@ import { runBatches } from "../productListController.js";
 //         /**
 //          * Si NO existe producto:
 //          * lo insertamos.
-//          * (acá sí seteamos alternateBarcodes)
 //          */
 //         bulkProductInserts.push({
 //           barcode: scannedBarcode,
@@ -634,7 +630,7 @@ import { runBatches } from "../productListController.js";
 //           category: row.category,
 //           lab: row.lab,
 
-//           // ✅ IMPORTANTE: tu schema usa alternateBarcodes
+//           // tu schema usa alternateBarcodes
 //           alternateBarcodes: row.barcodes || [],
 //         });
 //       }
@@ -726,6 +722,7 @@ import { runBatches } from "../productListController.js";
 //       const listResult = {
 //         listId: list._id,
 //         listName: list.name,
+
 //         priceIncreased: [],
 //         priceDecreased: [],
 //         priceUnchanged: [],
@@ -738,19 +735,31 @@ import { runBatches } from "../productListController.js";
 //         if (!product) continue;
 
 //         const imported = findImportRowForProduct(product);
-
 //         if (!imported) continue;
 
 //         const newPrice = Number(imported.price);
 //         if (Number.isNaN(newPrice)) continue;
 
 //         const oldPrice = product.currentPrice ?? 0;
-//         const isFirst = !lastTagDate;
+
+//         // ✅ lastTagDate real (de la lista)
+//         const previousTagDate = lastTagDate || null;
+
+//         // Si nunca se etiquetó
+//         const isFirst = !previousTagDate;
 
 //         const mainBarcode = product?.barcode ? normalize(product.barcode) : null;
+
+//         // el código con el que apareció en el import
 //         const scannedBarcode = imported?.barcode
 //           ? normalize(imported.barcode)
 //           : mainBarcode;
+
+//         // si en esta corrida se va a etiquetar
+//         const taggedNow =
+//           isFirst || newPrice > oldPrice || newPrice < oldPrice;
+
+//         const taggedAt = taggedNow ? now : null;
 
 //         if (isFirst) {
 //           listResult.firstTimeSet.push({
@@ -758,8 +767,11 @@ import { runBatches } from "../productListController.js";
 //             barcode: mainBarcode || scannedBarcode,
 //             scannedBarcode,
 //             name: product.name,
+//             oldPrice,
 //             newPrice,
-//             lastTagDate: now,
+//             previousTagDate,
+//             taggedNow,
+//             taggedAt,
 //           });
 //         } else if (newPrice > oldPrice) {
 //           listResult.priceIncreased.push({
@@ -769,7 +781,9 @@ import { runBatches } from "../productListController.js";
 //             name: product.name,
 //             oldPrice,
 //             newPrice,
-//             lastTagDate: now,
+//             previousTagDate,
+//             taggedNow,
+//             taggedAt,
 //           });
 //         } else if (newPrice < oldPrice) {
 //           listResult.priceDecreased.push({
@@ -779,7 +793,9 @@ import { runBatches } from "../productListController.js";
 //             name: product.name,
 //             oldPrice,
 //             newPrice,
-//             lastTagDate: now,
+//             previousTagDate,
+//             taggedNow,
+//             taggedAt,
 //           });
 //         } else {
 //           listResult.priceUnchanged.push({
@@ -788,19 +804,22 @@ import { runBatches } from "../productListController.js";
 //             scannedBarcode,
 //             name: product.name,
 //             price: newPrice,
-//             lastTagDate: product.lastTagDate || null
-
+//             previousTagDate,
+//             taggedNow,
+//             taggedAt,
 //           });
 //         }
 
+//         // Stock siempre se actualiza, pero puede no requerir etiqueta
 //         listResult.stockUpdated.push({
 //           _id: product._id,
 //           barcode: mainBarcode || scannedBarcode,
 //           scannedBarcode,
 //           name: product.name,
 //           stock: imported.stock,
-//           lastTagDate: product.lastTagDate || null
-
+//           previousTagDate,
+//           taggedNow,
+//           taggedAt,
 //         });
 //       }
 
@@ -808,7 +827,7 @@ import { runBatches } from "../productListController.js";
 //        * missingInImport:
 //        * Si NI el principal NI ningún alternateBarcode está en el import => falta
 //        */
-//       for (const { product } of list.products) {
+//       for (const { product, lastTagDate } of list.products) {
 //         if (!product) continue;
 
 //         const candidates = [
@@ -825,7 +844,7 @@ import { runBatches } from "../productListController.js";
 //             barcode: mainBarcode || "—",
 //             name: product.name,
 //             price: product.currentPrice,
-//             lastTagDate: product.lastTagDate ?? null,
+//             previousTagDate: lastTagDate || null,
 //           });
 //         }
 //       }
@@ -886,8 +905,6 @@ import { runBatches } from "../productListController.js";
 //           const prod = p.product;
 
 //           const main = prod?.barcode ? normalize(prod.barcode) : null;
-
-//           // ✅ alternateBarcodes
 //           const alts = (prod?.alternateBarcodes || []).map((b) => normalize(b));
 
 //           return [main, ...alts].filter(Boolean);
@@ -922,18 +939,35 @@ export const updateFromStockImport = async (req, res) => {
   console.log("HOLITA");
 
   try {
-    const { importId, listIds } = req.body;
+    const { importId, listIds, branchId } = req.body;
 
-    if (!importId || !listIds || !Array.isArray(listIds)) {
-      return res
-        .status(400)
-        .json({ message: "Faltan datos requeridos: importId y listIds" });
+    if (!branchId) {
+      return res.status(400).json({ message: "Falta branchId" });
+    }
+const stockImport = await StockImport.findById(importId).populate(
+      "branch",
+      "name",
+    );
+    if (String(stockImport.branch?._id) !== String(branchId)) {
+      return res.status(400).json({
+        message: `El importId pertenece a otra sucursal: ${stockImport.branch?.name}`,
+        importBranchId: stockImport.branch?._id,
+        receivedBranchId: branchId,
+      });
     }
 
-    const stockImport = await StockImport.findById(importId);
+    
+
     if (!stockImport) {
       return res.status(404).json({ message: "Importación no encontrada" });
     }
+    console.log("IMPORT:", {
+      importId: stockImport._id,
+      branchId: stockImport.branch?._id,
+      branchName: stockImport.branch?.name,
+      status: stockImport.status,
+      importedAt: stockImport.importedAt,
+    });
 
     const selectedLists = await ProductList.find({
       _id: { $in: listIds },
@@ -948,9 +982,66 @@ export const updateFromStockImport = async (req, res) => {
     };
 
     /**
+     * ============================================================
+     * 🔥 FALLBACK IMPORTS (último import aplicado por sucursal)
+     * ============================================================
+     */
+    const lastImportsAgg = await StockImport.aggregate([
+      { $match: { status: "applied" } },
+      { $sort: { importedAt: -1 } },
+      {
+        $group: {
+          _id: "$branch",
+          importId: { $first: "$_id" },
+          importedAt: { $first: "$importedAt" },
+        },
+      },
+    ]);
+
+    const fallbackImportIds = lastImportsAgg
+      .filter((x) => String(x._id) !== String(stockImport.branch?._id))
+      .map((x) => x.importId);
+
+    const fallbackImports = await StockImport.find({
+      _id: { $in: fallbackImportIds },
+    })
+      .populate("branch", "name")
+      .lean();
+
+    /**
+     * Map rápido:
+     * barcode => { row, branchName, importId, importedAt }
+     * Si un barcode aparece en más de una sucursal, gana el import más nuevo.
+     */
+    const fallbackRowMap = new Map();
+
+    for (const imp of fallbackImports) {
+      for (const row of imp.rows || []) {
+        const bc = row?.barcode ? normalize(row.barcode) : null;
+        if (!bc) continue;
+
+        const existing = fallbackRowMap.get(bc);
+
+        if (
+          !existing ||
+          new Date(imp.importedAt) > new Date(existing.importedAt)
+        ) {
+          fallbackRowMap.set(bc, {
+            row,
+            branchName: imp.branch?.name || "Sucursal",
+            importId: imp._id,
+            importedAt: imp.importedAt,
+          });
+        }
+      }
+    }
+
+    /**
+     * ============================================================
      * 1) SET con TODOS los códigos de las listas:
      * - barcode principal
      * - alternateBarcodes (del Product)
+     * ============================================================
      */
     const barcodesInLists = new Set(
       selectedLists.flatMap((list) =>
@@ -959,16 +1050,17 @@ export const updateFromStockImport = async (req, res) => {
 
           const main = p?.barcode ? normalize(p.barcode) : null;
 
-          // ✅ alternateBarcodes (NO barcodes)
           const alts = (p?.alternateBarcodes || []).map((b) => normalize(b));
 
           return [main, ...alts].filter(Boolean);
-        })
-      )
+        }),
+      ),
     );
 
     /**
+     * ============================================================
      * 2) Filtrar rows del import por códigos relevantes
+     * ============================================================
      */
     const relevantRows = stockImport.rows.filter((row) => {
       const bc = row?.barcode ? normalize(row.barcode) : null;
@@ -977,8 +1069,10 @@ export const updateFromStockImport = async (req, res) => {
     });
 
     /**
+     * ============================================================
      * 3) Agrupar por barcode del import
      *    (si viene repetido, sumamos stock y elegimos la mejor row)
+     * ============================================================
      */
     const groupedRowsMap = new Map();
 
@@ -1014,7 +1108,9 @@ export const updateFromStockImport = async (req, res) => {
     }
 
     /**
+     * ============================================================
      * 4) Reconstruir filas consolidadas
+     * ============================================================
      */
     const consolidatedRows = [];
 
@@ -1025,14 +1121,13 @@ export const updateFromStockImport = async (req, res) => {
       const sourceRow = bestRow || fallbackRow;
 
       consolidatedRows.push({
-        barcode: normalize(barcode), // viene del import
+        barcode: normalize(barcode),
         name: sourceRow.name ?? "",
         price: Number(sourceRow.price) ?? 0,
         cost: Number(sourceRow.cost) ?? 0,
         category: sourceRow.category ?? "",
         lab: sourceRow.lab ?? "",
 
-        // row.barcodes viene del import
         barcodes: Array.isArray(sourceRow.barcodes)
           ? sourceRow.barcodes.map((b) => normalize(b)).filter(Boolean)
           : [],
@@ -1045,9 +1140,11 @@ export const updateFromStockImport = async (req, res) => {
     const now = dayjs().tz("America/Argentina/Buenos_Aires").toDate();
 
     /**
+     * ============================================================
      * 5) Buscar productos por:
      * - barcode principal
      * - alternateBarcodes
+     * ============================================================
      */
     const importBarcodes = consolidatedRows
       .map((r) => normalize(r.barcode))
@@ -1061,9 +1158,11 @@ export const updateFromStockImport = async (req, res) => {
     }).populate("priceHistory");
 
     /**
+     * ============================================================
      * 6) productsMap:
      *    clave = cualquier barcode (principal o alternativo)
      *    valor = producto
+     * ============================================================
      */
     const productsMap = new Map();
 
@@ -1079,7 +1178,9 @@ export const updateFromStockImport = async (req, res) => {
     }
 
     /**
+     * ============================================================
      * 7) Stocks existentes SOLO para productos encontrados
+     * ============================================================
      */
     const existingStocks = await Stock.find({
       branch,
@@ -1087,7 +1188,7 @@ export const updateFromStockImport = async (req, res) => {
     });
 
     const stockMap = new Map(
-      existingStocks.map((s) => [`${s.product}_${s.branch}`, s])
+      existingStocks.map((s) => [`${s.product}_${s.branch}`, s]),
     );
 
     const bulkProductUpdates = [];
@@ -1097,7 +1198,9 @@ export const updateFromStockImport = async (req, res) => {
     const priceHistories = [];
 
     /**
-     * 8) Actualizar/insertar productos + stock
+     * ============================================================
+     * 8) Actualizar/insertar productos + stock (solo import propio)
+     * ============================================================
      */
     for (const row of consolidatedRows) {
       const scannedBarcode = normalize(row.barcode);
@@ -1108,9 +1211,6 @@ export const updateFromStockImport = async (req, res) => {
 
       let product = productsMap.get(scannedBarcode);
 
-      /**
-       * Si existe producto:
-       */
       if (product) {
         const oldPrice = product.currentPrice ?? 0;
 
@@ -1156,21 +1256,19 @@ export const updateFromStockImport = async (req, res) => {
           seenInsertStockKeys.add(stockKey);
 
           bulkStockOps.push({
-            insertOne: {
-              document: {
-                product: product._id,
-                branch,
-                quantity: row.stock,
-                lastUpdated: now,
+            updateOne: {
+              filter: { product: product._id, branch },
+              update: {
+                $set: {
+                  quantity: row.stock,
+                  lastUpdated: now,
+                },
               },
+              upsert: true,
             },
           });
         }
       } else {
-        /**
-         * Si NO existe producto:
-         * lo insertamos.
-         */
         bulkProductInserts.push({
           barcode: scannedBarcode,
           name: row.name,
@@ -1178,15 +1276,15 @@ export const updateFromStockImport = async (req, res) => {
           cost: row.cost,
           category: row.category,
           lab: row.lab,
-
-          // tu schema usa alternateBarcodes
           alternateBarcodes: row.barcodes || [],
         });
       }
     }
 
     /**
+     * ============================================================
      * 9) Insertar productos nuevos y agregarlos al map
+     * ============================================================
      */
     if (bulkProductInserts.length > 0) {
       const inserted = await Product.insertMany(bulkProductInserts);
@@ -1210,7 +1308,9 @@ export const updateFromStockImport = async (req, res) => {
     }
 
     /**
+     * ============================================================
      * 10) PriceHistory
+     * ============================================================
      */
     if (priceHistories.length > 0) {
       const insertedHistories = await PriceHistory.insertMany(priceHistories);
@@ -1232,21 +1332,28 @@ export const updateFromStockImport = async (req, res) => {
     }
 
     /**
+     * ============================================================
      * 11) RESULTADOS POR LISTA
+     * ============================================================
      */
     const resultByList = [];
     const notInAnyList = [];
 
     /**
-     * Set de códigos del import (incluyendo alternativos que vengan en la row)
+     * Set de códigos del import propio (incluyendo alternativos)
      */
     const barcodesInImport = new Set(
       consolidatedRows.flatMap((r) => {
         const main = r?.barcode ? normalize(r.barcode) : null;
         const alts = (r?.barcodes || []).map((b) => normalize(b));
         return [main, ...alts].filter(Boolean);
-      })
+      }),
     );
+
+    /**
+     * Set de fallback
+     */
+    const barcodesInFallback = new Set([...fallbackRowMap.keys()]);
 
     /**
      * Helper: buscar la row del import por:
@@ -1259,9 +1366,32 @@ export const updateFromStockImport = async (req, res) => {
         ...(product?.alternateBarcodes || []).map((b) => normalize(b)),
       ].filter(Boolean);
 
+      // 1) buscar en import propio
       for (const code of candidates) {
         const row = consolidatedRows.find((r) => normalize(r.barcode) === code);
-        if (row) return row;
+        if (row) {
+          return {
+            row,
+            source: "own",
+            branchName: stockImport.branch?.name || null,
+            importId: stockImport._id,
+            importedAt: stockImport.importedAt,
+          };
+        }
+      }
+
+      // 2) buscar fallback
+      for (const code of candidates) {
+        const fallback = fallbackRowMap.get(code);
+        if (fallback?.row) {
+          return {
+            row: fallback.row,
+            source: "fallback",
+            branchName: fallback.branchName,
+            importId: fallback.importId,
+            importedAt: fallback.importedAt,
+          };
+        }
       }
 
       return null;
@@ -1286,95 +1416,80 @@ export const updateFromStockImport = async (req, res) => {
         const imported = findImportRowForProduct(product);
         if (!imported) continue;
 
-        const newPrice = Number(imported.price);
+        const importRow = imported.row;
+
+        const newPrice = Number(importRow.price);
         if (Number.isNaN(newPrice)) continue;
 
         const oldPrice = product.currentPrice ?? 0;
 
-        // ✅ lastTagDate real (de la lista)
         const previousTagDate = lastTagDate || null;
 
-        // Si nunca se etiquetó
         const isFirst = !previousTagDate;
 
-        const mainBarcode = product?.barcode ? normalize(product.barcode) : null;
+        const mainBarcode = product?.barcode
+          ? normalize(product.barcode)
+          : null;
 
-        // el código con el que apareció en el import
-        const scannedBarcode = imported?.barcode
-          ? normalize(imported.barcode)
+        const scannedBarcode = importRow?.barcode
+          ? normalize(importRow.barcode)
           : mainBarcode;
 
-        // si en esta corrida se va a etiquetar
-        const taggedNow =
-          isFirst || newPrice > oldPrice || newPrice < oldPrice;
+        const taggedNow = isFirst || newPrice > oldPrice || newPrice < oldPrice;
 
         const taggedAt = taggedNow ? now : null;
 
+        const basePayload = {
+          _id: product._id,
+          barcode: mainBarcode || scannedBarcode,
+          scannedBarcode,
+          name: product.name,
+          previousTagDate,
+          taggedNow,
+          taggedAt,
+
+          priceSource: imported.source, // "own" | "fallback"
+          sourceBranchName: imported.branchName,
+          sourceImportId: imported.importId,
+          sourceImportDate: imported.importedAt,
+        };
+
         if (isFirst) {
           listResult.firstTimeSet.push({
-            _id: product._id,
-            barcode: mainBarcode || scannedBarcode,
-            scannedBarcode,
-            name: product.name,
+            ...basePayload,
             oldPrice,
             newPrice,
-            previousTagDate,
-            taggedNow,
-            taggedAt,
           });
         } else if (newPrice > oldPrice) {
           listResult.priceIncreased.push({
-            _id: product._id,
-            barcode: mainBarcode || scannedBarcode,
-            scannedBarcode,
-            name: product.name,
+            ...basePayload,
             oldPrice,
             newPrice,
-            previousTagDate,
-            taggedNow,
-            taggedAt,
           });
         } else if (newPrice < oldPrice) {
           listResult.priceDecreased.push({
-            _id: product._id,
-            barcode: mainBarcode || scannedBarcode,
-            scannedBarcode,
-            name: product.name,
+            ...basePayload,
             oldPrice,
             newPrice,
-            previousTagDate,
-            taggedNow,
-            taggedAt,
           });
         } else {
           listResult.priceUnchanged.push({
-            _id: product._id,
-            barcode: mainBarcode || scannedBarcode,
-            scannedBarcode,
-            name: product.name,
+            ...basePayload,
             price: newPrice,
-            previousTagDate,
-            taggedNow,
-            taggedAt,
           });
         }
 
         // Stock siempre se actualiza, pero puede no requerir etiqueta
         listResult.stockUpdated.push({
-          _id: product._id,
-          barcode: mainBarcode || scannedBarcode,
-          scannedBarcode,
-          name: product.name,
-          stock: imported.stock,
-          previousTagDate,
-          taggedNow,
-          taggedAt,
+          ...basePayload,
+          stock: importRow.stock ?? 0,
         });
       }
 
       /**
        * missingInImport:
-       * Si NI el principal NI ningún alternateBarcode está en el import => falta
+       * Si NI el principal NI ningún alternateBarcode está
+       * ni en el import propio ni en fallback => falta
        */
       for (const { product, lastTagDate } of list.products) {
         if (!product) continue;
@@ -1384,10 +1499,17 @@ export const updateFromStockImport = async (req, res) => {
           ...(product?.alternateBarcodes || []).map((b) => normalize(b)),
         ].filter(Boolean);
 
-        const found = candidates.some((code) => barcodesInImport.has(code));
+        const foundInOwn = candidates.some((code) =>
+          barcodesInImport.has(code),
+        );
+        const foundInFallback = candidates.some((code) =>
+          barcodesInFallback.has(code),
+        );
 
-        if (!found) {
-          const mainBarcode = product?.barcode ? normalize(product.barcode) : null;
+        if (!foundInOwn && !foundInFallback) {
+          const mainBarcode = product?.barcode
+            ? normalize(product.barcode)
+            : null;
 
           listResult.missingInImport.push({
             barcode: mainBarcode || "—",
@@ -1438,15 +1560,17 @@ export const updateFromStockImport = async (req, res) => {
               $set: {
                 "products.$.lastTagDate": now,
               },
-            }
-          )
-        )
+            },
+          ),
+        ),
       );
     }
 
     /**
+     * ============================================================
      * 12) notInAnyList:
      *     si el import trae códigos que no están en ninguna lista
+     * ============================================================
      */
     const allBarcodesInLists = new Set(
       selectedLists.flatMap((l) =>
@@ -1457,8 +1581,8 @@ export const updateFromStockImport = async (req, res) => {
           const alts = (prod?.alternateBarcodes || []).map((b) => normalize(b));
 
           return [main, ...alts].filter(Boolean);
-        })
-      )
+        }),
+      ),
     );
 
     for (const row of consolidatedRows) {
@@ -1477,18 +1601,19 @@ export const updateFromStockImport = async (req, res) => {
       message: "Precios y stock actualizados desde la importación",
       lists: resultByList,
       notInAnyList,
+
+      // extra opcional: para mostrar en el front
+      ownImport: {
+        importId: stockImport._id,
+        branchName: stockImport.branch?.name || null,
+        importedAt: stockImport.importedAt,
+      },
     });
   } catch (error) {
     console.error("❌ Error al actualizar desde importación:", error);
     return res.status(500).json({ message: "Error del servidor" });
   }
 };
-
-
-
-
-
-
 
 // controllers/productList/updateFromStockImport.js
 export const updateFromImport = async (req, res) => {
@@ -1519,7 +1644,6 @@ export const updateFromImport = async (req, res) => {
     res.status(500).json({ message: "Error del servidor" });
   }
 };
-
 
 export const applyImportToBarcodes = async (req, res) => {
   try {
@@ -1553,18 +1677,17 @@ export const applyImportToBarcodes = async (req, res) => {
     }).lean();
 
     for (const p of relatedProducts) {
-  if (p.barcode) allBarcodes.add(String(p.barcode).trim());
+      if (p.barcode) allBarcodes.add(String(p.barcode).trim());
 
-  if (Array.isArray(p.barcodes))
-    p.barcodes.forEach(c => allBarcodes.add(String(c).trim()));
+      if (Array.isArray(p.barcodes))
+        p.barcodes.forEach((c) => allBarcodes.add(String(c).trim()));
 
-  if (Array.isArray(p.alternateCodes))
-    p.alternateCodes.forEach(c => allBarcodes.add(String(c).trim()));
+      if (Array.isArray(p.alternateCodes))
+        p.alternateCodes.forEach((c) => allBarcodes.add(String(c).trim()));
 
-  if (Array.isArray(p.alternateBarcodes))
-    p.alternateBarcodes.forEach(c => allBarcodes.add(String(c).trim()));
-}
-
+      if (Array.isArray(p.alternateBarcodes))
+        p.alternateBarcodes.forEach((c) => allBarcodes.add(String(c).trim()));
+    }
 
     // --- 1) Construir rowsMap usando allBarcodes (no solo barcodes entrantes)
     const rowsMap = new Map();
@@ -1583,7 +1706,7 @@ export const applyImportToBarcodes = async (req, res) => {
     for (const [barcode, rows] of rowsMap.entries()) {
       const valid = rows.filter(
         (r) =>
-          !isNaN(Number(r.price)) && r.price !== null && r.price !== undefined
+          !isNaN(Number(r.price)) && r.price !== null && r.price !== undefined,
       );
       if (valid.length === 0) continue;
 
@@ -1633,7 +1756,7 @@ export const applyImportToBarcodes = async (req, res) => {
       product: { $in: products.map((p) => p._id) },
     });
     const stockMap = new Map(
-      existingStocks.map((s) => [`${s.product}_${s.branch}`, s])
+      existingStocks.map((s) => [`${s.product}_${s.branch}`, s]),
     );
 
     // --- 5) Preparar bulk ops
@@ -1689,8 +1812,6 @@ export const applyImportToBarcodes = async (req, res) => {
               lab: row.lab || product.lab,
               // alternateCodes: newAlternateArr,
               alternateBarcodes: newAlternateArr,
-
-
             },
           },
         },
@@ -1763,60 +1884,60 @@ export const applyImportToBarcodes = async (req, res) => {
     }
 
     // --- 6) Marcar import como aplicada
-await StockImport.findByIdAndUpdate(importId, {
-  $set: { status: "applied", appliedAt: now },
-});
+    await StockImport.findByIdAndUpdate(importId, {
+      $set: { status: "applied", appliedAt: now },
+    });
 
-// --- 7) Cleanup: dejar solo las últimas 2 imports applied por sucursal
-// --- 7) Cleanup: dejar solo las últimas 2 imports applied por sucursal
+    // --- 7) Cleanup: dejar solo las últimas 2 imports applied por sucursal
+    // --- 7) Cleanup: dejar solo las últimas 2 imports applied por sucursal
 
-const keep = await StockImport.find({
-  branch: stockImport.branch,
-  status: "applied",
-})
-  .sort({ appliedAt: -1 })
-  .limit(2)
-  .select("_id")
-  .lean();
+    const keep = await StockImport.find({
+      branch: stockImport.branch,
+      status: "applied",
+    })
+      .sort({ appliedAt: -1 })
+      .limit(2)
+      .select("_id")
+      .lean();
 
-const keepIds = keep.map((x) => x._id);
+    const keepIds = keep.map((x) => x._id);
 
-console.log(
-  `📦 Imports applied branch=${stockImport.branch}: mantengo ${keepIds.length}`,
-  keepIds
-);
+    console.log(
+      `📦 Imports applied branch=${stockImport.branch}: mantengo ${keepIds.length}`,
+      keepIds,
+    );
 
-const deleteResult = await StockImport.deleteMany({
-  branch: stockImport.branch,
-  status: "applied",
-  _id: { $nin: keepIds },
-});
+    const deleteResult = await StockImport.deleteMany({
+      branch: stockImport.branch,
+      status: "applied",
+      _id: { $nin: keepIds },
+    });
 
-console.log(
-  `🧹 Cleanup applied imports: deletedCount=${deleteResult.deletedCount}`
-);
+    console.log(
+      `🧹 Cleanup applied imports: deletedCount=${deleteResult.deletedCount}`,
+    );
 
-// --- 8) Cleanup: PENDING -> dejar solo la más nueva
-const keepPending = await StockImport.find({
-  branch: stockImport.branch,
-  status: "pending",
-})
-  .sort({ importedAt: -1 })
-  .limit(1)
-  .select("_id")
-  .lean();
+    // --- 8) Cleanup: PENDING -> dejar solo la más nueva
+    const keepPending = await StockImport.find({
+      branch: stockImport.branch,
+      status: "pending",
+    })
+      .sort({ importedAt: -1 })
+      .limit(1)
+      .select("_id")
+      .lean();
 
-const keepPendingIds = keepPending.map((x) => x._id);
+    const keepPendingIds = keepPending.map((x) => x._id);
 
-const deletePending = await StockImport.deleteMany({
-  branch: stockImport.branch,
-  status: "pending",
-  _id: { $nin: keepPendingIds },
-});
+    const deletePending = await StockImport.deleteMany({
+      branch: stockImport.branch,
+      status: "pending",
+      _id: { $nin: keepPendingIds },
+    });
 
-console.log(
-  `🧹 Cleanup PENDING: mantengo=${keepPendingIds.length} borradas=${deletePending.deletedCount}`
-);
+    console.log(
+      `🧹 Cleanup PENDING: mantengo=${keepPendingIds.length} borradas=${deletePending.deletedCount}`,
+    );
 
     // Devolver rows según lo que acabamos de aplicar (precio tomado del import)
     return res.json({

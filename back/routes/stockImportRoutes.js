@@ -22,12 +22,31 @@ router.post("/apply-to-products", applyImportToBarcodes);
 router.get("/latestApplied", updateFromImport);
 
 // routes/import.routes.js
+// router.get("/recent", async (req, res) => {
+//   try {
+//     const recent = await StockImport.find()
+//       .sort({ importedAt: -1 })
+//       .limit(10)
+//       .select("_id branch user importedAt status"); // ⛔ omitimos rows
+
+//     res.json(recent);
+//   } catch (err) {
+//     console.error("Error al obtener recientes:", err);
+//     res.status(500).json({ message: "Error al obtener las importaciones recientes" });
+//   }
+// });
 router.get("/recent", async (req, res) => {
   try {
-    const recent = await StockImport.find()
+    const { branchId } = req.query;
+
+    const filter = {};
+    if (branchId) filter.branch = branchId;
+
+    const recent = await StockImport.find(filter)
       .sort({ importedAt: -1 })
       .limit(10)
-      .select("_id branch user importedAt status"); // ⛔ omitimos rows
+      .populate("branch", "name")
+      .select("_id branch user importedAt status");
 
     res.json(recent);
   } catch (err) {
@@ -35,6 +54,7 @@ router.get("/recent", async (req, res) => {
     res.status(500).json({ message: "Error al obtener las importaciones recientes" });
   }
 });
+
 
 
 export default router;

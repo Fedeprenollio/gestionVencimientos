@@ -1,5 +1,3 @@
-
-
 import React, { useState } from "react";
 import { Box, Button, Divider, TextField, Typography } from "@mui/material";
 import axios from "axios";
@@ -21,7 +19,6 @@ const EtiquetasInput = ({
   const [barcodeInput, setBarcodeInput] = useState("");
   const [loading, setLoading] = useState(false);
 
- 
   const handleScan = async () => {
     const rows = barcodeInput
       .split(/\r?\n/)
@@ -109,14 +106,18 @@ const EtiquetasInput = ({
             ? Number((basePrice * (1 - dto / 100)).toFixed(2))
             : basePrice;
 
+        const priceSource = item.priceSource || "base";
+
         const data = {
           ...product,
 
-          // 🔥 stock y precio del import si existe
+          // 🔥 Regla: si el precio vino de otra sucursal, stock = 0
           stock:
-            typeof importRow?.stock === "number"
-              ? importRow.stock
-              : product.stock,
+            priceSource === "fallback"
+              ? 0
+              : typeof importRow?.stock === "number"
+                ? importRow.stock
+                : (product.stock ?? 0),
 
           currentPrice: basePrice,
         };
@@ -138,8 +139,15 @@ const EtiquetasInput = ({
           discountedPrice,
 
           tipoEtiqueta: mode === "especial" ? "oferta" : "clasica",
-          __isNew: true, // 👈 NIVEL DIOS
-           __missingInImport: missingInImport,
+          __isNew: true,
+          __missingInImport: missingInImport,
+
+          // 🔥🔥🔥 ORIGEN REAL DEL PRECIO
+          priceSource: item.priceSource || "base",
+          sourceBranchName: item.sourceBranchName || null,
+          sourceImportId: item.sourceImportId || null,
+          sourceImportDate: item.sourceImportDate || null,
+          sourceImportRowBarcode: item.sourceImportRowBarcode || null,
         };
 
         nuevos.push(newProduct);
