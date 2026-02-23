@@ -37,6 +37,8 @@ import WhatsAppQR from "./pages/whatsapp/WhatsAppQR";
 import AnalizadorSucursales from "./pages/AnalizadorSucursales/AnalizadorSucursales";
 import ProximosAVencer from "./pages/AsiganacionesDeStocks/ProximosAVencer";
 import ABCViewer from "./pages/AsiganacionesDeStocks/ABCViewer";
+import { GuiaDashboard } from "./guiaMostrador/pages/GuiaDashboard";
+import FarmacoPage from "./guiaMostrador/pages/FarmacoPage";
 
 export const AppRoutes = () => {
   return (
@@ -118,6 +120,8 @@ export const AppRoutes = () => {
           path="/lists/:listId/products-to-retag"
           element={<ProductsToRetag />}
         />
+        <Route path="/guia" element={<GuiaDashboard />} />
+        <Route path="/farmacos/:id" element={<FarmacoPage  />} />
       </Routes>
     </Box>
   );
