@@ -4,6 +4,7 @@ import ProductLabelManager from "./ProductLabelManager";
 import BranchListSelector from "../ProductList/ProductListList";
 import CartelConsumoInmediato from "./CartelConsumoInmediato"; // 👈 nuevo componente que haremos
 import { useLocation } from "react-router-dom";
+import PlexLabelGenerator from "./PlexLabelGenerator";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -40,9 +41,21 @@ export default function MainTabs() {
         onChange={(e, newVal) => setTabIndex(newVal)}
         aria-label="Pestañas principales"
       >
-        <Tab label="Listas de etiquetas" id="tab-0" aria-controls="tabpanel-0" />
-        <Tab label="Generador de etiquetas" id="tab-1" aria-controls="tabpanel-1" />
-        <Tab label="Consumo inmediato" id="tab-2" aria-controls="tabpanel-2" /> {/* 🆕 Nueva pestaña */}
+        <Tab
+          label="Listas de etiquetas"
+          id="tab-0"
+          aria-controls="tabpanel-0"
+        />
+        <Tab
+          label="Generador de etiquetas"
+          id="tab-1"
+          aria-controls="tabpanel-1"
+        />
+        <Tab
+          label="Generar etiquetas para Plex"
+          id="tab-2"
+          aria-controls="tabpanel-2"
+        />
       </Tabs>
 
       <TabPanel value={tabIndex} index={0}>
@@ -54,7 +67,7 @@ export default function MainTabs() {
       </TabPanel>
 
       <TabPanel value={tabIndex} index={2}>
-        <CartelConsumoInmediato /> {/* 👈 Nuevo componente */}
+        <PlexLabelGenerator />
       </TabPanel>
     </Box>
   );

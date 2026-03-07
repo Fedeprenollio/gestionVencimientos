@@ -13,6 +13,7 @@ import returnListRoutes from './routes/returnListRoutes.js';
 import routerStock from './routes/stockRoutes.js';
 import routerImportStock from "./routes/stockImportRoutes.js"
 import promotionRoutes from "./routes/promotionRoutes.js";
+import router from './routes/guia.js';
 
 
 const allowedOrigins = [
@@ -60,7 +61,7 @@ app.use("/promotions", promotionRoutes);
 //   console.log("result",result)
 //   res.json(result);
 // });
-
+app.use("/guia", router)
 
 
 
