@@ -636,7 +636,6 @@
 
 // export default EtiquetasTable;
 
-
 // EtiquetasTable.jsx
 import React, { useMemo, useRef, useState } from "react";
 import {
@@ -713,7 +712,7 @@ const EtiquetasTable = ({
 }) => {
   const discountRefs = useRef([]);
   const [search, setSearch] = useState("");
-console.log("productos etiqueta",productos)
+  console.log("productos etiqueta", productos);
   // 🔥 NUEVO: filtro por origen del precio
   // "all" | "own" | "other"
   const [priceOriginFilter, setPriceOriginFilter] = useState("all");
@@ -745,29 +744,50 @@ console.log("productos etiqueta",productos)
   // =========================
   // Helpers de origen del precio
   // =========================
-const getPriceOriginInfo = (p) => {
-  const isOtherBranch = p.priceSource === "fallback";
+  // const getPriceOriginInfo = (p) => {
+  //   const isOtherBranch = p.priceSource === "fallback";
 
-  if (isOtherBranch) {
+  //   if (isOtherBranch) {
+  //     return {
+  //       isOtherBranch: true,
+  //       label: p.sourceBranchName
+  //         ? `Otra sucursal: ${p.sourceBranchName}`
+  //         : "Otra sucursal",
+  //       since: formatHace(p.sourceImportDate),
+  //       importDate: p.sourceImportDate || null,
+  //     };
+  //   }
+
+  //   return {
+  //     isOtherBranch: false,
+  //     label: "Esta sucursal",
+  //     since: null,
+  //     importDate: null,
+  //   };
+  // };
+  const getPriceOriginInfo = (p) => {
+    const isOtherBranch = p.priceSource === "fallback";
+
+    if (isOtherBranch) {
+      return {
+        isOtherBranch: true,
+        label: p.sourceBranchName
+          ? `Otra sucursal: ${p.sourceBranchName}`
+          : "Otra sucursal",
+        since: formatHace(p.sourceImportDate),
+        importDate: p.sourceImportDate || null,
+      };
+    }
+
+    // 🔥 NUEVO: también mostramos desde cuándo es el precio de esta sucursal
+    const importDate = p.currentPriceDate || null; // asumimos que guardás esta fecha
     return {
-      isOtherBranch: true,
-      label: p.sourceBranchName
-        ? `Otra sucursal: ${p.sourceBranchName}`
-        : "Otra sucursal",
-      since: formatHace(p.sourceImportDate),
-      importDate: p.sourceImportDate || null,
+      isOtherBranch: false,
+      label: "Esta sucursal",
+      since: importDate ? formatHace(importDate) : "hoy",
+      importDate,
     };
-  }
-
-  return {
-    isOtherBranch: false,
-    label: "Esta sucursal",
-    since: null,
-    importDate: null,
   };
-};
-
-
 
   // =========================
   // Filtro por búsqueda + origen
@@ -793,12 +813,10 @@ const getPriceOriginInfo = (p) => {
       if (!matchesSearch) return false;
 
       // 2) filtro origen
-const isFallback = p.priceSource === "fallback";
+      const isFallback = p.priceSource === "fallback";
 
-
-if (priceOriginFilter === "own") return !isFallback;
-if (priceOriginFilter === "other") return isFallback;
-
+      if (priceOriginFilter === "own") return !isFallback;
+      if (priceOriginFilter === "other") return isFallback;
 
       return true;
     });
@@ -813,7 +831,7 @@ if (priceOriginFilter === "other") return isFallback;
         const s = Number(p.stock);
         return !isNaN(s) && s > 0;
       }),
-    [productosFiltrados]
+    [productosFiltrados],
   );
 
   const sinStock = useMemo(
@@ -822,7 +840,7 @@ if (priceOriginFilter === "other") return isFallback;
         const s = Number(p.stock);
         return isNaN(s) || s <= 0;
       }),
-    [productosFiltrados]
+    [productosFiltrados],
   );
 
   const selectedCount = selectedIds?.size || 0;
@@ -831,7 +849,8 @@ if (priceOriginFilter === "other") return isFallback;
   // Contadores para resumen
   // =========================
   const otherBranchCount = useMemo(() => {
-    return productosFiltrados.filter((p) => p.priceSource === "fallback").length;
+    return productosFiltrados.filter((p) => p.priceSource === "fallback")
+      .length;
   }, [productosFiltrados]);
 
   // =========================
@@ -873,13 +892,13 @@ if (priceOriginFilter === "other") return isFallback;
         p.manualPreviousPrice && Number(p.manualPreviousPrice) > 0
           ? Number(p.manualPreviousPrice)
           : p.manualPrice && Number(p.manualPrice) > 0
-          ? Number(p.manualPrice)
-          : Number(p.currentPrice) || 0;
+            ? Number(p.manualPrice)
+            : Number(p.currentPrice) || 0;
 
       const discount = Number(p.discount) || 0;
 
       updated[index].discountedPrice = Number(
-        (base * (1 - discount / 100)).toFixed(2)
+        (base * (1 - discount / 100)).toFixed(2),
       );
 
       return updated;
@@ -900,13 +919,13 @@ if (priceOriginFilter === "other") return isFallback;
         p.manualPreviousPrice && Number(p.manualPreviousPrice) > 0
           ? Number(p.manualPreviousPrice)
           : p.manualPrice && Number(p.manualPrice) > 0
-          ? Number(p.manualPrice)
-          : Number(p.currentPrice) || 0;
+            ? Number(p.manualPrice)
+            : Number(p.currentPrice) || 0;
 
       const discount = Number(p.discount) || 0;
 
       updated[idx].discountedPrice = Number(
-        (base * (1 - discount / 100)).toFixed(2)
+        (base * (1 - discount / 100)).toFixed(2),
       );
 
       return updated;
@@ -918,7 +937,7 @@ if (priceOriginFilter === "other") return isFallback;
     if (!removed?._id) return;
 
     setProductos((prev) =>
-      prev.filter((p) => String(p._id) !== String(removed._id))
+      prev.filter((p) => String(p._id) !== String(removed._id)),
     );
 
     // también lo sacamos de la selección si estaba seleccionado
@@ -1160,16 +1179,16 @@ if (priceOriginFilter === "other") return isFallback;
                       backgroundColor: p.__isNew
                         ? "rgba(255, 235, 59, 0.35)"
                         : p.__missingInImport
-                        ? "rgba(244, 67, 54, 0.10)"
-                        : origin.isOtherBranch
-                        ? "rgba(255, 152, 0, 0.08)"
-                        : "transparent",
+                          ? "rgba(244, 67, 54, 0.10)"
+                          : origin.isOtherBranch
+                            ? "rgba(255, 152, 0, 0.08)"
+                            : "transparent",
 
                       borderLeft: p.__missingInImport
                         ? "4px solid rgba(244, 67, 54, 0.6)"
                         : origin.isOtherBranch
-                        ? "4px solid rgba(255, 152, 0, 0.6)"
-                        : "none",
+                          ? "4px solid rgba(255, 152, 0, 0.6)"
+                          : "none",
                     }}
                     hover
                   >
@@ -1228,7 +1247,7 @@ if (priceOriginFilter === "other") return isFallback;
                           updateFieldById(
                             p._id,
                             "manualPrice",
-                            Number(e.target.value)
+                            Number(e.target.value),
                           )
                         }
                         sx={{ width: 110 }}
@@ -1245,7 +1264,7 @@ if (priceOriginFilter === "other") return isFallback;
                           updateFieldById(
                             p._id,
                             "manualPreviousPrice",
-                            Number(e.target.value)
+                            Number(e.target.value),
                           )
                         }
                         sx={{ width: 110 }}
@@ -1262,7 +1281,7 @@ if (priceOriginFilter === "other") return isFallback;
                           updateFieldById(
                             p._id,
                             "discount",
-                            Number(e.target.value)
+                            Number(e.target.value),
                           )
                         }
                         inputProps={{ min: 0, max: 100 }}
@@ -1311,10 +1330,22 @@ if (priceOriginFilter === "other") return isFallback;
                         sx={{ mb: 0.5 }}
                       />
 
-                      {origin.isOtherBranch && origin.since && (
+                      {origin.since && (
                         <Typography
                           variant="caption"
-                          sx={{ display: "block", opacity: 0.75 }}
+                          sx={{
+                            display: "block",
+                            mt: 0.3,
+                            ...(origin.isOtherBranch
+                              ? { opacity: 0.75 } // ya existente
+                              : origin.since.toLowerCase() === "hoy"
+                                ? { color: "green", fontWeight: 600 }
+                                : {
+                                    color: "red",
+                                    fontWeight: 700,
+                                    textTransform: "uppercase",
+                                  }),
+                          }}
                         >
                           Import: {origin.since}
                         </Typography>
@@ -1328,7 +1359,11 @@ if (priceOriginFilter === "other") return isFallback;
                           size="small"
                           value={p.tipoEtiqueta || "oferta"}
                           onChange={(e) =>
-                            updateFieldById(p._id, "tipoEtiqueta", e.target.value)
+                            updateFieldById(
+                              p._id,
+                              "tipoEtiqueta",
+                              e.target.value,
+                            )
                           }
                           sx={{ width: 140 }}
                         >

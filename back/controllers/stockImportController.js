@@ -113,10 +113,11 @@ export const importStock = async (req, res) => {
 
       let priceDate = null;
 
-      if (fechaUltimoPrecioRaw) {
-        const [day, month, year] = fechaUltimoPrecioRaw.split("/");
-        priceDate = new Date(`${year}-${month}-${day}`);
-      }
+     if (fechaUltimoPrecioRaw) {
+  const [day, month, year] = fechaUltimoPrecioRaw.split("/").map(x => x.trim());
+  const d = new Date(`${year}-${month}-${day}`);
+  if (!isNaN(d.valueOf())) priceDate = d;
+}
       // Guardar fila formateada para registrar la importación
       formattedRows.push({
         barcode: barcode || idProducto,

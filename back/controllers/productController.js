@@ -1140,6 +1140,7 @@ export const getProductsWithoutPrice = async (req, res) => {
 
 
 export const getProductsByCodebarsWithImport = async (req, res) => {
+  console.log("BUSCANDO")
   try {
     const { importId, codebars } = req.body;
 
@@ -1228,42 +1229,74 @@ export const getProductsByCodebarsWithImport = async (req, res) => {
     ];
 
     // 4) Aggregate fallback: devuelve 1 row por barcode, del import más nuevo
-    const fallbackRows = uniqueFallbackCodes.length
-      ? await StockImport.aggregate([
-          {
-            $match: {
-              status: "applied",
-              _id: { $ne: baseImport._id },
-            },
+    // const fallbackRows = uniqueFallbackCodes.length
+    //   ? await StockImport.aggregate([
+    //       {
+    //         $match: {
+    //           status: "applied",
+    //           _id: { $ne: baseImport._id },
+    //         },
+    //       },
+    //       { $sort: { importedAt: -1 } },
+    //       // { $limit: 80 }, // últimos 80 imports aplicados (ajustable)
+    //       { $unwind: "$rows" },
+    //       {
+    //         $match: {
+    //           "rows.barcode": { $in: uniqueFallbackCodes },
+    //         },
+    //       },
+    //       {
+    //         $project: {
+    //           _id: 1,
+    //           importedAt: 1,
+    //           branch: 1,
+    //           row: "$rows",
+    //           rowBarcode: "$rows.barcode",
+    //         },
+    //       },
+    //       {
+    //         $group: {
+    //           _id: "$rowBarcode",
+    //           row: { $first: "$row" },
+    //           sourceImportId: { $first: "$_id" },
+    //           sourceImportDate: { $first: "$importedAt" },
+    //           sourceBranchId: { $first: "$branch" },
+    //         },
+    //       },
+    //     ])
+    //   : [];
+
+    // --- 4) Aggregate fallback: filas de imports de otras sucursales ---
+const fallbackRows = uniqueFallbackCodes.length
+  ? await StockImport.aggregate([
+      { $match: { status:  { $in: ["applied", "pending"] }, _id: { $ne: baseImport._id } } },
+      { $unwind: "$rows" },
+      { $match: { "rows.barcode": { $in: uniqueFallbackCodes } } },
+      {
+        $addFields: {
+          rowPriceDate: {
+            $cond: [
+              { $ifNull: ["$rows.priceDate", false] },
+              "$rows.priceDate",
+              null,
+            ],
           },
-          { $sort: { importedAt: -1 } },
-          { $limit: 80 }, // últimos 80 imports aplicados (ajustable)
-          { $unwind: "$rows" },
-          {
-            $match: {
-              "rows.barcode": { $in: uniqueFallbackCodes },
-            },
-          },
-          {
-            $project: {
-              _id: 1,
-              importedAt: 1,
-              branch: 1,
-              row: "$rows",
-              rowBarcode: "$rows.barcode",
-            },
-          },
-          {
-            $group: {
-              _id: "$rowBarcode",
-              row: { $first: "$row" },
-              sourceImportId: { $first: "$_id" },
-              sourceImportDate: { $first: "$importedAt" },
-              sourceBranchId: { $first: "$branch" },
-            },
-          },
-        ])
-      : [];
+        },
+      },
+      {
+        $sort: { "rowPriceDate": -1, importedAt: -1 } // Primero priceDate más reciente, luego import más reciente
+      },
+      {
+        $group: {
+          _id: "$rows.barcode",
+          row: { $first: "$rows" },
+          sourceImportId: { $first: "$_id" },
+          sourceImportDate: { $first: "$importedAt" },
+          sourceBranchId: { $first: "$branch" },
+        },
+      },
+    ])
+  : [];
 
     // 5) Resolver nombres de sucursal
     const branchIds = [
