@@ -41,3 +41,9 @@ export const deleteProductList = async (listId) => {
   const { data } = await api.delete(`/product-lists/${listId}`);
   return data;
 };
+
+// src/api/listApi.js
+
+// Actualizar solo el nombre de una lista
+export const updateProductListName = (listId, name) =>
+  api.put(`${BASE}/${listId}/name`, { name });

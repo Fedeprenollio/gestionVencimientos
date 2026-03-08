@@ -303,7 +303,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchBranches } from "../../api/branchApi";
-import { getProductListsByBranch, deleteProductList } from "../../api/listApi";
+import { getProductListsByBranch, deleteProductList, updateProductListName } from "../../api/listApi";
 import {
   Box,
   MenuItem,
@@ -324,7 +324,9 @@ import {
   FormControl,
   InputLabel,
   List,
+  TextField,
 } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
 import { useNavigate } from "react-router-dom";
 import { exportToTXT } from "../../../utils/exportUtils";
 import AddIcon from "@mui/icons-material/Add";
@@ -334,7 +336,8 @@ import HistoryIcon from "@mui/icons-material/History";
 import * as XLSX from "xlsx";
 
 export default function BranchListSelector() {
-
+  const [listToRename, setListToRename] = useState(null);
+  const [newListName, setNewListName] = useState("");
   const [selectedLists, setSelectedLists] = useState([]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -361,7 +364,6 @@ export default function BranchListSelector() {
   }
 
   const handleExportExcel = (list) => {
-
     const rows =
       list.products?.map((p) => ({
         Codebar: p.product?.barcode?.trim() || "",
@@ -372,7 +374,6 @@ export default function BranchListSelector() {
   };
 
   const handleExportTXT = (list) => {
-
     const codes =
       list.products?.map((p) => p.product?.barcode?.trim()).filter(Boolean) ||
       [];
@@ -411,11 +412,20 @@ export default function BranchListSelector() {
     },
   });
 
+  //-------------CAMBIAR EL NOMBRE DE LISTA
+  const renameMutation = useMutation({
+    mutationFn: ({ listId, name }) => updateProductListName(listId, name),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["productListsByBranch", selectedBranch]);
+      setListToRename(null);
+      setNewListName("");
+    },
+  });
+
   // ---------------- RENDER ----------------
 
   return (
     <Box p={3} maxWidth={900} mx="auto">
-
       <Typography variant="h5" gutterBottom>
         Listas de productos por sucursal
       </Typography>
@@ -425,13 +435,9 @@ export default function BranchListSelector() {
       {loadingBranches ? (
         <CircularProgress />
       ) : errorBranches ? (
-        <Typography color="error">
-          Error al cargar sucursales
-        </Typography>
+        <Typography color="error">Error al cargar sucursales</Typography>
       ) : (
-
         <FormControl fullWidth sx={{ mb: 3 }}>
-
           <InputLabel>Sucursal</InputLabel>
 
           <Select
@@ -439,7 +445,6 @@ export default function BranchListSelector() {
             value={selectedBranch}
             onChange={(e) => setSelectedBranch(e.target.value)}
           >
-
             <MenuItem value="" disabled>
               Seleccione una sucursal
             </MenuItem>
@@ -449,16 +454,13 @@ export default function BranchListSelector() {
                 {b.name}
               </MenuItem>
             ))}
-
           </Select>
-
         </FormControl>
       )}
 
       {/* botones globales */}
 
       <Box display="flex" gap={2} flexWrap="wrap" mb={3}>
-
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -482,14 +484,11 @@ export default function BranchListSelector() {
 
         <Button
           variant="outlined"
-          onClick={() =>
-            navigate(`/historial-cargas?branch=${selectedBranch}`)
-          }
+          onClick={() => navigate(`/historial-cargas?branch=${selectedBranch}`)}
           disabled={!selectedBranch}
         >
           Historial de precios
         </Button>
-
       </Box>
 
       {/* listas */}
@@ -497,45 +496,30 @@ export default function BranchListSelector() {
       {loadingLists ? (
         <CircularProgress />
       ) : errorLists ? (
-        <Typography color="error">
-          Error al cargar listas
-        </Typography>
+        <Typography color="error">Error al cargar listas</Typography>
       ) : lists.length === 0 ? (
-        <Typography>
-          No hay listas para esta sucursal
-        </Typography>
+        <Typography>No hay listas para esta sucursal</Typography>
       ) : (
-
         <List sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-
           {lists.map((list) => (
-
             <Card key={list._id} elevation={2}>
-
               <CardContent>
-
                 <Box
                   display="flex"
                   justifyContent="space-between"
                   alignItems="center"
                 >
-
                   <Box>
-
-                    <Typography variant="h6">
-                      {list.name}
-                    </Typography>
+                    <Typography variant="h6">{list.name}</Typography>
 
                     <Chip
                       label={`${list.products?.length || 0} productos`}
                       size="small"
                       sx={{ mt: 1 }}
                     />
-
                   </Box>
 
                   <Box display="flex" gap={1}>
-
                     <Tooltip title="Exportar Excel">
                       <IconButton onClick={() => handleExportExcel(list)}>
                         <DownloadIcon />
@@ -552,6 +536,18 @@ export default function BranchListSelector() {
                       </IconButton>
                     </Tooltip>
 
+                    <Tooltip title="Cambiar nombre">
+                      <IconButton
+                        color="primary"
+                        onClick={() => {
+                          setListToRename(list);
+                          setNewListName(list.name);
+                        }}
+                      >
+                        <EditIcon /> {/* O puedes usar EditIcon si quieres */}
+                      </IconButton>
+                    </Tooltip>
+
                     <Tooltip title="Eliminar lista">
                       <IconButton
                         color="error"
@@ -560,11 +556,8 @@ export default function BranchListSelector() {
                         <DeleteIcon />
                       </IconButton>
                     </Tooltip>
-
                   </Box>
-
                 </Box>
-
               </CardContent>
 
               <CardActions
@@ -573,16 +566,13 @@ export default function BranchListSelector() {
                   pb: 2,
                   display: "flex",
                   gap: 1,
-                  flexWrap: "wrap"
+                  flexWrap: "wrap",
                 }}
               >
-
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={() =>
-                    navigate(`/lists/${list._id}/add-products`)
-                  }
+                  onClick={() => navigate(`/lists/${list._id}/add-products`)}
                 >
                   Editar lista
                 </Button>
@@ -606,55 +596,62 @@ export default function BranchListSelector() {
                   Analizar ventas
                 </Button>
                 */}
-
               </CardActions>
-
             </Card>
-
           ))}
-
         </List>
       )}
 
       {/* dialogo eliminar */}
 
-      <Dialog
-        open={!!listToDelete}
-        onClose={() => setListToDelete(null)}
-      >
-
-        <DialogTitle>
-          Confirmar eliminación
-        </DialogTitle>
+      <Dialog open={!!listToDelete} onClose={() => setListToDelete(null)}>
+        <DialogTitle>Confirmar eliminación</DialogTitle>
 
         <DialogContent>
-          ¿Seguro que deseas eliminar la lista{" "}
-          <b>{listToDelete?.name}</b>?
-          Esta acción no se puede deshacer.
+          ¿Seguro que deseas eliminar la lista <b>{listToDelete?.name}</b>? Esta
+          acción no se puede deshacer.
         </DialogContent>
 
         <DialogActions>
-
-          <Button onClick={() => setListToDelete(null)}>
-            Cancelar
-          </Button>
+          <Button onClick={() => setListToDelete(null)}>Cancelar</Button>
 
           <Button
             color="error"
-            onClick={() =>
-              deleteMutation.mutate(listToDelete._id)
-            }
+            onClick={() => deleteMutation.mutate(listToDelete._id)}
             disabled={deleteMutation.isLoading}
           >
-            {deleteMutation.isLoading
-              ? "Eliminando..."
-              : "Eliminar"}
+            {deleteMutation.isLoading ? "Eliminando..." : "Eliminar"}
           </Button>
-
         </DialogActions>
-
       </Dialog>
-
+      <Dialog
+  open={!!listToRename}
+  onClose={() => setListToRename(null)}
+>
+  <DialogTitle>Renombrar lista</DialogTitle>
+  <DialogContent>
+    <TextField
+      autoFocus
+      margin="dense"
+      label="Nuevo nombre"
+      fullWidth
+      value={newListName}
+      onChange={(e) => setNewListName(e.target.value)}
+    />
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setListToRename(null)}>Cancelar</Button>
+    <Button
+      variant="contained"
+      onClick={() =>
+        renameMutation.mutate({ listId: listToRename._id, name: newListName })
+      }
+      disabled={renameMutation.isLoading}
+    >
+      {renameMutation.isLoading ? "Guardando..." : "Guardar"}
+    </Button>
+  </DialogActions>
+</Dialog>
     </Box>
   );
 }

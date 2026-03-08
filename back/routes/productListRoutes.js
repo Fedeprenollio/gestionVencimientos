@@ -21,6 +21,7 @@ import {
   updateTagDate,
   getProductsFromLists,
   getUploadLogsByBranch,
+  updateProductListName,
 } from '../controllers/productListController.js';
 import { comparePricesByDateSeparateCollections } from '../controllers/historyPruceController.js';
 import ProductList from '../models/ProductList.js';
@@ -34,6 +35,8 @@ productListRoutes.get('/branch/:branchId', getProductListsByBranch);
 productListRoutes.post('/products', getProductsFromLists); //<-- me trae todos los productos de las listas seleccionadas
 
 productListRoutes.put('/:listId/add/:productId', addProductToList);
+// Editar nombre de la lista
+productListRoutes.put("/:listId/name", updateProductListName);
 //CARGA MULTIPLE A LIST
 productListRoutes.post('/:listId/add-multiple', addMultipleProductsToList);
 //ELIMINAR MULTIPLE

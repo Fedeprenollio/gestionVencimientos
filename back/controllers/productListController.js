@@ -2071,3 +2071,28 @@ export const getProductsFromLists = async (req, res) => {
     res.status(500).json({ error: "Error al obtener productos" });
   }
 };
+
+
+export const updateProductListName = async (req, res) => {
+  const { listId } = req.params;
+  const { name } = req.body;
+
+  if (!name || name.trim() === "") {
+    return res.status(400).json({ message: "Se requiere un nombre válido para la lista." });
+  }
+
+  try {
+    const list = await ProductList.findById(listId);
+    if (!list) {
+      return res.status(404).json({ message: "Lista no encontrada." });
+    }
+
+    list.name = name;
+    await list.save();
+
+    res.json({ message: "✅ Nombre de la lista actualizado correctamente", list });
+  } catch (err) {
+    console.error("Error al actualizar el nombre de la lista:", err);
+    res.status(500).json({ message: "❌ Error del servidor" });
+  }
+};
