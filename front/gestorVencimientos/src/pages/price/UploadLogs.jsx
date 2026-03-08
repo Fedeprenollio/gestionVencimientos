@@ -1106,9 +1106,9 @@ export default function UploadLogs() {
                       <TableCell align="right">
                         <strong>Ahora</strong>
                       </TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                         <strong>Etiqueta anterior</strong>
-                      </TableCell>
+                      </TableCell> */}
                     </TableRow>
                   </TableHead>
 
@@ -1144,7 +1144,7 @@ export default function UploadLogs() {
                             {formatPrice(p.newPrice ?? p.price)}
                           </TableCell>
 
-                          <TableCell>
+                          {/* <TableCell>
                             {p.previousTagDate ? (
                               new Date(p.previousTagDate).toLocaleDateString("es-AR")
                             ) : (
@@ -1152,7 +1152,7 @@ export default function UploadLogs() {
                                 Sin etiqueta previa
                               </Typography>
                             )}
-                          </TableCell>
+                          </TableCell> */}
                         </TableRow>
                       );
                     })}

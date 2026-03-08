@@ -8,7 +8,8 @@ const stockRowSchema = new mongoose.Schema({
   price: { type: Number },                // Precio
   cost: { type: Number },                 // costo
   lab: { type: String },                  // Laboratorio
-  barcodes: [{ type: String }],          // CodigosBarra (como array)
+  barcodes: [{ type: String }],  
+  priceDate: Date        // CodigosBarra (como array)
 });
 
 const stockImportSchema = new mongoose.Schema({

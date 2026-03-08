@@ -109,7 +109,14 @@ export const importStock = async (req, res) => {
         // Añadir al mapa para evitar duplicados en el mismo Excel
         existingMap.set(idProducto, { barcode: idProducto, name: productName });
       }
+      const fechaUltimoPrecioRaw = row["FechaUltimoPrecio"]?.toString().trim();
 
+      let priceDate = null;
+
+      if (fechaUltimoPrecioRaw) {
+        const [day, month, year] = fechaUltimoPrecioRaw.split("/");
+        priceDate = new Date(`${year}-${month}-${day}`);
+      }
       // Guardar fila formateada para registrar la importación
       formattedRows.push({
         barcode: barcode || idProducto,
@@ -119,6 +126,7 @@ export const importStock = async (req, res) => {
         price: Number(row["Precio"]) || 0,
         cost: Number(row["costo"]) || 0,
         lab: row["Laboratorio"]?.toString().trim() || "",
+        priceDate,
         barcodes,
       });
     }
@@ -139,39 +147,38 @@ export const importStock = async (req, res) => {
     await newImport.save();
 
     // 🧹 CLEANUP: borrar imports pending viejas de la sucursal
-const pendingDelete = await StockImport.deleteMany({
-  branch: req.body.branchId,
-  status: { $ne: "applied" }, // pending u otros
-  _id: { $ne: newImport._id },
-});
+    const pendingDelete = await StockImport.deleteMany({
+      branch: req.body.branchId,
+      status: { $ne: "applied" }, // pending u otros
+      _id: { $ne: newImport._id },
+    });
 
-console.log(
-  `🧹 Pending imports borradas: ${pendingDelete.deletedCount} (branch ${req.body.branchId})`
-);
+    console.log(
+      `🧹 Pending imports borradas: ${pendingDelete.deletedCount} (branch ${req.body.branchId})`,
+    );
 
-// 🧹 CLEANUP: dejar solo las últimas 2 applied por sucursal
-const applied = await StockImport.find({
-  branch: req.body.branchId,
-  status: "applied",
-})
-  .sort({ appliedAt: -1, importedAt: -1, createdAt: -1 })
-  .select("_id")
-  .lean();
+    // 🧹 CLEANUP: dejar solo las últimas 2 applied por sucursal
+    const applied = await StockImport.find({
+      branch: req.body.branchId,
+      status: "applied",
+    })
+      .sort({ appliedAt: -1, importedAt: -1, createdAt: -1 })
+      .select("_id")
+      .lean();
 
-const toDeleteApplied = applied.slice(2);
+    const toDeleteApplied = applied.slice(2);
 
-if (toDeleteApplied.length > 0) {
-  const appliedDelete = await StockImport.deleteMany({
-    _id: { $in: toDeleteApplied.map((x) => x._id) },
-  });
+    if (toDeleteApplied.length > 0) {
+      const appliedDelete = await StockImport.deleteMany({
+        _id: { $in: toDeleteApplied.map((x) => x._id) },
+      });
 
-  console.log(
-    `🧹 Applied imports borradas: ${appliedDelete.deletedCount} (branch ${req.body.branchId})`
-  );
-} else {
-  console.log("🧹 No hay applied viejas para borrar (<=2).");
-}
-
+      console.log(
+        `🧹 Applied imports borradas: ${appliedDelete.deletedCount} (branch ${req.body.branchId})`,
+      );
+    } else {
+      console.log("🧹 No hay applied viejas para borrar (<=2).");
+    }
 
     return res.status(201).json({
       message: "Importación de stock guardada correctamente",
@@ -403,7 +410,7 @@ export const applyStockImport = async (req, res) => {
 
     importData.status = "applied";
     await importData.save();
-console.log("HOLA")
+    console.log("HOLA");
     // 🧹 Limpiar imports applied viejos (dejar solo los últimos 2 por sucursal)
     const appliedImports = await StockImport.find({
       branch: importData.branch,

@@ -17,6 +17,7 @@ import {
 import api from "../../api/axiosInstance";
 import useBranchStore from "../../store/useBranchStore";
 import SucursalSelector from "../../components/SucursalSelector";
+import UploadPricesResultByList from "../price/UploadPricesResultByList";
 
 export default function UpdateFromImportForm({result, setResult}) {
   const { selectedBranchId } = useBranchStore((state) => state);

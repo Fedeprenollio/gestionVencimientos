@@ -392,6 +392,7 @@ const formatDate = (dateValue) => {
 };
 
 export default function UploadPricesResultByList({ data }) {
+  console.log("DATA,", data)
   // 🔥 estado global SOLO para el buscador (si querés que sea por lista, también se puede)
   const [search, setSearch] = useState("");
 
@@ -520,7 +521,8 @@ export default function UploadPricesResultByList({ data }) {
   return (
     <Box mt={3}>
       {/* HEADER GLOBAL */}
-      <Paper
+      
+      {/* <Paper
         variant="outlined"
         sx={{
           p: 3,
@@ -566,7 +568,6 @@ export default function UploadPricesResultByList({ data }) {
           </Stack>
         </Stack>
 
-        {/* SEARCH GLOBAL */}
         <Box mt={2}>
           <TextField
             fullWidth
@@ -576,7 +577,7 @@ export default function UploadPricesResultByList({ data }) {
             onChange={(e) => setSearch(e.target.value)}
           />
         </Box>
-      </Paper>
+      </Paper> */}
 
       {/* LISTAS */}
       {data.lists.map((list) => {
