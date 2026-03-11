@@ -24,6 +24,7 @@
     "dayjs": "^1.11.13",
     "file-saver": "^2.0.5",
     "gs1-barcode-parser": "^1.0.1",
+    "html-to-image": "^1.11.13",
     "html5-qrcode": "^2.3.8",
     "idb": "^8.0.3",
     "javascript-lp-solver": "^0.4.24",

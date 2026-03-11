@@ -39,6 +39,7 @@ import ProximosAVencer from "./pages/AsiganacionesDeStocks/ProximosAVencer";
 import ABCViewer from "./pages/AsiganacionesDeStocks/ABCViewer";
 import { GuiaDashboard } from "./guiaMostrador/pages/GuiaDashboard";
 import FarmacoPage from "./guiaMostrador/pages/FarmacoPage";
+import FlyerBuilder from "./flyer/FlyerBuilder";
 
 export const AppRoutes = () => {
   return (
@@ -122,6 +123,7 @@ export const AppRoutes = () => {
         />
         <Route path="/guia" element={<GuiaDashboard />} />
         <Route path="/farmacos/:id" element={<FarmacoPage  />} />
+        <Route path="flyer" element={<FlyerBuilder/>} />
       </Routes>
     </Box>
   );
