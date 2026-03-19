@@ -155,12 +155,11 @@ export default function AddProductsLocal() {
       .filter((code) => code.length > 0);
   };
 
-
   const handleBulkAdd = async () => {
     setLoadingBulk(true);
     const codes = parseBarcodes(bulkAddInput);
     const existingCodes = new Set(
-      list.products.map((p) => p.product?.barcode?.trim()).filter(Boolean)
+      list.products.map((p) => p.product?.barcode?.trim()).filter(Boolean),
     );
 
     try {
@@ -183,7 +182,6 @@ export default function AddProductsLocal() {
       setLoadingBulk(false);
     }
   };
-
 
   // const handleBulkRemove = async () => {
   //   if (!window.confirm("¿Estás seguro que querés eliminar estos productos?"))
@@ -215,25 +213,25 @@ export default function AddProductsLocal() {
   //     setLoadingBulk(false);
   //   }
   // };
-const handleBulkRemove = async () => {
-  if (!window.confirm("¿Estás seguro que querés eliminar estos productos?"))
-    return;
+  const handleBulkRemove = async () => {
+    if (!window.confirm("¿Estás seguro que querés eliminar estos productos?"))
+      return;
 
-  setLoadingBulk(true);
-  const codesToRemove = parseBarcodes(bulkRemoveInput); // aquí están los códigos
+    setLoadingBulk(true);
+    const codesToRemove = parseBarcodes(bulkRemoveInput); // aquí están los códigos
 
-  try {
-    await removeMultipleProductsFromList(listId, codesToRemove); // ahora mando códigos directamente
-    showFeedback("Productos eliminados correctamente");
-    setBulkRemoveInput("");
-    loadList();
-  } catch (err) {
-    console.error(err);
-    showFeedback("Error al eliminar productos", "error");
-  } finally {
-    setLoadingBulk(false);
-  }
-};
+    try {
+      await removeMultipleProductsFromList(listId, codesToRemove); // ahora mando códigos directamente
+      showFeedback("Productos eliminados correctamente");
+      setBulkRemoveInput("");
+      loadList();
+    } catch (err) {
+      console.error(err);
+      showFeedback("Error al eliminar productos", "error");
+    } finally {
+      setLoadingBulk(false);
+    }
+  };
 
   const handleRemoveSelected = async () => {
     if (!window.confirm("¿Eliminar los productos seleccionados?")) return;
@@ -260,26 +258,26 @@ const handleBulkRemove = async () => {
     }
   };
 
-    useEffect(() => {
-      console.log("BUSCA?")
-      if (nameQuery.length < 2) return;
-  
-      const delayDebounce = setTimeout(async () => {
-        try {
-          const res = await axios.get(
-            `${import.meta.env.VITE_API_URL}/products/search?name=${nameQuery}`
-          );
-          setNameResults(res.data);
-        } catch (err) {
-          console.error("Error buscando por nombre:", err);
-        }
-      }, 300);
-  
-      return () => clearTimeout(delayDebounce);
-    }, [nameQuery])
+  useEffect(() => {
+    console.log("BUSCA?");
+    if (nameQuery.length < 2) return;
+
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/products/search?name=${nameQuery}`,
+        );
+        setNameResults(res.data);
+      } catch (err) {
+        console.error("Error buscando por nombre:", err);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [nameQuery]);
 
   if (!list) return <CircularProgress />;
-console.log("Y aca llega¡ namequery",nameQuery)
+  console.log("Y aca llega¡ namequery", nameQuery);
   return (
     <Box p={3}>
       <Typography variant="h6">
@@ -397,13 +395,18 @@ console.log("Y aca llega¡ namequery",nameQuery)
                         setSelectedProducts((prev) =>
                           prev.includes(id)
                             ? prev.filter((pid) => pid !== id)
-                            : [...prev, id]
+                            : [...prev, id],
                         );
                       }}
                     />
                   </TableCell>
                   <TableCell>{entry.product?.name}</TableCell>
-                  <TableCell>{entry.product?.barcode}</TableCell>
+                  {/* <TableCell>{entry.product?.barcode}</TableCell> */}
+                  <TableCell>
+                    {entry.product?.alternateBarcodes?.length > 0
+                      ? entry.product.alternateBarcodes[0]
+                      : entry.product?.barcode}
+                  </TableCell>
                   <TableCell align="right">
                     <Button
                       size="small"
