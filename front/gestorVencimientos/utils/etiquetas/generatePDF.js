@@ -2,6 +2,10 @@ import jsPDF from "jspdf";
 import { generateBarcodeImage } from "../generateBarcodeImage";
 import dayjs from "dayjs";
 
+const hasDiscount = (p) => {
+  return p?.discount && Number(p.discount) > 0;
+};
+
 export const generatePDF_Clasicas = ({ clasicos }) => {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
 
@@ -52,19 +56,39 @@ export const generatePDF_Clasicas = ({ clasicos }) => {
     doc.setFont("helvetica", "bold");
     doc.text(name, x + 2, y + 10);
 
-    doc.setFontSize(8);
-    doc.setTextColor(255, 0, 0);
-    doc.text(`${p.discount}% OFF`, x + 2, y + 15);
+    // doc.setFontSize(8);
+    // doc.setTextColor(255, 0, 0);
+    // doc.text(`${p.discount}% OFF`, x + 2, y + 15);
 
-    const prevPrice = p.manualPreviousPrice ?? p.currentPrice ?? 0;
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    const prevPriceText = `$${prevPrice.toFixed(2)}`;
-    doc.text(prevPriceText, x + 2, y + 20);
-    const prevWidth = doc.getTextWidth(prevPriceText);
+    if (hasDiscount(p)) {
+      doc.setFontSize(8);
+      doc.setTextColor(255, 0, 0);
+      doc.text(`${p.discount}% OFF`, x + 2, y + 15);
+    }
 
-    doc.setLineWidth(0.5);
-    doc.line(x + 2, y + 19, x + 2 + prevWidth, y + 19);
+    // const prevPrice = p.manualPreviousPrice ?? p.currentPrice ?? 0;
+    // doc.setFontSize(8);
+    // doc.setTextColor(100);
+    // const prevPriceText = `$${prevPrice.toFixed(2)}`;
+    // doc.text(prevPriceText, x + 2, y + 20);
+    // const prevWidth = doc.getTextWidth(prevPriceText);
+
+    // doc.setLineWidth(0.5);
+    // doc.line(x + 2, y + 19, x + 2 + prevWidth, y + 19);
+
+    if (hasDiscount(p)) {
+      const prevPrice = p.manualPreviousPrice ?? p.currentPrice ?? 0;
+
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+
+      const prevPriceText = `$${prevPrice.toFixed(2)}`;
+      doc.text(prevPriceText, x + 2, y + 20);
+
+      const prevWidth = doc.getTextWidth(prevPriceText);
+      doc.setLineWidth(0.5);
+      doc.line(x + 2, y + 19, x + 2 + prevWidth, y + 19);
+    }
 
     doc.setFontSize(28);
     doc.setTextColor(0);
@@ -182,13 +206,11 @@ export const generatePDF_Grandes = async ({ especiales, scale = 0.5 }) => {
     let labelFontSize =
       (label === "LIQUIDACIÓN" || label === "RECOMENDADO" ? 16 : 20) * scale;
     doc.setFont("times", "bold");
-    label ==="PROMO 2X1" ? 28 : 20
+    label === "PROMO 2X1" ? 28 : 20;
     doc.setFontSize(labelFontSize);
     doc.setTextColor(0);
 
     doc.text(label, x + 23 * scale, y + 15 * scale);
-
-   
 
     // Nombre del producto
     const nombreParaMostrar = p.manualName?.trim() || p.name || "";
@@ -235,22 +257,46 @@ export const generatePDF_Grandes = async ({ especiales, scale = 0.5 }) => {
       const descuento = p.discount ?? 0;
       const prevPrice = p.manualPreviousPrice ?? p.currentPrice ?? 0;
 
-      doc.setFontSize(24 * scale);
-      doc.setTextColor(0);
-      doc.text(`${descuento}% OFF`, x + 8 * scale, y + 50 * scale);
+      // doc.setFontSize(24 * scale);
+      // doc.setTextColor(0);
+      // doc.text(`${descuento}% OFF`, x + 8 * scale, y + 50 * scale);
 
-      doc.setFontSize(18 * scale);
-      doc.setTextColor(100);
-      const prevPriceText = `$${prevPrice.toFixed(2)}`;
-      doc.text(prevPriceText, x + 8 * scale, y + 56 * scale);
+      if (descuento > 0) {
+        doc.setFontSize(24 * scale);
+        doc.setTextColor(0);
+        doc.text(`${descuento}% OFF`, x + 8 * scale, y + 50 * scale);
+      }
 
-      doc.setLineWidth(0.4);
-      doc.line(
-        x + 8 * scale,
-        y + 54.6 * scale,
-        x + 8 * scale + doc.getTextWidth(prevPriceText),
-        y + 54.8 * scale,
-      );
+      // doc.setFontSize(18 * scale);
+      // doc.setTextColor(100);
+      // const prevPriceText = `$${prevPrice.toFixed(2)}`;
+      // doc.text(prevPriceText, x + 8 * scale, y + 56 * scale);
+
+      // doc.setLineWidth(0.4);
+      // doc.line(
+      //   x + 8 * scale,
+      //   y + 54.6 * scale,
+      //   x + 8 * scale + doc.getTextWidth(prevPriceText),
+      //   y + 54.8 * scale,
+      // );
+
+      if (descuento > 0) {
+        const prevPrice = p.manualPreviousPrice ?? p.currentPrice ?? 0;
+
+        doc.setFontSize(18 * scale);
+        doc.setTextColor(100);
+
+        const prevPriceText = `$${prevPrice.toFixed(2)}`;
+        doc.text(prevPriceText, x + 8 * scale, y + 56 * scale);
+
+        doc.setLineWidth(0.4);
+        doc.line(
+          x + 8 * scale,
+          y + 54.6 * scale,
+          x + 8 * scale + doc.getTextWidth(prevPriceText),
+          y + 54.8 * scale,
+        );
+      }
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(priceFontSize);
@@ -262,87 +308,83 @@ export const generatePDF_Grandes = async ({ especiales, scale = 0.5 }) => {
         { align: "center" },
       );
     } else if (p.tipoEtiqueta === "dosPorUno") {
+      const price = p.currentPrice ?? p.manualPrice ?? 0;
+      const integerPrice = Math.floor(price);
 
-  const price = p.currentPrice ?? p.manualPrice ?? 0;
-  const integerPrice = Math.floor(price);
+      const unitPromo = price / 2;
+      const unitInt = Math.round(unitPromo);
 
-  const unitPromo = price / 2;
-  const unitInt = Math.round(unitPromo);
+      // Coordenadas del barcode (igual que tu bloque de barcode)
+      const barcodeY = y + etiquetaAlto - 20 * scale;
+      const barcodeHeight = 10 * scale;
 
-  // Coordenadas del barcode (igual que tu bloque de barcode)
-  const barcodeY = y + etiquetaAlto - 20 * scale;
-  const barcodeHeight = 10 * scale;
+      // =========================
+      // 1) Sticker circular PREMIUM (rojo con 2x1 blanco)
+      // =========================
+      // =========================
+      // Sticker Opción C (B/N minimal)
+      // =========================
+      const stickerR = 16 * scale;
+      const stickerCx = x + etiquetaAncho - 14 * scale;
+      const stickerCy = y + 46 * scale;
 
-  // =========================
-  // 1) Sticker circular PREMIUM (rojo con 2x1 blanco)
-  // =========================
-// =========================
-// Sticker Opción C (B/N minimal)
-// =========================
-const stickerR = 16 * scale;
-const stickerCx = x + etiquetaAncho - 14 * scale;
-const stickerCy = y + 46 * scale;
+      // círculo blanco + borde negro
+      doc.setDrawColor(180);
+      doc.setLineWidth(0.8 * scale);
+      doc.circle(stickerCx, stickerCy, stickerR, "S");
 
-// círculo blanco + borde negro
-doc.setDrawColor(180);
-doc.setLineWidth(0.8 * scale);
-doc.circle(stickerCx, stickerCy, stickerR, "S");
+      // texto negro
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(52 * scale);
+      doc.setTextColor(55);
 
-// texto negro
-doc.setFont("helvetica", "bold");
-doc.setFontSize(52 * scale);
-doc.setTextColor(55);
+      // centrado óptico (jsPDF baseline)
+      doc.text("2×1", stickerCx + 0.4 * scale, stickerCy + 5.2 * scale, {
+        align: "center",
+      });
 
-// centrado óptico (jsPDF baseline)
-doc.text("2×1", stickerCx + 0.4 * scale, stickerCy + 5.2 * scale, {
-  align: "center",
-});
+      // =========================
+      // 2) Precio grande (SUBIDO)
+      // =========================
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(52 * scale);
+      doc.setTextColor(0);
 
+      doc.text(
+        `$${integerPrice.toFixed(0)}`,
+        x + etiquetaAncho / 2,
+        y + 76 * scale,
+        { align: "center" },
+      );
 
+      // =========================
+      // 3) Unitario (arriba del barcode)
+      // =========================
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(15 * scale);
+      doc.setTextColor(70);
 
-  // =========================
-  // 2) Precio grande (SUBIDO)
-  // =========================
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(52 * scale);
-  doc.setTextColor(0);
+      doc.text(
+        `Pagas $${unitInt} cada uno`,
+        x + etiquetaAncho / 2,
+        barcodeY - 1 * scale,
+        { align: "center" },
+      );
 
-  doc.text(
-    `$${integerPrice.toFixed(0)}`,
-    x + etiquetaAncho / 2,
-    y + 76 * scale,
-    { align: "center" }
-  );
+      // =========================
+      // 4) Leyenda abajo del barcode (dentro y con aire)
+      // =========================
+      // doc.setFont("helvetica", "bold");
+      // doc.setFontSize(11 * scale);
+      // doc.setTextColor(30);
 
-  // =========================
-  // 3) Unitario (arriba del barcode)
-  // =========================
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(15 * scale);
-  doc.setTextColor(70);
-
-  doc.text(
-    `Pagas $${unitInt} cada uno`,
-    x + etiquetaAncho / 2,
-    barcodeY - 1 * scale,
-    { align: "center" }
-  );
-
-  // =========================
-  // 4) Leyenda abajo del barcode (dentro y con aire)
-  // =========================
-  // doc.setFont("helvetica", "bold");
-  // doc.setFontSize(11 * scale);
-  // doc.setTextColor(30);
-
-  // doc.text(
-  //   "Pagás 1, llevás 2",
-  //   x + etiquetaAncho / 2,
-  //   barcodeY + barcodeHeight + 4.5 * scale,
-  //   { align: "center" }
-  // );
-}
-
+      // doc.text(
+      //   "Pagás 1, llevás 2",
+      //   x + etiquetaAncho / 2,
+      //   barcodeY + barcodeHeight + 4.5 * scale,
+      //   { align: "center" }
+      // );
+    }
 
     // Código de barras
     if (p.barcode) {
