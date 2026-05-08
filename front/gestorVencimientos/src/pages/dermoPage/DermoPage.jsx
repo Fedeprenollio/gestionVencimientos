@@ -321,14 +321,37 @@ const DermoPage = () => {
     }
   };
 
-  const handleClearStorage =
-    () => {
-      localStorage.removeItem(
-        STORAGE_KEY
-      );
+  const handleClearStorage = () => {
+  localStorage.removeItem(
+    STORAGE_KEY
+  );
 
-      window.location.reload();
-    };
+  setFileName('Mayo');
+
+  setActiveTab(0);
+
+  setSheets([
+    {
+      id: 1,
+      sheetName: 'Cassara',
+      jsonInput: ''
+    }
+  ]);
+
+  setPreviewOpen(false);
+
+  setPreviewData([]);
+
+  setPreviewStats({
+    totalProductos: 0,
+    totalCategorias: 0
+  });
+
+  showMessage(
+    'Datos eliminados correctamente.',
+    'success'
+  );
+};
 
   // =========================
   // JSON EXTRACTION
