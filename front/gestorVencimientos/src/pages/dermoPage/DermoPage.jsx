@@ -58,7 +58,7 @@ const DermoPage = () => {
     useState(false);
 
   const [fileName, setFileName] =
-    useState('Mayo');
+    useState('Bonos dermo');
 
   const [activeTab, setActiveTab] =
     useState(0);
@@ -67,7 +67,7 @@ const DermoPage = () => {
     useState([
       {
         id: 1,
-        sheetName: 'Cassara',
+        sheetName: 'Algun Lab',
         jsonInput: ''
       }
     ]);
@@ -326,14 +326,14 @@ const DermoPage = () => {
     STORAGE_KEY
   );
 
-  setFileName('Mayo');
+  setFileName('Bonos dermo');
 
   setActiveTab(0);
 
   setSheets([
     {
       id: 1,
-      sheetName: 'Cassara',
+      sheetName: 'Algun Lab',
       jsonInput: ''
     }
   ]);
