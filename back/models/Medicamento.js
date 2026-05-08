@@ -53,7 +53,7 @@ const medicamentoSchema = new mongoose.Schema({
     embarazo: { 
   estado: { type: String, enum: ["seguro", "precaucion", "contraindicado"] },
   texto: String
-}
+},
     lactancia: { estado: String, texto: String }
   },
 
