@@ -93,6 +93,10 @@ export default function Navbar({
           label: "Listas de devolución a droguerías",
           to: "/lists/drug-returns",
         },
+           {
+          label: "Listas dermo",
+          to: "/lists/dermo",
+        },
       ],
     },
     {

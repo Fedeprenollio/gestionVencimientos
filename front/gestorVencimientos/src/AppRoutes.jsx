@@ -40,6 +40,7 @@ import ABCViewer from "./pages/AsiganacionesDeStocks/ABCViewer";
 import { GuiaDashboard } from "./guiaMostrador/pages/GuiaDashboard";
 import FarmacoPage from "./guiaMostrador/pages/FarmacoPage";
 import FlyerBuilder from "./flyer/FlyerBuilder";
+import DermoPage from "./pages/dermoPage/DermoPage";
 
 export const AppRoutes = () => {
   return (
@@ -94,6 +95,7 @@ export const AppRoutes = () => {
         <Route path="/stock-count/new" element={<StockCountForm />} />
         <Route path="/stock-count/:listId" element={<QuickStockCount />} />
         <Route path="/lists/drug-returns" element={<VencimientosPage />} />
+        <Route path="/lists/dermo" element={<DermoPage />} />
         <Route path="/stock/stockAnalysiss" element={<ImportStockAnalysis />} />
         <Route path="/contacts" element={<SucursalesContactList />} />
         <Route path="/help" element={<TutorialPage />} />
@@ -111,10 +113,7 @@ export const AppRoutes = () => {
 
 
         <Route path="/promotions/new" element={<PromotionForm />} />
-        {/* <Route
-                path="/lists/drug-returns"
-                element={<ReturnListManager />}
-              /> */}
+        
         <Route path="*" element={<Productos />} />
         <Route path="/analisis" element={<MovementAnalyzer />} />
         <Route

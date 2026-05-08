@@ -2,8 +2,8 @@ import mongoose from "mongoose";
 
 const medicamentoSchema = new mongoose.Schema({
   nombre: { type: String, required: true }, // ej: Ibuprofeno
-  claseTerapeutica: String, // ej: aine
-  grupo: String,
+  // claseTerapeutica: String, // ej: aine
+  grupo: { type: mongoose.Schema.Types.ObjectId, ref: "GrupoTerapeutico" },
   
   // Relación con los Principios Activos (para el Diclo + B12 + Dexa)
   principiosActivos: [{ 
@@ -50,7 +50,10 @@ const medicamentoSchema = new mongoose.Schema({
     noDarSi: [String],
     precauciones: [String],
     efectosFrecuentes: [String],
-    embarazo: { estado: String, texto: String }, // rojo, amarillo, verde
+    embarazo: { 
+  estado: { type: String, enum: ["seguro", "precaucion", "contraindicado"] },
+  texto: String
+}
     lactancia: { estado: String, texto: String }
   },
 

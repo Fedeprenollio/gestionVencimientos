@@ -12,7 +12,8 @@ const PatologiaSchema = new mongoose.Schema({
   gruposRecomendados: [{
     grupo: { type: mongoose.Schema.Types.ObjectId, ref: "GrupoTerapeutico" },
     nota: String 
-  }]
+  }],
+  sintomasClave: [String]
 });
 
 export const Patologia = mongoose.model("Patologia", PatologiaSchema);
