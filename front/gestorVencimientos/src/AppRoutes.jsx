@@ -41,6 +41,7 @@ import { GuiaDashboard } from "./guiaMostrador/pages/GuiaDashboard";
 import FarmacoPage from "./guiaMostrador/pages/FarmacoPage";
 import FlyerBuilder from "./flyer/FlyerBuilder";
 import DermoPage from "./pages/dermoPage/DermoPage";
+import OfertasToExcel from "./pages/ofertasPerfu/ofertasToExcel";
 
 export const AppRoutes = () => {
   return (
@@ -96,6 +97,7 @@ export const AppRoutes = () => {
         <Route path="/stock-count/:listId" element={<QuickStockCount />} />
         <Route path="/lists/drug-returns" element={<VencimientosPage />} />
         <Route path="/lists/dermo" element={<DermoPage />} />
+         <Route path="/lists/ofertasToExcel" element={<OfertasToExcel />} />
         <Route path="/stock/stockAnalysiss" element={<ImportStockAnalysis />} />
         <Route path="/contacts" element={<SucursalesContactList />} />
         <Route path="/help" element={<TutorialPage />} />
