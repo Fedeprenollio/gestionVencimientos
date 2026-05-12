@@ -41,7 +41,7 @@ import { GuiaDashboard } from "./guiaMostrador/pages/GuiaDashboard";
 import FarmacoPage from "./guiaMostrador/pages/FarmacoPage";
 import FlyerBuilder from "./flyer/FlyerBuilder";
 import DermoPage from "./pages/dermoPage/DermoPage";
-import OfertasToExcel from "./pages/ofertasPerfu/ofertasToExcel";
+import OfertasToExcel from "./pages/ofertasPerfu/OfertasToExcel";
 
 
 export const AppRoutes = () => {
