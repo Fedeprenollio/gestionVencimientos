@@ -37,7 +37,7 @@ export default function OfertasToExcel() {
 
   const currentTab = useMemo(
     () => tabs[activeTab],
-    [tabs, activeTab]
+    [tabs, activeTab],
   );
 
   const handleAddTab = () => {
@@ -58,7 +58,7 @@ export default function OfertasToExcel() {
     if (tabs.length === 1) return;
 
     const updatedTabs = tabs.filter(
-      (_, i) => i !== index
+      (_, i) => i !== index,
     );
 
     setTabs(updatedTabs);
@@ -76,24 +76,44 @@ export default function OfertasToExcel() {
               ...tab,
               json: value,
             }
-          : tab
-      )
+          : tab,
+      ),
+    );
+  };
+
+  const handleChangeName = (value) => {
+    setTabs((prev) =>
+      prev.map((tab, index) =>
+        index === activeTab
+          ? {
+              ...tab,
+              name: value,
+            }
+          : tab,
+      ),
     );
   };
 
   const parseProducts = (jsonText) => {
     const parsed = JSON.parse(jsonText);
 
+    // Categoria sacada automáticamente del JSON
+    const category = parsed?.data?.title || "";
+
     const products =
       parsed?.data?.submodules?.flatMap(
-        (submodule) => submodule.products || []
+        (submodule) => submodule.products || [],
       ) || [];
 
     return products.map((product) => ({
+      Categoria: category,
+
       Laboratorio: product.lab || "",
+
       "Código de Barra": String(
-        product.codeBar || ""
+        product.codeBar || "",
       ).trim(),
+
       Nombre: product.productName || "",
 
       Precio: product.pvp || 0,
@@ -113,26 +133,27 @@ export default function OfertasToExcel() {
 
   const applyStyles = (worksheet, dataLength) => {
     worksheet["!cols"] = [
-      { wch: 30 },
-      { wch: 20 },
-      { wch: 55 },
-      { wch: 14 },
-      { wch: 14 },
-      { wch: 20 },
-      { wch: 14 },
+      { wch: 28 }, // categoria
+      { wch: 30 }, // laboratorio
+      { wch: 20 }, // barcode
+      { wch: 55 }, // nombre
+      { wch: 14 }, // precio
+      { wch: 14 }, // descuento
+      { wch: 20 }, // precio descuento
+      { wch: 14 }, // stock
     ];
 
     for (let i = 2; i <= dataLength + 1; i++) {
-      if (worksheet[`D${i}`]) {
-        worksheet[`D${i}`].z = "$#,##0.00";
-      }
-
       if (worksheet[`E${i}`]) {
-        worksheet[`E${i}`].z = "0.00%";
+        worksheet[`E${i}`].z = "$#,##0.00";
       }
 
       if (worksheet[`F${i}`]) {
-        worksheet[`F${i}`].z = "$#,##0.00";
+        worksheet[`F${i}`].z = "0.00%";
+      }
+
+      if (worksheet[`G${i}`]) {
+        worksheet[`G${i}`].z = "$#,##0.00";
       }
     }
   };
@@ -160,33 +181,34 @@ export default function OfertasToExcel() {
         XLSX.utils.book_append_sheet(
           workbook,
           worksheet,
-          tab.name.substring(0, 31)
+          tab.name.substring(0, 31),
         );
       });
 
+      // Hoja consolidada
       if (allProducts.length > 0) {
         const allWorksheet =
           XLSX.utils.json_to_sheet(allProducts);
 
         applyStyles(
           allWorksheet,
-          allProducts.length
+          allProducts.length,
         );
 
         XLSX.utils.book_append_sheet(
           workbook,
           allWorksheet,
-          "Todos los Productos"
+          "Todos los Productos",
         );
       }
 
       XLSX.writeFile(
         workbook,
-        `productos_${Date.now()}.xlsx`
+        `productos_${Date.now()}.xlsx`,
       );
     } catch (err) {
       console.error(err);
-      setError("JSON inválido.");
+      setError("Uno de los JSON es inválido.");
     }
   };
 
@@ -310,28 +332,41 @@ export default function OfertasToExcel() {
 
           {/* Content */}
           <CardContent sx={{ p: 3 }}>
-            <Stack spacing={2}>
+            <Stack spacing={3}>
               <Box>
                 <Typography
                   variant="h6"
                   fontWeight="bold"
                 >
-                  {currentTab.name}
+                  Configuración de Hoja
                 </Typography>
 
                 <Typography
                   variant="body2"
                   color="text.secondary"
                 >
-                  Pegá el JSON correspondiente a
-                  esta hoja.
+                  El nombre será usado solamente
+                  como nombre de hoja.
+                  <br />
+                  La columna "Categoria" se obtiene
+                  automáticamente del JSON.
                 </Typography>
               </Box>
 
+              {/* Nombre hoja */}
+              <TextField
+                label="Nombre de Hoja"
+                fullWidth
+                value={currentTab.name}
+                onChange={(e) =>
+                  handleChangeName(e.target.value)
+                }
+              />
+
+              {/* JSON */}
               <TextField
                 multiline
                 fullWidth
-                minRows={24}
                 value={currentTab.json}
                 onChange={(e) =>
                   handleChangeJson(e.target.value)
@@ -339,7 +374,16 @@ export default function OfertasToExcel() {
                 placeholder="Pegá acá el JSON..."
                 variant="outlined"
                 sx={{
-                  "& .MuiInputBase-input": {
+                  "& .MuiInputBase-root": {
+                    height: 500,
+                    alignItems: "flex-start",
+                    overflow: "auto",
+                  },
+
+                  "& textarea": {
+                    height: "100% !important",
+                    overflow: "auto !important",
+                    resize: "none",
                     fontFamily: "monospace",
                     fontSize: 13,
                   },
