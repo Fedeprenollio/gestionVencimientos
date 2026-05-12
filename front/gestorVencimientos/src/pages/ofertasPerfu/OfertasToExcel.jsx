@@ -22,7 +22,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
 
-export default function JsonToExcelTabs() {
+export default function OfertasToExcel() {
   const [tabs, setTabs] = useState([
     {
       id: Date.now(),
