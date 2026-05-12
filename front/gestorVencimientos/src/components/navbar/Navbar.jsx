@@ -98,7 +98,7 @@ export default function Navbar({
           to: "/lists/dermo",
         },
            {
-          label: "Listas dermo",
+          label: "Listas oferta drog",
           to: "/lists/ofertasToExcel",
         },
       ],
