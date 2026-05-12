@@ -97,6 +97,10 @@ export default function Navbar({
           label: "Listas dermo",
           to: "/lists/dermo",
         },
+           {
+          label: "Listas dermo",
+          to: "/lists/ofertasToExcel",
+        },
       ],
     },
     {
