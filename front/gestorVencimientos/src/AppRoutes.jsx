@@ -42,6 +42,7 @@ import FarmacoPage from "./guiaMostrador/pages/FarmacoPage";
 import FlyerBuilder from "./flyer/FlyerBuilder";
 import DermoPage from "./pages/dermoPage/DermoPage";
 import OfertasToExcel from "./pages/ofertasPerfu/OfertasToExcel";
+import TrasladoProductos from "./pages/TrasladoProductos/TrasladoProductos";
 
 
 export const AppRoutes = () => {
@@ -53,6 +54,7 @@ export const AppRoutes = () => {
         <Route path="/expiring" element={<LotList />} />
         <Route path="/stock-search" element={<SearchStockPage />} />
         <Route path="/mover-proximos-a-vencer" element={<ProximosAVencer />} />
+        <Route path="/mover-proximos-a-vencer2" element={<TrasladoProductos />} />
         <Route path="/ABCViewer" element={<ABCViewer />} />
 
 

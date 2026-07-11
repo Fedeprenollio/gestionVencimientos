@@ -12,21 +12,22 @@ import {
   Tabs,
   Tab,
 } from "@mui/material";
-import { loadExcel } from "./loadExcel";
+
+
 import { assignProducts } from "./assignProducts";
-import DestinoTable from "./DestinoTable";
-import OrigenTable from "./OrigenTable";
-import { exportToExcel } from "./excelService";
+import OrigenTable from "../AsiganacionesDeStocks/OrigenTable";
+import DestinoTable from "../AsiganacionesDeStocks/DestinoTable";
+import { loadExcel } from "../AsiganacionesDeStocks/loadExcel";
+import { exportToExcel } from "../AsiganacionesDeStocks/excelService";
+import { prepareMovements } from "../AsiganacionesDeStocks/prepareMovements";
+import ConflictosTable from "./ConflictosTable/ConflictosTable";
 import { buildConflicts } from "./buildConflicts";
-import { prepareMovements } from "./prepareMovements";
-import ConflictosTable from "./ConflictosTable";
 
 export default function TrasladoProductos() {
   const [groupedBySucursal, setGroupedBySucursal] = useState({});
   const [groupedByOrigen, setGroupedByOrigen] = useState({});
   const [tab, setTab] = useState(0);
   const [conflicts, setConflicts] = useState([]);
-  console.log("conflicts", conflicts);
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -48,18 +49,51 @@ export default function TrasladoProductos() {
       alert("No se pudo procesar el archivo Excel.");
     }
   };
+const guardarConflicto = (conflict, cantidades) => {
+  conflict.movimientos.forEach((m) => {
+    if (cantidades[m.id] === undefined) return;
 
-  const resolverConflicto = (conflict, movimientoId) => {
-    conflict.movimientos.forEach((m) => {
-      m.activo = m.id === movimientoId;
-    });
+    const nuevaCantidad = Number(cantidades[m.id]);
 
-    setGroupedBySucursal((prev) => ({ ...prev }));
-    setGroupedByOrigen((prev) => ({ ...prev }));
+    m.cantidadTrasladar = nuevaCantidad;
 
-    setConflicts(buildConflicts(groupedBySucursal));
-  };
+    // Si finalmente NO se traslada
+    if (nuevaCantidad === 0) {
+      m.sucursalDestino = "";
+      m.ventasDestino = 0;
+      m.stockDestino = 0;
 
+      if (conflict.tipo === "rotacion") {
+        m.nota =
+          "✔ No se traslada porque se estima que se venderá en la sucursal antes del vencimiento.";
+      }
+
+      if (conflict.tipo === "duplicado") {
+        m.nota =
+          "❌ Traslado descartado durante la revisión de conflictos.";
+      }
+    }
+  });
+
+  setGroupedBySucursal({ ...groupedBySucursal });
+  setGroupedByOrigen({ ...groupedByOrigen });
+
+  setConflicts(buildConflicts(groupedBySucursal));
+};
+//   // Actualizar cantidades
+//   conflict.movimientos.forEach((m) => {
+//     m.cantidadTrasladar = Number(cantidades[m.id]) || 0;
+//   });
+
+//   // Fuerza render
+//   setGroupedBySucursal((prev) => ({ ...prev }));
+//   setGroupedByOrigen((prev) => ({ ...prev }));
+
+//   // Recalcula conflictos
+//   const nuevosConflictos = buildConflicts(groupedBySucursal);
+
+//   setConflicts(nuevosConflictos);
+// };
   return (
     <Box p={3}>
       <Typography variant="h5" gutterBottom>
@@ -92,11 +126,11 @@ export default function TrasladoProductos() {
           {tab === 1 && <OrigenTable groupedByOrigen={groupedByOrigen} />}
           {tab === 2 && (
             <ConflictosTable
-              conflicts={conflicts}
-              resolverConflicto={resolverConflicto}
-              groupedBySucursal={groupedBySucursal}
-              groupedByOrigen={groupedByOrigen}
-            />
+    conflicts={conflicts}
+    guardarConflicto={guardarConflicto}
+    groupedBySucursal={groupedBySucursal}
+    groupedByOrigen={groupedByOrigen}
+/>
           )}
         </>
       )}
