@@ -12,6 +12,8 @@ import {
   FormControlLabel,
 } from "@mui/material";
 import { useEffect } from "react";
+import MonthSelector from "../../products/MonthSelector";
+import YearSelector from "../../products/YearSelector";
 
 export default function LotForm({
   quantity,
@@ -63,7 +65,7 @@ useEffect(() => {
     if (barcodeInputRef?.current) {
       barcodeInputRef.current.focus();
     }
-    setQuantity(0);
+    // setQuantity(0);
   };
 
   return (
@@ -71,7 +73,7 @@ useEffect(() => {
       {/* Expiración */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={6} minWidth={150}>
-          <FormControl fullWidth variant="outlined">
+          {/* <FormControl fullWidth variant="outlined">
             <InputLabel>Mes</InputLabel>
             <Select
               value={expMonth}
@@ -88,10 +90,14 @@ useEffect(() => {
                 );
               })}
             </Select>
-          </FormControl>
+          </FormControl> */}
+          <MonthSelector
+  value={expMonth}
+  onChange={setExpMonth}
+/>
         </Grid>
         <Grid item xs={6} minWidth={150}>
-          <FormControl fullWidth variant="outlined">
+          {/* <FormControl fullWidth variant="outlined">
             <InputLabel>Año</InputLabel>
             <Select
               value={expYear}
@@ -108,7 +114,12 @@ useEffect(() => {
                 );
               })}
             </Select>
-          </FormControl>
+          </FormControl> */}
+
+          <YearSelector
+          value={expYear}
+  onChange={setExpYear}
+          />
         </Grid>
         {productInfo?.batchNumber && (
           <TextField

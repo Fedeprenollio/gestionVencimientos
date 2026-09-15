@@ -38,8 +38,13 @@ export default function ProductForm() {
     id: "",
   });
   const [quantity, setQuantity] = useState(1);
-  const [expMonth, setExpMonth] = useState("");
-  const [expYear, setExpYear] = useState("");
+  const [expMonth, setExpMonth] = useState(() => {
+  return localStorage.getItem("ultimo_mes_vencimiento") || "";
+});
+
+const [expYear, setExpYear] = useState(() => {
+  return localStorage.getItem("ultimo_anio_vencimiento") || "";
+});
   const [scanning, setScanning] = useState(false);
   const [branch, setBranch] = useState(() => {
     return localStorage.getItem("selectedBranch") || "sucursal1";
@@ -57,6 +62,18 @@ export default function ProductForm() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const barcodeInputRef = useRef(null);
+
+useEffect(() => {
+  if (expMonth) {
+    localStorage.setItem("ultimo_mes_vencimiento", expMonth);
+  }
+}, [expMonth]);
+
+useEffect(() => {
+  if (expYear) {
+    localStorage.setItem("ultimo_anio_vencimiento", expYear);
+  }
+}, [expYear]);
 
   useEffect(() => {
     localStorage.setItem("lotes_jornada", JSON.stringify(createdLots));
@@ -86,11 +103,6 @@ console.log("nameQuery",nameQuery)
     return () => clearTimeout(delayDebounce);
   }, [nameQuery]);
 
-  const handleBarcodeChange = (e) => {
-    setBarcode(e.target.value);
-    setProductExists(null);
-    setProductInfo({ name: "", type: "medicamento", id: "" });
-  };
 
   const handleSearch = async (code) => {
     
@@ -206,7 +218,7 @@ console.log("nameQuery",nameQuery)
         barcode,
         type: productInfo.type,
       };
-      setCreatedLots((prev) => [...prev, lote]);
+      setCreatedLots((prev) => [lote, ...prev]);
       // setCreatedLots((prev) => [
       //   ...prev,
       //   {
@@ -252,77 +264,6 @@ console.log("nameQuery",nameQuery)
     localStorage.setItem("selectedBranch", value);
   };
 
-
-  //   // e.preventDefault();
-
-  //   let productId = productInfo.id;
-
-  //   // 🟡 Si el producto no existe, primero lo creamos
-  //   if (!productExists) {
-  //     const resProduct = await axios.post(
-  //       `${import.meta.env.VITE_API_URL}/products`,
-  //       {
-  //         name: productInfo.name,
-  //         barcode,
-  //         type: productInfo.type,
-  //       }
-  //     );
-  //     productId = resProduct.data._id; // ⬅️ Ahora sí tenemos el ID
-  //   }
-
-  //   const expirationDate = new Date(`${expYear}-${expMonth}-01`).toISOString();
-  //   const payload = {
-  //     barcode,
-  //     name: productInfo.name,
-  //     type: productInfo.type,
-  //     branch,
-  //     expirationDate,
-  //     quantity: Number(quantity),
-  //     productId: productId,
-  //     overstock,
-  //   };
-  //   console.log("productInfo", payload);
-  //   try {
-  //     const res = await axios.post(
-  //       `${import.meta.env.VITE_API_URL}/lots`,
-  //       payload
-  //     );
-  //     console.log("res.data", res.data);
-  //     // ✅ Agregar lote a la lista local
-  //     // const updatedProduct = res.data; // el producto completo con todos sus lots
-
-  //     // ✅ Agregar lote a la lista local
-  //     setCreatedLots((prev) => [
-  //       ...prev,
-  //       {
-  //         name: productInfo.name,
-  //         barcode,
-  //         expirationDate,
-  //         quantity,
-  //         branch,
-  //         type: productInfo.type,
-  //         overstock,
-  //       },
-  //     ]);
-
-  //     // reset
-  //     setBarcode("");
-  //     // setProductExists(null);
-  //     // setProductInfo({ name: "", type: "medicamento" });
-  //     setQuantity(1);
-  //     setExpMonth("");
-  //     setExpYear("");
-  //     setOverstock(false);
-
-  //     // setNameQuery("");
-  //     // setNameResults([]);
-  //     // onAdded();
-  //     barcodeInputRef.current?.focus();
-  //   } catch (err) {
-  //     console.log("ERROR,", err);
-  //     alert(err.response?.data?.message || "Error");
-  //   }
-  // };
   return (
     <Box
       sx={{

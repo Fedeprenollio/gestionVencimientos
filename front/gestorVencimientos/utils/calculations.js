@@ -43,7 +43,6 @@ function convertirExcelDateToJSDate(excelDate) {
 }
 
 export function agruparVentas(movimientos) {
-  console.log("Holita");
   const ventasPorProducto = {};
   const hoy = new Date();
   const unAnioAtras = new Date(hoy);
@@ -73,9 +72,7 @@ export function agruparVentas(movimientos) {
       ventasPorProducto[id] = (ventasPorProducto[id] || 0) + Math.abs(cantidad);
       // }
     }
-    if (mov.IDProducto == 1015700016) {
-      console.log("📦 Qura:", mov, "Fecha:", fecha, "Es venta:", esVenta);
-    }
+    
   }
 
   return ventasPorProducto;
@@ -118,7 +115,8 @@ export function agruparVentas(movimientos) {
 export function calcularDSIPorProducto(
   stockList,
   ventasPorProducto,
-  devolucionesPorVencimiento
+  devolucionesPorVencimiento,
+    movimientos
 ) {
   const resultado = [];
 
@@ -127,6 +125,33 @@ export function calcularDSIPorProducto(
     devolucionesPorVencimiento.map((item) => String(item.IDProducto))
   );
 
+const ultimaVentaPorProducto = {};
+const ultimaCompraPorProducto = {};
+
+for (const mov of movimientos) {
+  const id = String(mov.IDProducto);
+
+  // Fecha
+  const fecha = excelDateToJSDate(mov.Fecha);
+
+  // Agregar la hora
+  if (mov.Hora) {
+    const [h, m, s] = mov.Hora.split(":").map(Number);
+    fecha.setHours(h, m, s || 0, 0);
+  }
+
+  if (mov.Operacion?.startsWith("Facturacion")) {
+    if (!ultimaVentaPorProducto[id] || fecha > ultimaVentaPorProducto[id]) {
+      ultimaVentaPorProducto[id] = fecha;
+    }
+  }
+
+  if (mov.Operacion?.startsWith("Importación")) {
+    if (!ultimaCompraPorProducto[id] || fecha > ultimaCompraPorProducto[id]) {
+      ultimaCompraPorProducto[id] = fecha;
+    }
+  }
+}
   for (const item of stockList) {
     const id = String(item.IDProducto);
     const stockActual = parseFloat(item.Cantidad || 0);
@@ -157,11 +182,15 @@ export function calcularDSIPorProducto(
       fechaUltimoPrecio: excelDateToJSDate(item.FechaUltimoPrecio),
       laboratorio: item.Laboratorio,
       rubro: item.Rubro,
+      ultimaVenta: ultimaVentaPorProducto[id] ?? null,
+ultimaCompra: ultimaCompraPorProducto[id] ?? null,
     });
   }
 
   return resultado;
 }
+
+
 function excelDateToJSDate(serial) {
   // Excel empieza el 1 de enero de 1900 como día 1
   const excelEpoch = new Date(1900, 0, 1);
@@ -543,7 +572,8 @@ export function calcularABCDSI(stockData, movimientos) {
   const dsiPorProducto = calcularDSIPorProducto(
     stockData,
     ventasPorProducto,
-    []
+    [],
+    movimientos
   );
 
   // 3️⃣ Calcular valor anual para ABC
@@ -596,7 +626,6 @@ export function analizarStockEntreSucursales(
 
   for (const sucursal of sucursalesData) {
     const { sucursalId, stockData, movimientos } = sucursal;
-    console.log("sucursalId", sucursalId);
     // 1️⃣ Ventas anuales
     const ventasPorProducto = agruparVentas(movimientos);
 
@@ -636,6 +665,5 @@ export function analizarStockEntreSucursales(
       }
     }
   }
-  console.log("EL RESULTADO", resultado);
   return resultado;
 }

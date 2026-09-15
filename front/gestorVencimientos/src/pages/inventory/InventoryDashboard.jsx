@@ -150,7 +150,8 @@ export default function InventoryDashboard() {
     const resultadoDSI = calcularDSIPorProducto(
       stockFiltrado,
       ventasPorProducto,
-      devoluciones
+      devoluciones,
+        movimientos
     );
     resultadoDSI.sort((a, b) => {
       if (a.dsi === Infinity) return -1;

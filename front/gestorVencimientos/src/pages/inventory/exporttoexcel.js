@@ -10,14 +10,15 @@ function calcularNivel(item) {
   return "Óptimo";
 }
 
+
 export function exportToExcel({ modo, dsiResultado, selectedProducts }) {
   const lista =
     modo === "todos"
       ? dsiResultado
       : dsiResultado.filter((item) =>
-          selectedProducts.some((p) => p.title === item.producto)
+          selectedProducts.some((p) => p.title === item.producto),
         );
-
+  console.log("dsiResultado", dsiResultado);
   // Agrupar por categoría
   const categorias = {
     Crítico: [],
@@ -27,27 +28,88 @@ export function exportToExcel({ modo, dsiResultado, selectedProducts }) {
     "Sin consumo": [],
   };
 
-  lista.forEach((item) => {
-    const nivel = item.nivel || calcularNivel(item);
-    const row = {
-      Codigo: item.codebar || "",
-      Producto: item.producto || "",
-      Nivel: nivel,
-      Stock: Number(item.stock) || 0,
-      "Ventas Anuales": Number(item.ventasAnuales) || 0,
-      "Días de Inventario":
-        item.dsi === Infinity ? "∞" : Number(item.dsi.toFixed(0)),
-       "¿Dev por venc?": item.tuvoDevolucionVencimiento ? "Sí" : "No",
-       
+//   lista.forEach((item) => {
+//     const nivel = item.nivel || calcularNivel(item);
+//     const row = {
+//       Codigo: item.codebar || "",
+//       Producto: item.producto || "",
+//       Nivel: nivel,
+//       Stock: Number(item.stock) || 0,
+//       "Ventas Anuales": Number(item.ventasAnuales) || 0,
+//       "Días de Inventario":
+//         item.dsi === Infinity ? "∞" : Number(item.dsi.toFixed(0)),
+//       "¿Dev por venc?": item.tuvoDevolucionVencimiento ? "Sí" : "No",
+//       "Última Venta": item.ultimaVenta
+//     ? item.ultimaVenta.toLocaleString("es-AR", {
+//         day: "2-digit",
+//         month: "2-digit",
+//         year: "numeric",
+//         hour: "2-digit",
+//         minute: "2-digit",
+//       })
+//     : "",
 
-    };
+// "Última Compra": item.ultimaCompra
+//     ? item.ultimaCompra.toLocaleString("es-AR", {
+//         day: "2-digit",
+//         month: "2-digit",
+//         year: "numeric",
+//         hour: "2-digit",
+//         minute: "2-digit",
+//       })
+//     : "",
+//     };
 
-    if (categorias[nivel]) {
-      categorias[nivel].push(row);
-    }
-  });
+//     if (categorias[nivel]) {
+//       categorias[nivel].push(row);
+//     }
+//   });
 
   // Crear el workbook
+  
+  lista.forEach((item) => {
+  const nivel = item.nivel || calcularNivel(item);
+
+  // Estado de reposición
+  let estado = "Sin ventas";
+
+  if (item.ultimaVenta) {
+    if (!item.ultimaCompra || item.ultimaCompra < item.ultimaVenta) {
+      estado = "Reponer";
+    } else {
+      estado = "Stock repuesto";
+    }
+  }
+
+  if (item.dsi === Infinity && !item.ultimaVenta) {
+    estado = "Sin consumo";
+  }
+
+  const row = {
+    Codigo: item.codebar || "",
+    Producto: item.producto || "",
+    Nivel: nivel,
+    Stock: Number(item.stock) || 0,
+    "Ventas Anuales": Number(item.ventasAnuales) || 0,
+    "Días de Inventario":
+      item.dsi === Infinity ? "∞" : Number(item.dsi.toFixed(0)),
+    "¿Dev por venc?": item.tuvoDevolucionVencimiento ? "Sí" : "No",
+
+    "Última Venta": item.ultimaVenta
+      ? item.ultimaVenta.toLocaleString("es-AR")
+      : "",
+
+    "Última Compra": item.ultimaCompra
+      ? item.ultimaCompra.toLocaleString("es-AR")
+      : "",
+
+    "Estado": estado,
+  };
+
+  if (categorias[nivel]) {
+    categorias[nivel].push(row);
+  }
+});
   const workbook = XLSX.utils.book_new();
 
   Object.entries(categorias).forEach(([nombreHoja, datos]) => {
