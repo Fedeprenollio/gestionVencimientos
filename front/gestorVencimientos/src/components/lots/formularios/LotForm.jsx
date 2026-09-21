@@ -65,7 +65,7 @@ useEffect(() => {
     if (barcodeInputRef?.current) {
       barcodeInputRef.current.focus();
     }
-    // setQuantity(0);
+    setQuantity(1);
   };
 
   return (

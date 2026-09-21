@@ -14,7 +14,7 @@ import routerStock from './routes/stockRoutes.js';
 import routerImportStock from "./routes/stockImportRoutes.js"
 import promotionRoutes from "./routes/promotionRoutes.js";
 import router from './routes/guia.js';
-
+import expirationListRoutes from "./routes/expirationListRoutes.js";
 
 const allowedOrigins = [
   'http://localhost:5173',
@@ -61,6 +61,7 @@ app.use("/promotions", promotionRoutes);
 //   console.log("result",result)
 //   res.json(result);
 // });
+app.use("/expiration-lists", expirationListRoutes);
 app.use("/guia", router)
 
 

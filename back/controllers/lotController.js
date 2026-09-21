@@ -5,8 +5,95 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import ReturnList from "../models/ReturnList.js";
+import ExpirationList from "../models/ExpirationList.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
+
+// export const addLot = async (req, res) => {
+//   const {
+//     productId,
+//     expirationDate,
+//     quantity,
+//     branch,
+//     overstock = false,
+//     batchNumber, // ✅ nuevo
+//     serialNumber, // ✅ nuevo
+//   } = req.body;
+//   console.log("batchNumber", batchNumber);
+//   console.log("serialNumber", serialNumber);
+
+//   if (!productId || !expirationDate || !quantity || !branch) {
+//     return res
+//       .status(400)
+//       .json({ message: "Faltan datos requeridos del lote" });
+//   }
+
+//   try {
+//     // Validar producto
+//     const product = await Product.findById(productId);
+//     if (!product) {
+//       return res.status(404).json({ message: "Producto no encontrado" });
+//     }
+
+//     // Normalizar fecha
+//     const parsedExpirationDate = dayjs
+//       .tz(expirationDate, "America/Argentina/Buenos_Aires")
+//       .startOf("month")
+//       .utc()
+//       .toDate();
+
+//     // Buscar si ya existe (teniendo en cuenta overstock)
+//     const existingLot = await Lot.findOne({
+//       productId,
+//       expirationDate: parsedExpirationDate,
+//       branch,
+//       overstock: Boolean(overstock),
+//     });
+
+//     if (existingLot) {
+//   return res.status(409).json({
+//     message: "Ya existe un vencimiento para este producto...",
+//     duplicate: true,
+//     lot: existingLot,
+//   });
+// }
+
+//     // if (existingLot) {
+//     //   existingLot.quantity += Number(quantity);
+//     //   await existingLot.save();
+//     //   return res
+//     //     .status(200)
+//     //     .json({ message: "Cantidad actualizada", lot: existingLot });
+//     // }
+//     console.log("USERRRR,", req.user);
+//     // Si no existe, crear nuevo lote
+//     const newLot = new Lot({
+//       productId,
+//       expirationDate: parsedExpirationDate,
+//       quantity,
+//       branch,
+//       overstock: Boolean(overstock),
+//       createdBy: req.user._id,
+//       batchNumber, // ✅ incluir
+//       serialNumber, // ✅ incluir
+//     });
+
+//     await newLot.save();
+//     await newLot.populate([
+//       { path: "productId", select: "name barcode type" },
+//       { path: "createdBy", select: "fullname username" },
+//       { path: "branch", select: "name" },
+//     ]);
+
+//     const plainLot = newLot.toObject();
+//     plainLot.branch = plainLot.branch?.name || null;
+
+//     res.status(201).json({ message: "Lote creado", lot: plainLot });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: "Error al crear lote" });
+//   }
+// };
 
 export const addLot = async (req, res) => {
   const {
@@ -15,23 +102,45 @@ export const addLot = async (req, res) => {
     quantity,
     branch,
     overstock = false,
-    batchNumber, // ✅ nuevo
-    serialNumber, // ✅ nuevo
+    batchNumber,
+    serialNumber,
+    expirationListId,
   } = req.body;
+
   console.log("batchNumber", batchNumber);
   console.log("serialNumber", serialNumber);
+  console.log("expirationListId", expirationListId);
 
   if (!productId || !expirationDate || !quantity || !branch) {
-    return res
-      .status(400)
-      .json({ message: "Faltan datos requeridos del lote" });
+    return res.status(400).json({
+      message: "Faltan datos requeridos del lote",
+    });
   }
 
   try {
     // Validar producto
     const product = await Product.findById(productId);
+
     if (!product) {
-      return res.status(404).json({ message: "Producto no encontrado" });
+      return res.status(404).json({
+        message: "Producto no encontrado",
+      });
+    }
+
+    // Validar lista de vencimientos
+    if (expirationListId) {
+      const expirationList = await ExpirationList.findOne({
+        _id: expirationListId,
+        branch,
+        active: true,
+      });
+
+      if (!expirationList) {
+        return res.status(404).json({
+          message:
+            "La lista de vencimientos no existe o no pertenece a esta sucursal",
+        });
+      }
     }
 
     // Normalizar fecha
@@ -41,7 +150,7 @@ export const addLot = async (req, res) => {
       .utc()
       .toDate();
 
-    // Buscar si ya existe (teniendo en cuenta overstock)
+    // Buscar si ya existe el mismo lote
     const existingLot = await Lot.findOne({
       productId,
       expirationDate: parsedExpirationDate,
@@ -49,40 +158,65 @@ export const addLot = async (req, res) => {
       overstock: Boolean(overstock),
     });
 
-    // if (existingLot) {
-    //   existingLot.quantity += Number(quantity);
-    //   await existingLot.save();
-    //   return res
-    //     .status(200)
-    //     .json({ message: "Cantidad actualizada", lot: existingLot });
-    // }
+    // Si ya existe, avisar al frontend
+    if (existingLot) {
+      return res.status(409).json({
+        message: "Ya existe un vencimiento para este producto",
+        duplicate: true,
+        lot: existingLot,
+      });
+    }
+
     console.log("USERRRR,", req.user);
-    // Si no existe, crear nuevo lote
+
+    // Crear nuevo lote
     const newLot = new Lot({
       productId,
       expirationDate: parsedExpirationDate,
-      quantity,
+      quantity: Number(quantity),
       branch,
       overstock: Boolean(overstock),
-      createdBy: req.user._id,
-      batchNumber, // ✅ incluir
-      serialNumber, // ✅ incluir
+      createdBy: req.user?._id,
+      batchNumber,
+      serialNumber,
+      expirationLists: expirationListId ? [expirationListId] : [],
     });
 
     await newLot.save();
+
     await newLot.populate([
-      { path: "productId", select: "name barcode type" },
-      { path: "createdBy", select: "fullname username" },
-      { path: "branch", select: "name" },
+      {
+        path: "productId",
+        select: "name barcode type",
+      },
+      {
+        path: "createdBy",
+        select: "fullname username",
+      },
+      {
+        path: "branch",
+        select: "name",
+      },
+      {
+        path: "expirationLists",
+        select: "name branch",
+      },
     ]);
 
     const plainLot = newLot.toObject();
+
     plainLot.branch = plainLot.branch?.name || null;
 
-    res.status(201).json({ message: "Lote creado", lot: plainLot });
+    res.status(201).json({
+      message: "Lote creado",
+      lot: plainLot,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error al crear lote" });
+    console.error("Error al crear lote:", err);
+
+    res.status(500).json({
+      message: "Error al crear lote",
+    });
   }
 };
 

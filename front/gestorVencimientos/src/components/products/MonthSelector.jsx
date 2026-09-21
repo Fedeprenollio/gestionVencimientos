@@ -3,18 +3,18 @@ import React from "react";
 import { Box, Button, Typography } from "@mui/material";
 
 const months = [
-  { value: "01", label: "Enero" },
-  { value: "02", label: "Febrero" },
-  { value: "03", label: "Marzo" },
-  { value: "04", label: "Abril" },
-  { value: "05", label: "Mayo" },
-  { value: "06", label: "Junio" },
-  { value: "07", label: "Julio" },
-  { value: "08", label: "Agosto" },
-  { value: "09", label: "Septiembre" },
-  { value: "10", label: "Octubre" },
-  { value: "11", label: "Noviembre" },
-  { value: "12", label: "Diciembre" },
+  { value: "01", label: "01 / Ene" },
+  { value: "02", label: "02 / Feb" },
+  { value: "03", label: "03 / Mar" },
+  { value: "04", label: "04 / Abr" },
+  { value: "05", label: "05 / May" },
+  { value: "06", label: "06 / Jun" },
+  { value: "07", label: "07 / Jul" },
+  { value: "08", label: "08 / Ago" },
+  { value: "09", label: "09 / Sep" },
+  { value: "10", label: "10 / Oct" },
+  { value: "11", label: "11 / Nov" },
+  { value: "12", label: "12 / Dic" },
 ];
 
 export default function MonthSelector({ value, onChange }) {

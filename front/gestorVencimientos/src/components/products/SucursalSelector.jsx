@@ -1,3 +1,98 @@
+// import {
+//   FormControl,
+//   InputLabel,
+//   Select,
+//   MenuItem,
+//   Box,
+//   Typography,
+//   Button,
+// } from "@mui/material";
+// import { useEffect, useState } from "react";
+// import { BRANCHES } from "../../constants/branches";
+// import axios from "axios";
+
+// export default function SucursalSelector({ branch, onBranchChange }) {
+//   const [editMode, setEditMode] = useState(false);
+//   const [branches, setBranches] = useState([]);
+// //  await axios.get(
+// //       `${import.meta.env.VITE_API_URL}/products?${params}`
+// //     );
+//   useEffect(() => {
+//     axios.get( `${import.meta.env.VITE_API_URL}/branches`) // ajustá la URL a tu backend
+//       .then((res) => {
+//         setBranches(res.data);
+//       })
+//       .catch((error) => {
+//         console.error("Error al cargar sucursales:", error);
+//       });
+//   }, []);
+
+// console.log("branches",branches)
+
+//   // Inicializar sucursal desde localStorage si existe
+//   useEffect(() => {
+//     const savedBranch = localStorage.getItem("selected_branch");
+//     if (savedBranch) {
+//       onBranchChange(savedBranch);
+//     }
+//   }, [onBranchChange]);
+
+//   // Guardar sucursal seleccionada en localStorage
+//   const handleBranchChange = (value) => {
+//     onBranchChange(value);
+//     localStorage.setItem("selected_branch", value);
+//     setEditMode(false); // cerrar edición al seleccionar
+//   };
+
+//    // Aquí mezclamos la lista estática y la dinámica en un solo array para mostrar
+//   // IMPORTANTE: adaptá los campos para que tengan la misma estructura { value, label }
+//   const combinedBranches = [
+//     ...BRANCHES,
+//     ...branches.map(({ _id, name }) => ({
+//       value: _id,
+//       label: name,
+//     })),
+//   ];
+
+//   return (
+//     <Box sx={{ maxWidth: "70%", mx: "auto", p: 2 }}>
+//       <Box
+//         display="flex"
+//         justifyContent="space-between"
+//         alignItems="center"
+//         mb={2}
+//       >
+//         <Typography variant="h6">Sucursal seleccionada</Typography>
+//         {!editMode ? (
+//           <Button variant="outlined" onClick={() => setEditMode(true)}>
+//             Cambiar sucursal
+//           </Button>
+//         ) : (
+//           <Button variant="contained" onClick={() => setEditMode(false)}>
+//             Confirmar
+//           </Button>
+//         )}
+//       </Box>
+
+//       <FormControl fullWidth sx={{ mb: 3 }}>
+//         <InputLabel>Sucursal</InputLabel>
+//         <Select
+//           value={branch}
+//           onChange={(e) => handleBranchChange(e.target.value)}
+//           label="Sucursal"
+//           disabled={!editMode}
+//         >
+//            {combinedBranches.map(({ value, label }) => (
+//             <MenuItem key={value} value={value}>
+//               {label}
+//             </MenuItem>
+//           ))}
+//         </Select>
+//       </FormControl>
+//     </Box>
+//   );
+// }
+
 import {
   FormControl,
   InputLabel,
@@ -14,11 +109,11 @@ import axios from "axios";
 export default function SucursalSelector({ branch, onBranchChange }) {
   const [editMode, setEditMode] = useState(false);
   const [branches, setBranches] = useState([]);
-//  await axios.get(
-//       `${import.meta.env.VITE_API_URL}/products?${params}`
-//     );
+
+  // Cargar sucursales desde el backend
   useEffect(() => {
-    axios.get( `${import.meta.env.VITE_API_URL}/branches`) // ajustá la URL a tu backend
+    axios
+      .get(`${import.meta.env.VITE_API_URL}/branches`)
       .then((res) => {
         setBranches(res.data);
       })
@@ -27,25 +122,23 @@ export default function SucursalSelector({ branch, onBranchChange }) {
       });
   }, []);
 
-console.log("branches",branches)
-
-  // Inicializar sucursal desde localStorage si existe
+  // Inicializar sucursal desde localStorage UNA SOLA VEZ
   useEffect(() => {
-    const savedBranch = localStorage.getItem("selected_branch");
-    if (savedBranch) {
+    const savedBranch = localStorage.getItem("selectedBranch");
+
+    if (savedBranch && savedBranch !== branch) {
       onBranchChange(savedBranch);
     }
-  }, [onBranchChange]);
+  }, []);
 
-  // Guardar sucursal seleccionada en localStorage
+  // Cambiar sucursal
   const handleBranchChange = (value) => {
     onBranchChange(value);
-    localStorage.setItem("selected_branch", value);
-    setEditMode(false); // cerrar edición al seleccionar
+    localStorage.setItem("selectedBranch", value);
+    setEditMode(false);
   };
 
-   // Aquí mezclamos la lista estática y la dinámica en un solo array para mostrar
-  // IMPORTANTE: adaptá los campos para que tengan la misma estructura { value, label }
+  // Mezclar sucursales estáticas y dinámicas
   const combinedBranches = [
     ...BRANCHES,
     ...branches.map(({ _id, name }) => ({
@@ -62,13 +155,22 @@ console.log("branches",branches)
         alignItems="center"
         mb={2}
       >
-        <Typography variant="h6">Sucursal seleccionada</Typography>
+        <Typography variant="h6">
+          Sucursal seleccionada
+        </Typography>
+
         {!editMode ? (
-          <Button variant="outlined" onClick={() => setEditMode(true)}>
+          <Button
+            variant="outlined"
+            onClick={() => setEditMode(true)}
+          >
             Cambiar sucursal
           </Button>
         ) : (
-          <Button variant="contained" onClick={() => setEditMode(false)}>
+          <Button
+            variant="contained"
+            onClick={() => setEditMode(false)}
+          >
             Confirmar
           </Button>
         )}
@@ -76,13 +178,14 @@ console.log("branches",branches)
 
       <FormControl fullWidth sx={{ mb: 3 }}>
         <InputLabel>Sucursal</InputLabel>
+
         <Select
           value={branch}
           onChange={(e) => handleBranchChange(e.target.value)}
           label="Sucursal"
           disabled={!editMode}
         >
-           {combinedBranches.map(({ value, label }) => (
+          {combinedBranches.map(({ value, label }) => (
             <MenuItem key={value} value={value}>
               {label}
             </MenuItem>
