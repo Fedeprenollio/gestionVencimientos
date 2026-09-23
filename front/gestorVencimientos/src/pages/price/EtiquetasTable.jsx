@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 
 import DeleteIcon from "@mui/icons-material/Delete";
+import { getEAN } from "../../../utils/productHelpers";
 
 // =========================
 // Helpers de fecha
@@ -151,6 +152,7 @@ const EtiquetasTable = ({
     };
   };
 
+ 
   // =========================
   // Filtro por búsqueda + origen
   // =========================
@@ -580,7 +582,7 @@ const EtiquetasTable = ({
                       />
 
                       <Typography variant="caption" sx={{ opacity: 0.65 }}>
-                        {p.barcode}
+                        {getEAN(p) || p.barcode}
                       </Typography>
 
                       {p.__missingInImport && (

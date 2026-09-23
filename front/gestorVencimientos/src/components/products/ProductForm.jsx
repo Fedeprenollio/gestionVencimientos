@@ -2332,6 +2332,7 @@ export default function ProductForm() {
             onUpdate={
               setCreatedLots
             }
+            expirationLists={expirationLists}
           />
         )}
       </Box>

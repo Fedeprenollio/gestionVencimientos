@@ -279,6 +279,7 @@ export const getExpiringProductsLotesComoString = async (req, res) => {
       _id: product._id,
       name: product.name,
       barcode: product.barcode,
+      alternateBarcodes: product.alternateBarcodes || [],
       type: product.type,
       lots: (lotsGrouped[product._id.toString()] || []).map((lot) => ({
         _id: lot._id,
@@ -448,6 +449,127 @@ export const getExpiringProductsLotesComoString = async (req, res) => {
 //   }
 // };
 
+// export const getExpiringProducts = async (req, res) => {
+//   const {
+//     from,
+//     months = 6,
+//     branch,
+//     createdFrom,
+//     createdTo,
+//     overstock, // "true", "false", "only"
+//     createdBy,
+//     barcodes,
+//   } = req.query;
+
+//   try {
+//     const fromDate = dayjs(from || dayjs())
+//       .startOf("month")
+//       .toDate();
+//     const untilDate = dayjs(fromDate).add(Number(months), "month").toDate();
+
+//     const createdCriteria = {};
+//     if (createdFrom) {
+//       createdCriteria.$gte = dayjs(createdFrom).startOf("day").toDate();
+//     }
+//     if (createdTo) {
+//       createdCriteria.$lte = dayjs(createdTo).endOf("day").toDate();
+//     }
+
+//     // Construir filtros base
+//     const filter = {
+//       expirationDate: { $gte: fromDate, $lt: untilDate },
+//     };
+
+//     let branchId = null;
+//     console.log("ACA", branch);
+//     // if (branch) filter.branch = branch;
+//     if (branch) {
+//       if (Array.isArray(branch)) {
+//         filter.branch = {
+//           $in: branch.map((id) => new mongoose.Types.ObjectId(id)),
+//         };
+//       } else if (typeof branch === "string" && branch.includes(",")) {
+//         // caso string con IDs separados por coma
+//         filter.branch = {
+//           $in: branch
+//             .split(",")
+//             .map((id) => new mongoose.Types.ObjectId(id.trim())),
+//         };
+//       } else {
+//         filter.branch = new mongoose.Types.ObjectId(branch);
+//       }
+//     }
+
+//     if (createdBy) filter.createdBy = createdBy;
+//     if (Object.keys(createdCriteria).length) {
+//       filter.createdAt = createdCriteria;
+//     }
+
+//     // Filtro overstock
+//     if (overstock === "true") {
+//       filter.overstock = true;
+//     } else if (overstock === "false") {
+//       filter.overstock = { $ne: true };
+//     } // si es "only", ya está cubierto con "true"
+
+//     if (barcodes) {
+//       const barcodeList = barcodes.split(",").map((b) => b.trim());
+//       const products = await Product.find({
+//         $or: [
+//           { barcode: { $in: barcodeList } },
+//           { alternateBarcodes: { $in: barcodeList } },
+//         ],
+//       }).select("_id");
+
+//       const ids = products.map((p) => p._id);
+//       filter.productId = { $in: ids };
+//     }
+
+//     const lots = await Lot.find(filter)
+//       .populate("productId", "name barcode type")
+//       .populate("createdBy", "username fullname")
+//       .populate("branch", "name")
+//       .lean();
+
+//     // Agrupar por producto
+//     const grouped = {};
+//     for (const lot of lots) {
+//       const product = lot.productId;
+//       if (!product || !product._id) continue;
+
+//       const pid = product._id.toString();
+
+//       if (!grouped[pid]) {
+//         grouped[pid] = {
+//           _id: product._id,
+//           name: product.name,
+//           barcode: product.barcode,
+//           type: product.type,
+//           lots: [],
+//         };
+//       }
+
+//       grouped[pid].lots.push({
+//         _id: lot._id,
+//         expirationDate: lot.expirationDate,
+//         quantity: lot.quantity,
+//         branch: typeof lot.branch === "object" ? lot.branch.name : lot.branch,
+//         createdAt: lot.createdAt,
+//         overstock: lot.overstock === true,
+//         createdBy: lot.createdBy || null,
+//         batchNumber: lot.batchNumber || null,
+//         serialNumber: lot.serialNumber || null,
+//       });
+//     }
+
+//     const result = Object.values(grouped);
+//     res.json(result);
+//   } catch (err) {
+//     console.error("Error al obtener productos:", err);
+//     res.status(500).json({ message: "Error al obtener productos" });
+//   }
+// };
+
 export const getExpiringProducts = async (req, res) => {
   const {
     from,
@@ -455,7 +577,7 @@ export const getExpiringProducts = async (req, res) => {
     branch,
     createdFrom,
     createdTo,
-    overstock, // "true", "false", "only"
+    overstock,
     createdBy,
     barcodes,
   } = req.query;
@@ -464,77 +586,127 @@ export const getExpiringProducts = async (req, res) => {
     const fromDate = dayjs(from || dayjs())
       .startOf("month")
       .toDate();
-    const untilDate = dayjs(fromDate).add(Number(months), "month").toDate();
+
+    const untilDate = dayjs(fromDate)
+      .add(Number(months), "month")
+      .toDate();
 
     const createdCriteria = {};
+
     if (createdFrom) {
-      createdCriteria.$gte = dayjs(createdFrom).startOf("day").toDate();
-    }
-    if (createdTo) {
-      createdCriteria.$lte = dayjs(createdTo).endOf("day").toDate();
+      createdCriteria.$gte = dayjs(createdFrom)
+        .startOf("day")
+        .toDate();
     }
 
-    // Construir filtros base
+    if (createdTo) {
+      createdCriteria.$lte = dayjs(createdTo)
+        .endOf("day")
+        .toDate();
+    }
+
     const filter = {
-      expirationDate: { $gte: fromDate, $lt: untilDate },
+      expirationDate: {
+        $gte: fromDate,
+        $lt: untilDate,
+      },
     };
 
-    let branchId = null;
-    console.log("ACA", branch);
-    // if (branch) filter.branch = branch;
     if (branch) {
       if (Array.isArray(branch)) {
         filter.branch = {
-          $in: branch.map((id) => new mongoose.Types.ObjectId(id)),
+          $in: branch.map(
+            (id) => new mongoose.Types.ObjectId(id)
+          ),
         };
-      } else if (typeof branch === "string" && branch.includes(",")) {
-        // caso string con IDs separados por coma
+      } else if (
+        typeof branch === "string" &&
+        branch.includes(",")
+      ) {
         filter.branch = {
           $in: branch
             .split(",")
-            .map((id) => new mongoose.Types.ObjectId(id.trim())),
+            .map(
+              (id) =>
+                new mongoose.Types.ObjectId(id.trim())
+            ),
         };
       } else {
-        filter.branch = new mongoose.Types.ObjectId(branch);
+        filter.branch =
+          new mongoose.Types.ObjectId(branch);
       }
     }
 
-    if (createdBy) filter.createdBy = createdBy;
+    if (createdBy) {
+      filter.createdBy = createdBy;
+    }
+
     if (Object.keys(createdCriteria).length) {
       filter.createdAt = createdCriteria;
     }
 
-    // Filtro overstock
     if (overstock === "true") {
       filter.overstock = true;
     } else if (overstock === "false") {
       filter.overstock = { $ne: true };
-    } // si es "only", ya está cubierto con "true"
+    }
 
     if (barcodes) {
-      const barcodeList = barcodes.split(",").map((b) => b.trim());
+      const barcodeList = barcodes
+        .split(",")
+        .map((b) => b.trim());
+
       const products = await Product.find({
         $or: [
-          { barcode: { $in: barcodeList } },
-          { alternateBarcodes: { $in: barcodeList } },
+          {
+            barcode: {
+              $in: barcodeList,
+            },
+          },
+          {
+            alternateBarcodes: {
+              $in: barcodeList,
+            },
+          },
         ],
       }).select("_id");
 
-      const ids = products.map((p) => p._id);
-      filter.productId = { $in: ids };
+      const ids = products.map(
+        (p) => p._id
+      );
+
+      filter.productId = {
+        $in: ids,
+      };
     }
 
     const lots = await Lot.find(filter)
-      .populate("productId", "name barcode type")
-      .populate("createdBy", "username fullname")
-      .populate("branch", "name")
+      .populate(
+        "productId",
+        "name barcode type"
+      )
+      .populate(
+        "createdBy",
+        "username fullname"
+      )
+      .populate(
+        "branch",
+        "name"
+      )
+      .populate(
+        "expirationLists",
+        "name"
+      )
       .lean();
 
-    // Agrupar por producto
     const grouped = {};
+
     for (const lot of lots) {
       const product = lot.productId;
-      if (!product || !product._id) continue;
+
+      if (!product || !product._id) {
+        continue;
+      }
 
       const pid = product._id.toString();
 
@@ -550,22 +722,59 @@ export const getExpiringProducts = async (req, res) => {
 
       grouped[pid].lots.push({
         _id: lot._id,
-        expirationDate: lot.expirationDate,
-        quantity: lot.quantity,
-        branch: typeof lot.branch === "object" ? lot.branch.name : lot.branch,
-        createdAt: lot.createdAt,
-        overstock: lot.overstock === true,
-        createdBy: lot.createdBy || null,
-        batchNumber: lot.batchNumber || null,
-        serialNumber: lot.serialNumber || null,
+
+        expirationDate:
+          lot.expirationDate,
+
+        quantity:
+          lot.quantity,
+
+        branch:
+          typeof lot.branch === "object"
+            ? lot.branch?.name
+            : lot.branch,
+
+        createdAt:
+          lot.createdAt,
+
+        overstock:
+          lot.overstock === true,
+
+        createdBy:
+          lot.createdBy || null,
+
+        batchNumber:
+          lot.batchNumber || null,
+
+        serialNumber:
+          lot.serialNumber || null,
+
+        expirationLists:
+          Array.isArray(lot.expirationLists)
+            ? lot.expirationLists.map(
+                (list) => ({
+                  _id: list._id,
+                  name: list.name,
+                })
+              )
+            : [],
       });
     }
 
-    const result = Object.values(grouped);
+    const result =
+      Object.values(grouped);
+
     res.json(result);
   } catch (err) {
-    console.error("Error al obtener productos:", err);
-    res.status(500).json({ message: "Error al obtener productos" });
+    console.error(
+      "Error al obtener productos:",
+      err
+    );
+
+    res.status(500).json({
+      message:
+        "Error al obtener productos",
+    });
   }
 };
 

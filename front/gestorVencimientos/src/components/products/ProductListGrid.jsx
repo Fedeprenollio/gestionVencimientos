@@ -23,6 +23,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import useLoading from "../../hooks/useLoading";
 import CircularProgress from "@mui/material/CircularProgress";
 import FullPageLoader from "../shared/FullPageLoader.jsx";
+import { getEAN } from "../../../utils/productHelpers.js";
 
 const modalStyle = {
   position: "absolute",
@@ -146,7 +147,7 @@ export default function ProductListGrid() {
 
   const columns = [
     { field: "name", headerName: "Nombre", flex: 1 },
-    { field: "barcode", headerName: "Código", width: 150 },
+    { field: "barcode", headerName: "Código", width: 150,valueGetter: (value, row) => getEAN(row) || row.barcode || "", },
     { field: "type", headerName: "Tipo", width: 130 },
     {
       field: "actions",
@@ -281,27 +282,6 @@ export default function ProductListGrid() {
         }}
       />
 
-      {/* <DataGrid
-        rows={products}
-        columns={columns}
-        getRowId={(row) => row._id}
-        pageSize={10}
-        rowsPerPageOptions={[10, 20, 50]}
-        checkboxSelection
-        onRowSelectionModelChange={(newSelection) => {
-          console.log("newSelection", newSelection);
-          // Compatible con estructura actual del modelo de selección
-          if (newSelection?.ids && newSelection.ids instanceof Set) {
-            setSelectedIds(Array.from(newSelection.ids));
-          } else if (Array.isArray(newSelection)) {
-            setSelectedIds(newSelection); // fallback si es un array
-          } else {
-            setSelectedIds([]); // fallback seguro
-          }
-        }}
-        // rowSelectionModel={selectedIds}
-        disableRowSelectionOnClick
-      /> */}
 
       {/* Modal de edición */}
       <Modal open={!!editingProduct} onClose={() => setEditingProduct(null)}>

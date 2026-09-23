@@ -355,7 +355,7 @@ export default function SearchStockPage() {
         </Typography>
 
         <Button variant="outlined" component="label">
-          Subir Excel
+          Subir Excel...
           <input
             type="file"
             accept=".xlsx, .xls, .csv"
