@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import { getEAN } from './productHelpers';
 dayjs.extend(utc)
 export const formatDate = (isoString) => {
   return dayjs.utc(isoString).format('MM/YYYY');
@@ -21,7 +22,7 @@ export function exportToExcel(products) {
   products.forEach((prod) => {
     prod.lots.forEach((lot) => {
       rows.push({
-        Codigo: prod.barcode,
+        Codigo: getEAN(prod) || prod.barcode || "",
         Producto: prod.name,
         Tipo: prod.type,
         Sucursal: lot.branch,

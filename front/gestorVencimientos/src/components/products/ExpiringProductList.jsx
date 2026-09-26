@@ -36,6 +36,7 @@ import useSnackbar from "../../hooks/useSnackbar";
 import AppSnackbar from "../shared/AppSnackbar";
 import useLoading from "../../hooks/useLoading";
 import FullPageLoader from "../shared/FullPageLoader";
+import { getEAN } from "../../../utils/productHelpers";
 
 export default function ExpiringProductList() {
   const [products, setProducts] = useState([]);
@@ -171,7 +172,7 @@ export default function ExpiringProductList() {
 
         flat.push({
           productName: prod.name || "",
-          barcode: prod.barcode || "",
+          barcode: getEAN(prod) || prod.barcode || "",
 
           createdBy:
             lot.createdBy?.username || "",
