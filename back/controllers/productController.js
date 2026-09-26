@@ -991,7 +991,6 @@ export const getExpiringProducts = async (req, res) => {
     });
   }
 };
-```
 
 
 export const searchProductsByName = async (req, res) => {
