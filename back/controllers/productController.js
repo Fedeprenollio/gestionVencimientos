@@ -779,7 +779,7 @@ export const getExpiringProductsLotesComoString = async (req, res) => {
 // };
 
 
-```js
+
 export const getExpiringProducts = async (req, res) => {
   const {
     from,
