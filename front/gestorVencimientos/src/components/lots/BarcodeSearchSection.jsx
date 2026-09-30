@@ -22,9 +22,8 @@ export default function BarcodeSearchSection({
   setScanning,
   barcodeInputRef,
   isAddMode,
-  }) {
-
-console.log("LLEGA?")
+}) {
+  console.log("Estado scanning:", scanning);
 
   return (
     <Box
@@ -92,9 +91,17 @@ console.log("LLEGA?")
           </Grid>
 
           <Grid item>
-            <Button variant="outlined" onClick={() => setScanning(true)}>
-              Escanear
-            </Button>
+            <Button
+  type="button"
+  variant="contained"
+  color="primary"
+  onClick={() => {
+    console.log("Abriendo BarcodeScanner...");
+    setScanning(true);
+  }}
+>
+  Escanear
+</Button>
           </Grid>
         </Grid>
       </form>
@@ -106,5 +113,7 @@ console.log("LLEGA?")
         />
       )}
     </Box>
+    
   );
+  
 }

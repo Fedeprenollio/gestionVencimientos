@@ -55,7 +55,7 @@ export default function AddProductsLocal() {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [missingBarcodes, setMissingBarcodes] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
-
+const [scanning, setScanning] = useState(false);
   const queryClient = useQueryClient();
 
   const showFeedback = (message, severity = "success") => {
@@ -309,8 +309,8 @@ export default function AddProductsLocal() {
         setProductExists={setProductExists}
         handleSearch={handleSearch}
         handleDetected={handleSearch}
-        scanning={false}
-        setScanning={() => {}}
+        scanning={scanning}
+setScanning={setScanning}
         barcodeInputRef={barcodeInputRef}
         setProductInfo={setProductInfo}
         isAddMode={true}
