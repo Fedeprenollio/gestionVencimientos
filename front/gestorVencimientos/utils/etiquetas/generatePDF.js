@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import { generateBarcodeImage } from "../generateBarcodeImage";
 import dayjs from "dayjs";
+import { getEAN } from "../productHelpers";
 
 const hasDiscount = (p) => {
   return p?.discount && Number(p.discount) > 0;
@@ -94,18 +95,36 @@ export const generatePDF_Clasicas = ({ clasicos }) => {
     doc.setTextColor(0);
     doc.text(`${integerPrice}`, x + etiquetaAncho - precioXOffset, y + 23.1);
 
-    if (p.barcode) {
-      const barcodeImg = generateBarcodeImage(p.barcode);
-      const barcodeHeight = 4;
-      const barcodeY = y + 23.5;
-      doc.addImage(barcodeImg, "PNG", x + 5, barcodeY, 40, barcodeHeight);
+    // if (p.barcode) {
+    //   const barcodeImg = generateBarcodeImage(p.barcode);
+    //   const barcodeHeight = 4;
+    //   const barcodeY = y + 23.5;
+    //   doc.addImage(barcodeImg, "PNG", x + 5, barcodeY, 40, barcodeHeight);
 
-      doc.setFontSize(7);
-      doc.setTextColor(0);
-      const barcodeTextWidth = doc.getTextWidth(p.barcode);
-      const barcodeTextX = x + 5 + (40 - barcodeTextWidth) / 2;
-      doc.text(p.barcode, barcodeTextX, barcodeY + barcodeHeight + 1.5);
-    }
+    //   doc.setFontSize(7);
+    //   doc.setTextColor(0);
+    //   const barcodeTextWidth = doc.getTextWidth(p.barcode);
+    //   const barcodeTextX = x + 5 + (40 - barcodeTextWidth) / 2;
+    //   doc.text(p.barcode, barcodeTextX, barcodeY + barcodeHeight + 1.5);
+    // }
+
+    const ean = getEAN(p);
+
+if (ean) {
+  const barcodeImg = generateBarcodeImage(ean);
+  const barcodeHeight = 4;
+  const barcodeY = y + 23.5;
+
+  doc.addImage(barcodeImg, "PNG", x + 5, barcodeY, 40, barcodeHeight);
+
+  doc.setFontSize(7);
+  doc.setTextColor(0);
+
+  const barcodeTextWidth = doc.getTextWidth(ean);
+  const barcodeTextX = x + 5 + (40 - barcodeTextWidth) / 2;
+
+  doc.text(ean, barcodeTextX, barcodeY + barcodeHeight + 1.5);
+}
 
     doc.setTextColor(0);
   });
@@ -153,7 +172,6 @@ const loadImageBase64 = async (url) => {
 
 export const generatePDF_Grandes = async ({ especiales, scale = 0.5 }) => {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-
   // 🔁 Aplico factor de escala
   const etiquetaAncho = 70 * scale;
   const etiquetaAlto = 104 * scale;
@@ -387,25 +405,46 @@ export const generatePDF_Grandes = async ({ especiales, scale = 0.5 }) => {
     }
 
     // Código de barras
-    if (p.barcode) {
-      const barcodeImg = generateBarcodeImage(p.barcode);
-      const barcodeY = y + etiquetaAlto - 20 * scale;
+    // if (p.barcode) {
+    //   const barcodeImg = generateBarcodeImage(p.barcode);
+    //   const barcodeY = y + etiquetaAlto - 20 * scale;
 
-      doc.addImage(
-        barcodeImg,
-        "PNG",
-        x + 8 * scale,
-        barcodeY,
-        etiquetaAncho - 16 * scale,
-        10 * scale,
-      );
-      doc.setFontSize(8 * scale);
-      doc.setTextColor(80);
-      doc.text(p.barcode, x + etiquetaAncho / 2, barcodeY + 12 * scale, {
-        align: "center",
-      });
-    }
+    //   doc.addImage(
+    //     barcodeImg,
+    //     "PNG",
+    //     x + 8 * scale,
+    //     barcodeY,
+    //     etiquetaAncho - 16 * scale,
+    //     10 * scale,
+    //   );
+    //   doc.setFontSize(8 * scale);
+    //   doc.setTextColor(80);
+    //   doc.text(p.barcode, x + etiquetaAncho / 2, barcodeY + 12 * scale, {
+    //     align: "center",
+    //   });
+    // }
+// Código de barras
+const ean = getEAN(p);
 
+if (ean) {
+  const barcodeImg = generateBarcodeImage(ean);
+  const barcodeY = y + etiquetaAlto - 20 * scale;
+
+  doc.addImage(
+    barcodeImg,
+    "PNG",
+    x + 8 * scale,
+    barcodeY,
+    etiquetaAncho - 16 * scale,
+    10 * scale,
+  );
+
+  doc.setFontSize(8 * scale);
+  doc.setTextColor(80);
+  doc.text(ean, x + etiquetaAncho / 2, barcodeY + 12 * scale, {
+    align: "center",
+  });
+}
     // Fecha
     const fecha = dayjs().format("DD/MM/YYYY");
     doc.setFontSize(7 * scale);

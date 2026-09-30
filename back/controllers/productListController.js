@@ -1542,26 +1542,33 @@ export const getUploadLogs = async (req, res) => {
   }
 };
 
-// controllers/uploadLogsController.js
 
 // export const getUploadLogsByBranch = async (req, res) => {
 //   try {
-//     const { branchId } = req.query;
+//     const { branchId, search = "" } = req.query;
 //     const page = parseInt(req.query.page) || 1;
 //     const limit = parseInt(req.query.limit) || 10;
 //     const skip = (page - 1) * limit;
 
 //     // 1. Buscar listas de la sucursal
-//     const lists = await ProductList.find({branch: branchId }).select('_id');
-//     const listIds = lists.map(list => list._id);
-// console.log("lists",lists)
-//     // 2. Buscar logs de esas listas
+//     const lists = await ProductList.find({ branch: branchId }).select("_id");
+//     const listIds = lists.map((list) => list._id);
+
+//     // 2. Armar filtro para logs
+//     const filter = { listId: { $in: listIds } };
+
+//     // Si viene búsqueda, agregamos filtro por nombre de lista
+//     if (search.trim() !== "") {
+//       filter.listName = { $regex: search.trim(), $options: "i" };
+//     }
+
+//     // 3. Buscar logs con paginación y total
 //     const [logs, total] = await Promise.all([
-//       PriceUploadLog.find({ listId: { $in: listIds } })
+//       PriceUploadLog.find(filter)
 //         .sort({ createdAt: -1 })
 //         .skip(skip)
 //         .limit(limit),
-//       PriceUploadLog.countDocuments({ listId: { $in: listIds } }),
+//       PriceUploadLog.countDocuments(filter),
 //     ]);
 
 //     res.json({ logs, total });
@@ -1584,7 +1591,6 @@ export const getUploadLogsByBranch = async (req, res) => {
     // 2. Armar filtro para logs
     const filter = { listId: { $in: listIds } };
 
-    // Si viene búsqueda, agregamos filtro por nombre de lista
     if (search.trim() !== "") {
       filter.listName = { $regex: search.trim(), $options: "i" };
     }
@@ -1594,17 +1600,64 @@ export const getUploadLogsByBranch = async (req, res) => {
       PriceUploadLog.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       PriceUploadLog.countDocuments(filter),
     ]);
 
-    res.json({ logs, total });
+    // 4. Recopilar todos los códigos de los productos de los logs
+    const allProducts = logs.flatMap((log) => [
+      ...(log.priceIncreased || []),
+      ...(log.priceDecreased || []),
+      ...(log.firstTimeSet || []),
+      ...(log.priceUnchanged || []),
+    ]);
+
+    const barcodes = [
+      ...new Set(
+        allProducts
+          .map((p) => p.barcode)
+          .filter(Boolean)
+          .map(String)
+      ),
+    ];
+
+    // 5. Buscar productos en la colección Product
+    const products = await Product.find({
+      barcode: { $in: barcodes },
+    })
+      .select("barcode alternateBarcodes")
+      .lean();
+
+    // 6. Crear un mapa para encontrar rápidamente los códigos alternativos
+    const productMap = new Map(
+      products.map((p) => [
+        String(p.barcode),
+        p.alternateBarcodes || [],
+      ])
+    );
+
+    // 7. Agregar alternateBarcodes a cada producto del historial
+    const enrichProducts = (items = []) =>
+      items.map((p) => ({
+        ...p,
+        alternateBarcodes: productMap.get(String(p.barcode)) || [],
+      }));
+
+    const enrichedLogs = logs.map((log) => ({
+      ...log,
+      priceIncreased: enrichProducts(log.priceIncreased),
+      priceDecreased: enrichProducts(log.priceDecreased),
+      firstTimeSet: enrichProducts(log.firstTimeSet),
+      priceUnchanged: enrichProducts(log.priceUnchanged),
+    }));
+
+    res.json({ logs: enrichedLogs, total });
   } catch (error) {
     console.error("Error al obtener logs por sucursal:", error);
     res.status(500).json({ message: "Error del servidor" });
   }
 };
-
 
 export const getUploadLogsByBranchGroupedByDate = async (req, res) => {
   try {

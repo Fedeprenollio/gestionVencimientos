@@ -8,8 +8,8 @@ export const getEAN = (product) => {
     : [];
 
   if (codes.length === 0) return "";
-
   // En nuestro sistema, el EAN es el código más largo
+  
   return codes.reduce((longest, code) =>
     code.length > longest.length ? code : longest
   );
