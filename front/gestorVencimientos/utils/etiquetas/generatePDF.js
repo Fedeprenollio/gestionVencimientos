@@ -425,7 +425,7 @@ export const generatePDF_Grandes = async ({ especiales, scale = 0.5 }) => {
     // }
 // Código de barras
 const ean = getEAN(p);
-
+console.log("CODIGO USADO", ean)
 if (ean) {
   const barcodeImg = generateBarcodeImage(ean);
   const barcodeY = y + etiquetaAlto - 20 * scale;

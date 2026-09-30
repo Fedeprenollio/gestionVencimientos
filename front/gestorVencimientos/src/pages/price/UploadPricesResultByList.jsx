@@ -1,330 +1,3 @@
-
-// import React, { useMemo, useState } from "react";
-// import {
-//   Box,
-//   Typography,
-//   Paper,
-//   Chip,
-//   Button,
-//   Table,
-//   TableBody,
-//   TableCell,
-//   TableContainer,
-//   TableHead,
-//   TableRow,
-//   TextField,
-//   FormGroup,
-//   FormControlLabel,
-//   Checkbox,
-//   Divider,
-// } from "@mui/material";
-// import { UploadFile, Inventory2 } from "@mui/icons-material";
-// import { exportToTXT } from "../../../utils/exportUtils";
-
-// const CATEGORY = {
-//   AUMENTO: "Aumentos",
-//   BAJA: "Bajas",
-//   PRIMERA: "Primera etiqueta",
-//   SIN_CAMBIO: "Sin cambios",
-//   FALTANTE: "No encontrados en Excel",
-// };
-
-// const CATEGORY_ORDER = ["AUMENTO", "BAJA", "PRIMERA", "SIN_CAMBIO", "FALTANTE"];
-
-// const getCategoryChipProps = (categoryKey) => {
-//   switch (categoryKey) {
-//     case "AUMENTO":
-//       return { label: "Aumento", color: "success" };
-//     case "BAJA":
-//       return { label: "Baja", color: "error" };
-//     case "PRIMERA":
-//       return { label: "Primera", color: "info" };
-//     case "SIN_CAMBIO":
-//       return { label: "Sin cambio", color: "default" };
-//     case "FALTANTE":
-//       return { label: "Faltante", color: "warning" };
-//     default:
-//       return { label: "Otro", color: "default" };
-//   }
-// };
-
-// const formatPrice = (value) => {
-//   if (value === null || value === undefined || Number.isNaN(value)) return "—";
-//   return `$${Number(value).toFixed(2)}`;
-// };
-
-// export default function UploadPricesResultByList({ data }) {
-//   const defaultCategoryState = {
-//     AUMENTO: true,
-//     BAJA: true,
-//     PRIMERA: true,
-//     SIN_CAMBIO: false,
-//     FALTANTE: true,
-//   };
-
-//   const [selectedCategoriesByList, setSelectedCategoriesByList] = useState({});
-
-//   const [search, setSearch] = useState("");
-
-//   if (!data || !data.lists || data.lists.length === 0) {
-//     return <Typography>No hay resultados para mostrar.</Typography>;
-//   }
-
-//   const toggleCategory = (listId, key) => {
-//     setSelectedCategoriesByList((prev) => {
-//       const current = prev[listId] || defaultCategoryState;
-
-//       return {
-//         ...prev,
-//         [listId]: {
-//           ...current,
-//           [key]: !current[key],
-//         },
-//       };
-//     });
-//   };
-
-//   const buildRows = (list) => {
-//     const increased =
-//       list.priceIncreased?.map((p) => ({ ...p, category: "AUMENTO" })) || [];
-//     const decreased =
-//       list.priceDecreased?.map((p) => ({ ...p, category: "BAJA" })) || [];
-//     const firstTime =
-//       list.firstTimeSet?.map((p) => ({ ...p, category: "PRIMERA" })) || [];
-//     const unchanged =
-//       list.priceUnchanged?.map((p) => ({ ...p, category: "SIN_CAMBIO" })) || [];
-//     const missing =
-//       list.missingInImport?.map((p) => ({ ...p, category: "FALTANTE" })) || [];
-
-//     return [...increased, ...decreased, ...firstTime, ...unchanged, ...missing];
-//   };
-
-//   const handleExport = (rows, listName) => {
-//     const barcodes = rows.map((p) => p.barcode).filter(Boolean);
-
-//     if (barcodes.length === 0) return;
-
-//     exportToTXT(barcodes, `etiquetas_${listName.replace(/\s+/g, "_")}.txt`);
-//   };
-
-//   return (
-//     <Box mt={3}>
-//       <Typography variant="h6" fontWeight={700} gutterBottom color="primary">
-//         ✅ {data.message || "Importación aplicada"}
-//       </Typography>
-
-//       {data.lists.map((list) => {
-//         const allRows = buildRows(list);
-//         const selectedCategories =
-//           selectedCategoriesByList[list.listId] || defaultCategoryState;
-
-//        const s = search.trim().toLowerCase();
-
-// const filteredRows = allRows
-//   .filter((p) => selectedCategories[p.category])
-//   .filter((p) => {
-//     if (!s) return true;
-//     const name = (p.name || "").toLowerCase();
-//     const barcode = String(p.barcode || "").toLowerCase();
-//     return name.includes(s) || barcode.includes(s);
-//   })
-//   .sort((a, b) => {
-//     const ca = CATEGORY_ORDER.indexOf(a.category);
-//     const cb = CATEGORY_ORDER.indexOf(b.category);
-//     if (ca !== cb) return ca - cb;
-//     return (a.name || "").localeCompare(b.name || "");
-//   });
-
-//         const counts = {
-//           AUMENTO: list.priceIncreased?.length || 0,
-//           BAJA: list.priceDecreased?.length || 0,
-//           PRIMERA: list.firstTimeSet?.length || 0,
-//           SIN_CAMBIO: list.priceUnchanged?.length || 0,
-//           FALTANTE: list.missingInImport?.length || 0,
-//         };
-
-//         return (
-//           <Paper
-//             key={list.listId}
-//             variant="outlined"
-//             sx={{
-//               p: 3,
-//               mb: 4,
-//               borderRadius: 3,
-//               backgroundColor: "#fcfcfc",
-//             }}
-//           >
-//             {/* HEADER */}
-//             <Box
-//               display="flex"
-//               justifyContent="space-between"
-//               alignItems="center"
-//               gap={2}
-//               flexWrap="wrap"
-//               mb={2}
-//             >
-//               <Box display="flex" alignItems="center" gap={1}>
-//                 <Inventory2 color="primary" />
-//                 <Typography variant="subtitle1" fontWeight={800}>
-//                   Lista: {list.listName}
-//                 </Typography>
-//               </Box>
-
-//               <Button
-//                 size="small"
-//                 variant="contained"
-//                 startIcon={<UploadFile />}
-//                 onClick={() => handleExport(filteredRows, list.listName)}
-//                 disabled={filteredRows.length === 0}
-//               >
-//                 Exportar filtrados ({filteredRows.length})
-//               </Button>
-//             </Box>
-
-//             {/* FILTERS */}
-//             <Box mb={2}>
-//               <Typography variant="body2" color="text.secondary" mb={1}>
-//                 Filtrar categorías (y exportar sólo lo seleccionado):
-//               </Typography>
-
-//               <FormGroup row>
-//                 {Object.keys(CATEGORY).map((key) => (
-//                   <FormControlLabel
-//                     key={key}
-//                     control={
-//                       <Checkbox
-//                         checked={selectedCategories[key]}
-//                         onChange={() => toggleCategory(list.listId, key)}
-
-//                       />
-//                     }
-//                     label={`${CATEGORY[key]} (${counts[key]})`}
-//                   />
-//                 ))}
-//               </FormGroup>
-//             </Box>
-
-//             {/* SEARCH */}
-//             <Box mb={2}>
-//               <TextField
-//                 fullWidth
-//                 size="small"
-//                 label="Buscar por nombre o código de barras"
-//                 value={search}
-//                 onChange={(e) => setSearch(e.target.value)}
-//               />
-//             </Box>
-
-//             <Divider sx={{ mb: 2 }} />
-
-//             {/* TABLE */}
-//             <TableContainer component={Paper} variant="outlined">
-//               <Table size="small">
-//                 <TableHead>
-//                   <TableRow sx={{ backgroundColor: "#f3f3f3" }}>
-//                     <TableCell>
-//                       <strong>Categoría</strong>
-//                     </TableCell>
-//                     <TableCell>
-//                       <strong>Producto</strong>
-//                     </TableCell>
-//                     <TableCell>
-//                       <strong>Código</strong>
-//                     </TableCell>
-//                     <TableCell align="right">
-//                       <strong>Precio anterior</strong>
-//                     </TableCell>
-//                     <TableCell align="right">
-//                       <strong>Precio nuevo</strong>
-//                     </TableCell>
-//                     <TableCell>
-//                       <strong>Última etiqueta</strong>
-//                     </TableCell>
-//                   </TableRow>
-//                 </TableHead>
-
-//                 <TableBody>
-//                   {filteredRows.length === 0 ? (
-//                     <TableRow>
-//                       <TableCell colSpan={6}>
-//                         <Typography variant="body2" color="text.secondary">
-//                           No hay productos para mostrar con los filtros
-//                           actuales.
-//                         </Typography>
-//                       </TableCell>
-//                     </TableRow>
-//                   ) : (
-//                     filteredRows.map((p, idx) => {
-//                       const chipProps = getCategoryChipProps(p.category);
-
-//                       // ✅ ACA EL CAMBIO:
-//                       const tagDate = p.lastTagDate || p.previousTagDate;
-
-//                       return (
-//                         <TableRow key={`${p.barcode}-${p.category}-${idx}`}>
-//                           <TableCell>
-//                             <Chip
-//                               size="small"
-//                               label={chipProps.label}
-//                               color={chipProps.color}
-//                               variant={
-//                                 p.category === "SIN_CAMBIO"
-//                                   ? "outlined"
-//                                   : "filled"
-//                               }
-//                             />
-//                           </TableCell>
-
-//                           <TableCell>{p.name || "Sin nombre"}</TableCell>
-
-//                           <TableCell>
-//                             <Typography
-//                               variant="body2"
-//                               sx={{ fontFamily: "monospace" }}
-//                             >
-//                               {p.barcode || "—"}
-//                             </Typography>
-//                           </TableCell>
-
-//                           <TableCell align="right">
-//                             {p.category === "PRIMERA" ||
-//                             p.category === "FALTANTE"
-//                               ? "—"
-//                               : formatPrice(p.oldPrice)}
-//                           </TableCell>
-
-//                           <TableCell align="right">
-//                             {p.category === "FALTANTE"
-//                               ? "—"
-//                               : formatPrice(p.newPrice ?? p.price)}
-//                           </TableCell>
-
-//                           <TableCell>
-//                             {tagDate ? (
-//                               new Date(tagDate).toLocaleDateString()
-//                             ) : (
-//                               <Typography
-//                                 variant="caption"
-//                                 color="text.secondary"
-//                               >
-//                                 Sin etiquetado
-//                               </Typography>
-//                             )}
-//                           </TableCell>
-//                         </TableRow>
-//                       );
-//                     })
-//                   )}
-//                 </TableBody>
-//               </Table>
-//             </TableContainer>
-//           </Paper>
-//         );
-//       })}
-//     </Box>
-//   );
-// }
-
 import React, { useMemo, useState } from "react";
 import {
   Box,
@@ -349,6 +22,7 @@ import {
 import { UploadFile, Inventory2, FileDownload } from "@mui/icons-material";
 import { exportToTXT } from "../../../utils/exportUtils";
 import { timeAgo } from "../../../utils/timeAgo";
+import { getEAN } from "../../../utils/productHelpers";
 
 const CATEGORY = {
   AUMENTO: "Aumentos",
@@ -476,14 +150,15 @@ export default function UploadPricesResultByList({ data }) {
         return (a.name || "").localeCompare(b.name || "");
       });
   };
+const handleExport = (rows, fileName) => {
+  const barcodes = rows
+    .map((p) => getEAN(p) || p.scannedBarcode || p.barcode)
+    .filter(Boolean);
 
-  const handleExport = (rows, fileName) => {
-    const barcodes = rows.map((p) => p.barcode).filter(Boolean);
+  if (barcodes.length === 0) return;
 
-    if (barcodes.length === 0) return;
-
-    exportToTXT(barcodes, fileName);
-  };
+  exportToTXT(barcodes, fileName);
+};
 
   // ✅ BOTÓN MAESTRO: exporta lo filtrado de TODAS las listas
   const masterExportRows = useMemo(() => {
@@ -502,18 +177,22 @@ export default function UploadPricesResultByList({ data }) {
     }
 
     // dedupe por barcode (para no exportar repetidos)
-    const seen = new Set();
-    const unique = [];
+   const seen = new Set();
+const unique = [];
 
-    for (const r of all) {
-      const bc = String(r.barcode || "").trim();
-      if (!bc) continue;
-      if (seen.has(bc)) continue;
-      seen.add(bc);
-      unique.push(r);
-    }
+for (const r of all) {
+  const bc = String(
+    getEAN(r) || r.scannedBarcode || r.barcode || ""
+  ).trim();
 
-    return unique;
+  if (!bc) continue;
+  if (seen.has(bc)) continue;
+
+  seen.add(bc);
+  unique.push(r);
+}
+
+return unique;
   }, [data.lists, filtersByList, search]);
 
   const totalFilteredCount = masterExportRows.length;
@@ -751,7 +430,7 @@ export default function UploadPricesResultByList({ data }) {
                               variant="body2"
                               sx={{ fontFamily: "monospace" }}
                             >
-                              {p.barcode || "—"}
+                              {getEAN(p) || p.scannedBarcode || p.barcode || "—"}
                             </Typography>
                           </TableCell>
 
