@@ -3,13 +3,14 @@ import StockCountList from "../models/StockCountList.js";
 import Product from "../models/Product.js";
 import Branch from "../models/Branch.js";
 import User from "../models/User.js";
+import { getEAN } from "../../front/gestorVencimientos/utils/productHelpers.js";
 
 // 1. Crear nueva lista de conteo
 export const createStockCountList = async (req, res) => {
   try {
     const { name, branchId, userId } = req.body;
 
-    console.log(name, branchId, userId )
+    console.log(name, branchId, userId);
     const newList = await StockCountList.create({
       name,
       branch: branchId,
@@ -24,7 +25,7 @@ export const createStockCountList = async (req, res) => {
 
 // 2. Obtener todas las listas (opcional: por sucursal o usuario)
 export const getAllStockCountLists = async (req, res) => {
-  console.log("ACA ENTRA")
+  console.log("ACA ENTRA");
   try {
     const { branch, user } = req.query;
     const filter = {};
@@ -67,9 +68,10 @@ export const getStockCountListById = async (req, res) => {
     console.log("ID", listId);
 
     const list = await StockCountList.findById(listId)
-       .populate({
+      .populate({
         path: "products.product",
-        select: "barcode name stock currentPrice priceHistory alternateBarcodes",
+        select:
+          "barcode name stock currentPrice priceHistory alternateBarcodes",
       })
       .populate("branch", "name location") // incluí "location" si la usás
       .populate("countedBy", "username");
@@ -91,13 +93,34 @@ export const addProductToStockCountList = async (req, res) => {
     const { listId } = req.params;
     const { barcode, quantity } = req.body;
 
-    const product = await Product.findOne({ barcode });
-    if (!product) return res.status(404).json({ message: "Producto no encontrado" });
+    const codigo = String(barcode ?? "").trim();
+    const codigoSinCeros = codigo.replace(/^0+/, "");
+
+    const codigosABuscar = [
+      ...new Set([codigo, codigoSinCeros].filter(Boolean)),
+    ];
+
+    const product = await Product.findOne({
+      $or: [
+        { barcode: { $in: codigosABuscar } },
+        { alternateBarcodes: { $in: codigosABuscar } },
+      ],
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        message: "Producto no encontrado",
+      });
+    }
+    if (!product)
+      return res.status(404).json({ message: "Producto no encontrado" });
 
     const list = await StockCountList.findById(listId);
     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
 
-    const existingItem = list.products.find((item) => item.product.equals(product._id));
+    const existingItem = list.products.find((item) =>
+      item.product.equals(product._id),
+    );
     if (existingItem) {
       existingItem.quantity += quantity;
     } else {
@@ -107,12 +130,12 @@ export const addProductToStockCountList = async (req, res) => {
     await list.save();
 
     // Volvemos a cargar la lista con populate para ver el nombre de productos
-    const updatedList = await StockCountList.findById(listId)
-      .populate("products.product");
+    const updatedList =
+      await StockCountList.findById(listId).populate("products.product");
 
     // Obtenemos el producto agregado para mostrarlo directamente
     const addedItem = updatedList.products.find((item) =>
-      item.product._id.equals(product._id)
+      item.product._id.equals(product._id),
     );
 
     res.json({
@@ -120,6 +143,7 @@ export const addProductToStockCountList = async (req, res) => {
       addedProduct: {
         nombre: product.name,
         barcode: product.barcode,
+        ean: getEAN(product),
         quantity: addedItem.quantity,
       },
       updatedList,
@@ -130,13 +154,13 @@ export const addProductToStockCountList = async (req, res) => {
   }
 };
 
-
 // 5. Eliminar lista
 export const deleteStockCountList = async (req, res) => {
   try {
     const { id } = req.params;
     const deleted = await StockCountList.findByIdAndDelete(id);
-    if (!deleted) return res.status(404).json({ message: "Lista no encontrada" });
+    if (!deleted)
+      return res.status(404).json({ message: "Lista no encontrada" });
     res.json({ message: "Lista eliminada" });
   } catch (err) {
     console.error("Error al eliminar lista:", err);
@@ -152,7 +176,7 @@ export const removeProductFromStockCountList = async (req, res) => {
     if (!list) return res.status(404).json({ message: "Lista no encontrada" });
 
     list.products = list.products.filter(
-      (item) => !item.product.equals(productId)
+      (item) => !item.product.equals(productId),
     );
 
     await list.save();
@@ -163,11 +187,10 @@ export const removeProductFromStockCountList = async (req, res) => {
   }
 };
 
-
 export const getStockCountListsByBranch = async (req, res) => {
   try {
     const { branchId } = req.params;
-console.log(branchId)
+    console.log(branchId);
     // Buscar listas que pertenezcan a la sucursal dada
     const lists = await StockCountList.find({ branch: branchId })
       .populate("branch", "name")
@@ -180,12 +203,11 @@ console.log(branchId)
   }
 };
 
-
 export const updateListStock = async (req, res) => {
   try {
-    const { name,branchId  } = req.body;
-    const {listId} = req.params;
-      console.log("branchId",branchId)
+    const { name, branchId } = req.body;
+    const { listId } = req.params;
+    console.log("branchId", branchId);
 
     if (!name) {
       return res.status(400).json({ message: "El nombre es requerido" });
@@ -195,7 +217,7 @@ export const updateListStock = async (req, res) => {
       listId,
       { name, branch: branchId },
 
-      { new: true }
+      { new: true },
     );
 
     if (!updated) {
@@ -207,4 +229,4 @@ export const updateListStock = async (req, res) => {
     console.error("Error al editar lista:", error);
     res.status(500).json({ message: "Error al editar la lista" });
   }
-}
+};

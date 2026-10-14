@@ -16,6 +16,7 @@ import api from "../../api/axiosInstance";
 import { useParams } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { getEAN } from "../../../utils/productHelpers";
 
 export default function QuickStockCount() {
   const { listId } = useParams();
@@ -25,13 +26,11 @@ export default function QuickStockCount() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [listInfo, setListInfo] = useState(null); // nombre, sucursal, fecha
-console.log("ITEM", items)
   useEffect(() => {
     const fetchList = async () => {
       try {
         const res = await api.get(`/stock-count/${listId}`);
         const data = res;
-console.log("FATA",data)
         setListInfo({
           name: data.name || "Sin nombre",
           branch: data.branch?.name || "Sucursal desconocida",
@@ -39,10 +38,10 @@ console.log("FATA",data)
         });
 
         const loadedItems = data.products.map((item) => ({
-          barcode: item.product?.barcode || "Desconocido",
-          name: item.product?.name || "Desconocido",
-          quantity: item.quantity,
-        }));
+  barcode: item.product ? getEAN(item.product) : "Desconocido",
+  name: item.product?.name || "Desconocido",
+  quantity: item.quantity,
+}));
         setItems(loadedItems);
       } catch (err) {
         console.error("Error cargando lista:", err);
@@ -53,26 +52,7 @@ console.log("FATA",data)
     fetchList();
   }, [listId]);
 
-  // ✅ Al montar, traemos los productos ya cargados
-//   useEffect(() => {
-//     const fetchList = async () => {
-//       try {
-//         const res = await api.get(`/stock-count/${listId}`);
-//         const loadedItems = res.products.map((item) => ({
-//           barcode: item.product?.barcode || "Desconocido",
-//           quantity: item.quantity,
-//           name: item.product?.name || "Desconocido",
-//         }));
-//         setItems(loadedItems);
-//       } catch (err) {
-//         console.error("Error cargando lista:", err);
-//         setError("Error al cargar productos ya registrados");
-//       }
-//     };
-
-//     fetchList();
-//   }, [listId]);
-
+ 
 
  const exportToExcel = () => {
   const worksheetData = [
@@ -90,7 +70,11 @@ console.log("FATA",data)
 
   const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
   const data = new Blob([excelBuffer], { type: "application/octet-stream" });
-  saveAs(data, `Recuento_stock_${listId}.xlsx`);
+ const nombreArchivo = (listInfo?.name || "Recuento_stock")
+  .replace(/[<>:"/\\|?*]/g, "_")
+  .trim();
+
+saveAs(data, `${nombreArchivo} conteo.xlsx`);
 };
 
   const handleAdd = async () => {
@@ -107,21 +91,38 @@ console.log("FATA",data)
       barcode,
       quantity: parseInt(quantity),
     });
-    console.log("RESSSS", res)
+    
     const { addedProduct } = res;
 
-    const existingIndex = items.findIndex((item) => item.barcode === barcode);
-    if (existingIndex >= 0) {
-      const updated = [...items];
-      updated[existingIndex].quantity += parseInt(quantity);
-      setItems(updated);
-    } else {
-      setItems([...items, {
-        barcode: addedProduct.barcode,
-        quantity: addedProduct.quantity,
-        name: addedProduct.nombre,
-      }]);
-    }
+   const normalizeBarcode = (code) =>
+  String(code ?? "").trim().replace(/^0+/, "");
+
+const existingIndex = items.findIndex(
+  (item) =>
+    normalizeBarcode(item.barcode) ===
+    normalizeBarcode(addedProduct.barcode)
+);
+
+if (existingIndex >= 0) {
+  const updated = [...items];
+
+  // Usamos la cantidad total que devuelve el backend
+  updated[existingIndex] = {
+    ...updated[existingIndex],
+    quantity: addedProduct.quantity,
+  };
+
+  setItems(updated);
+} else {
+  setItems((prev) => [
+    ...prev,
+    {
+       barcode: addedProduct.ean || addedProduct.barcode,
+      quantity: addedProduct.quantity,
+      name: addedProduct.nombre,
+    },
+  ]);
+}
 
     setMessage("Producto registrado");
     // playBeep();
@@ -161,6 +162,9 @@ console.log("FATA",data)
       >
         <Typography variant="subtitle1" gutterBottom>
           Escaneá productos
+        </Typography>
+        <Typography variant="subtitle1" gutterBottom>
+          (Valo negativo resta unidades)
         </Typography>
 
         <Box
