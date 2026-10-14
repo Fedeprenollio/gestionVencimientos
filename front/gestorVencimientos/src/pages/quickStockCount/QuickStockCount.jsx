@@ -77,58 +77,64 @@ export default function QuickStockCount() {
 saveAs(data, `${nombreArchivo} conteo.xlsx`);
 };
 
-  const handleAdd = async () => {
+ const normalizeBarcode = (code) =>
+  String(code ?? "").trim().replace(/^0+/, "");
+
+const handleAdd = async () => {
   setError("");
   setMessage("");
 
-  if (!barcode || quantity === 0) {
+  if (!barcode.trim() || quantity === 0) {
     setError("Ingresá un código válido y una cantidad distinta de 0");
     return;
   }
 
   try {
     const res = await api.post(`/stock-count/${listId}/add-product`, {
-      barcode,
-      quantity: parseInt(quantity),
+      barcode: barcode.trim(),
+      quantity: parseInt(quantity, 10),
     });
-    
+
     const { addedProduct } = res;
 
-   const normalizeBarcode = (code) =>
-  String(code ?? "").trim().replace(/^0+/, "");
+    // Buscamos si el producto ya está en la tabla,
+    // ignorando los ceros iniciales del código.
+    const existingIndex = items.findIndex(
+      (item) =>
+        normalizeBarcode(item.barcode) ===
+        normalizeBarcode(addedProduct.ean || addedProduct.barcode)
+    );
 
-const existingIndex = items.findIndex(
-  (item) =>
-    normalizeBarcode(item.barcode) ===
-    normalizeBarcode(addedProduct.barcode)
-);
-
-if (existingIndex >= 0) {
-  const updated = [...items];
-
-  // Usamos la cantidad total que devuelve el backend
-  updated[existingIndex] = {
-    ...updated[existingIndex],
-    quantity: addedProduct.quantity,
-  };
-
-  setItems(updated);
-} else {
-  setItems((prev) => [
-    ...prev,
-    {
-       barcode: addedProduct.ean || addedProduct.barcode,
-      quantity: addedProduct.quantity,
-      name: addedProduct.nombre,
-    },
-  ]);
-}
+    if (existingIndex >= 0) {
+      // Actualizamos la cantidad total que devuelve el backend.
+      setItems((prev) =>
+        prev.map((item, index) =>
+          index === existingIndex
+            ? {
+                ...item,
+                quantity: addedProduct.quantity,
+              }
+            : item
+        )
+      );
+    } else {
+      // Si no existe, agregamos una nueva fila.
+      setItems((prev) => [
+        ...prev,
+        {
+          barcode: addedProduct.ean || addedProduct.barcode,
+          quantity: addedProduct.quantity,
+          name: addedProduct.nombre,
+        },
+      ]);
+    }
 
     setMessage("Producto registrado");
-    // playBeep();
   } catch (err) {
     console.error(err);
-    setError(err.response?.data?.message || "Error al agregar producto");
+    setError(
+      err.response?.data?.message || "Error al agregar producto"
+    );
   } finally {
     setQuantity(1);
     setBarcode("");
