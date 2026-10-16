@@ -152,7 +152,6 @@ const EtiquetasTable = ({
     };
   };
 
- 
   // =========================
   // Filtro por búsqueda + origen
   // =========================
@@ -240,6 +239,14 @@ const EtiquetasTable = ({
 
   const clearSelected = () => {
     setSelectedIds(new Set());
+  };
+
+  const selectWithStock = () => {
+    const idsConStock = productosFiltrados
+      .filter((p) => Number(p.stock) > 0)
+      .map((p) => p._id);
+
+    setSelectedIds(new Set(idsConStock));
   };
 
   // =========================
@@ -429,6 +436,14 @@ const EtiquetasTable = ({
             disabled={productosFiltrados.length === 0}
           >
             Seleccionar todos
+          </Button>
+          <Button
+            variant="outlined"
+            color="success"
+            onClick={selectWithStock}
+            disabled={productosFiltrados.every((p) => !(Number(p.stock) > 0))}
+          >
+            Seleccionar con stock
           </Button>
 
           <Button
